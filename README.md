@@ -18,9 +18,9 @@ require( 'pareto_security.php' );
 
 Change these settings at the tops of the class file:
 ```
-   protected $_nonGETPOSTReqs = o;
-   protected $_open_basedir = o;
-   protected $_banip = o;
+   protected $_nonGETPOSTReqs = 0;
+   protected $_open_basedir = 0;
+   protected $_banip = 0;
    protected $_quietscript = 0;
    protected $_doc_root = '';
 ```
