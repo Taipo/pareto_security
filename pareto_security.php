@@ -13,6 +13,7 @@
     
  class ParetoSecurity {
 
+   # protect from non-standard request types
    protected $_nonGETPOSTReqs = 0;
    # if open_basedir is not set in php.ini. Leave disabled unless you are sure about using this.
    protected $_open_basedir = 0; 
