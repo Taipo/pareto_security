@@ -3,7 +3,7 @@
 /**
  * @package Pareto Security Class for Joomla / WordPress / osCommerce and more
  * @author Hokioi Security <hokioi-security@riseup.net>
- * @bitcoin:1BkbNA1tK3q7ZRkCJj6f1ELK2A152eEtoW
+ * @bitcoin:1BkbNA1tK3q7ZRkCJj6f1ELK2A152eEtoW 
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @version $Id: pareto_security.php 1.0.0
@@ -425,7 +425,7 @@
        }
        # Quirky Wordpress Exploit
        if ( isset( $_GET[ '_wp_http_referer' ] ) &&
-            ( $this->getPHP_SELF() == 'edit-tags.php' || $this->getPHP_SELF() == 'edit-comments.php' || $this->getPHP_SELF() == 'index.php' ) &&
+            ( $this->getPHP_SELF() == '/edit-tags.php' || $this->getPHP_SELF() == '/edit-comments.php' || $this->getPHP_SELF() == '/index.php' ) &&
             ( false === strpos( str_replace( 'http://', '', $_GET[ '_wp_http_referer' ] ), $this->_httphost ) ) &&
             ( false === strpos( str_replace( 'http://', '', $_GET[ '_wp_http_referer' ] ),  $this->getPHP_SELF() ) ) ) {
             # action delete selected checked user submitted posts plugin status inactive paged wpnonce
@@ -696,15 +696,15 @@
        if (is_array( $matches ) &&
            array_key_exists( 0, $matches ) &&
            ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) &&
-           ( false !== $this->checkfilename( $matches[ 0 ] ) ) &&
+          ( false !== $this->checkfilename( $matches[ 0 ] ) ) &&
            ( is_readable( $matches[ 0 ] ) ) ) {
            $filename = $matches[ 0 ];
        } else $filename = NULL;
        if ( !empty( $filename ) ) {
            return $filename;
        } else {
-           $req = parse_url( $_SERVER[ 'SCRIPT_NAME' ] );
-           return $req[ 'path' ];
+        $req = parse_url( $_SERVER[ 'SCRIPT_NAME' ] );
+        return $req[ 'path' ];
        }
    }
 
