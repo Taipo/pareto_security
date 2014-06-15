@@ -702,7 +702,8 @@
        if ( !empty( $filename ) ) {
            return $filename;
        } else {
-           return $this->_default;
+           $req = parse_url( $_SERVER[ 'SCRIPT_NAME' ] );
+           return $req[ 'path' ];
        }
    }
 
