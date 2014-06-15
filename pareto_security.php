@@ -3,6 +3,7 @@
 /**
  * @package Pareto Security Class for Joomla / WordPress / osCommerce and more
  * @author Hokioi Security <hokioi-security@riseup.net>
+ * @bitcoin:1BkbNA1tK3q7ZRkCJj6f1ELK2A152eEtoW
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @version $Id: pareto_security.php 1.0.0
