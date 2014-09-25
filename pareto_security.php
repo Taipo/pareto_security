@@ -3,10 +3,10 @@
 /**
  * @package Pareto Security Class for Joomla / WordPress / osCommerce and more
  * @author Hokioi Security <hokioi-security@riseup.net>
- * @bitcoin:1BkbNA1tK3q7ZRkCJj6f1ELK2A152eEtoW 
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @version $Id: pareto_security.php 1.0.0
+ * @btc:1BkbNA1tK3q7ZRkCJj6f1ELK2A152eEtoW 
  **/
      
  # prevent direct viewing of pareto_security.php
@@ -104,7 +104,7 @@
     * @return
     */ 
    function send403() {
-       $header = array( 'HTTP/1.1 403 Access Denied', 'Status: 403 Access Denied by Hokioi-IT ' . $this->_psec,
+       $header = array( 'HTTP/1.1 403 Access Denied', 'Status: 403 Access Denied by Hokioi-Security ' . $this->_psec,
            'Content-Length: 0' );
        foreach ( $header as $sent ) {
            header( $sent );
@@ -347,7 +347,7 @@
            \.php\/admin|mosConfig\_|%3C@replace\(|hex\_ent|inurl:|replace\(|\/iframe>|return%20clk|
            php\/password\_for|unhex\(|error\_reporting\(|HTTP\_CMD|=alert\(|localhost|}\)%3B|
            Set-Cookie|%27%a0%6f%72%a0%31%3d%31|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|\\\'|
-           HTTP\/1\.|\{$\_|PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password|
+           HTTP\/1\.|\{$\_|PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password| ping -c|
            \/var\/www\/php|\_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||
            \.htaccess|system\(\%24|UTL\_HTTP\.REQUEST|<script>";
 
@@ -356,12 +356,11 @@
            file\_get\_contents\(|onerror=prompt\(|script>alert\(|fopen\(|\_GET\['cmd|
            YWxlcnQo|ZnJvbUNoYXJDb2Rl";
      
-     $_blacklist[3] = "Baidu|WebLeacher|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
+     $_blacklist[3] = "Baidu|WebLeacher|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck|\{ :;\};|\{:;\};|\{ :; \};";
 
-     $_blacklist[4] = "eval\(|fromCharCode|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|
-           Ki9XSEVSRS8q|YWxlcnQo";
+     $_blacklist[4] = "eval\(|fromCharCode|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|\{ :;\};|\{:;\};|\{ :; \};|Ki9XSEVSRS8q|YWxlcnQo";
 
-     $_thelist = preg_replace( "/[\s]/i", '',  $_blacklist[ ( int )$list ] );
+     $_thelist = $_blacklist[ ( int )$list ];
 
      if ( false !== ( bool )preg_match( "/$_thelist/i", $val ) ) {
          return true;
@@ -425,7 +424,7 @@
        }
        # Quirky Wordpress Exploit
        if ( isset( $_GET[ '_wp_http_referer' ] ) &&
-            ( $this->getPHP_SELF() == '/edit-tags.php' || $this->getPHP_SELF() == '/edit-comments.php' || $this->getPHP_SELF() == '/index.php' ) &&
+            ( $this->getPHP_SELF() == 'edit-tags.php' || $this->getPHP_SELF() == 'edit-comments.php' || $this->getPHP_SELF() == 'index.php' ) &&
             ( false === strpos( str_replace( 'http://', '', $_GET[ '_wp_http_referer' ] ), $this->_httphost ) ) &&
             ( false === strpos( str_replace( 'http://', '', $_GET[ '_wp_http_referer' ] ),  $this->getPHP_SELF() ) ) ) {
             # action delete selected checked user submitted posts plugin status inactive paged wpnonce
@@ -563,8 +562,6 @@
        } else return;
    }    
 
-   # if you are using an older version of PHP ( < 5.4 ) then
-   # use the uncommented version of this function below
 #   function hexoctaldecode( $code ) {
 #
 #       $code = ( substr_count( $code, '\\x' ) > 0 ) ? $this->url_decoder( str_replace( '\\x', '%', $code ) ) : $code;
@@ -696,15 +693,14 @@
        if (is_array( $matches ) &&
            array_key_exists( 0, $matches ) &&
            ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) &&
-          ( false !== $this->checkfilename( $matches[ 0 ] ) ) &&
+           ( false !== $this->checkfilename( $matches[ 0 ] ) ) &&
            ( is_readable( $matches[ 0 ] ) ) ) {
            $filename = $matches[ 0 ];
        } else $filename = NULL;
        if ( !empty( $filename ) ) {
            return $filename;
        } else {
-        $req = parse_url( $_SERVER[ 'SCRIPT_NAME' ] );
-        return $req[ 'path' ];
+           return $this->_default;
        }
    }
 
@@ -899,7 +895,7 @@
        $errlevel = ini_get( 'error_reporting' );
        error_reporting( 0 );
        if ( false !== ( bool )ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
-           header( 'X-Powered-By: Hokioi-IT ' . $this->_psec );
+           header( 'X-Powered-By: Hokioi-Security ' . $this->_psec );
        }
 
        header( 'X-Frame-Options: self' );
