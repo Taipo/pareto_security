@@ -385,16 +385,16 @@
     * @return
     */
    function _REQUEST_SHIELD() {
-        # irregardless of _GET or _POST
-        # attacks that do not necessarily
-        # involve query_string manipulation
+       # regardless of _GET or _POST
+       # attacks that do not necessarily
+       # involve query_string manipulation
        $req = $this->getREQUEST_URI();
+       if ( false !== strpos( $req, '.php/login' ) ) {
+           $this->karo( true );
+           return;
+       }
        $ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $_SERVER[ 'HTTP_REFERER' ]: NULL;
        if ( false === is_null( $ref ) ) {
-           if ( false !== strpos( $req, '.php/login' ) ) {
-               $this->karo( true );
-               return;
-           }
            if ( false !== strpos( $req, '?author=' ) ) {
                $this->karo( true );
                return;
