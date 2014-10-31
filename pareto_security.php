@@ -370,17 +370,6 @@
    }
 
    /**
-    * AdminLoginBypass()
-    * @return
-    */
-   function AdminLoginBypass() {
-	if ( false !== strpos( $this->getREQUEST_URI(), '.php/login' ) ) {
-    	$this->karo( true );
-           return;
-	}
-   }
-
-   /**
     * _REQUEST_Shield()
     * 
     * @return
@@ -389,7 +378,10 @@
 	# regardless of _GET or _POST
 	# attacks that do not necessarily
 	# involve query_string manipulation
+
 	$req = $this->url_decoder( $this->getREQUEST_URI() );
+
+	# osC admin bypass attack
 	if ( false !== strpos( $req, '.php/login' ) ) {
     	$this->karo( true );
            return;
@@ -399,33 +391,34 @@
 		$this->karo( true );
 		return;
 	}
+	# WP Author Discovery
 	$ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ): NULL;
 	if ( false === is_null( $ref ) ) {
     	   if ( false !== strpos( $req, '?author=' ) ) {
         	$this->karo( true );
                return;
            }
-    	if ( false !== strpos( $ref, 'result' ) ) { 
-      	   if ( ( false !== strpos( $ref, 'chosen' ) ) &&
-                ( false !== strpos( $ref, 'nickname' ) ) ) {
-         	$this->karo( true );
-                return;
-             }
-           }
-	}
-	if ( false !== strpos( $req, '?' ) ) {
-    	$v =  $this->hexoctaldecode( strtolower( substr( $req,
-                strpos( $req, '?' ),
-                strlen( $req ) ) ) );
-    	if ( false !== strpos( $v, '-' ) &&
-              ( ( false !== strpos( $v, '?-' ) ) ||
-                ( false !== strpos( $v, '?+-' ) ) ) &&
-                ( ( false !== strpos( $v, '-s' ) ) ||
-                  ( false !== strpos( $v, '-t' ) ) ||
-                  ( false !== strpos( $v, '-n' ) ) ||
-                  ( false !== strpos( $v, '-d' ) ) ) ) {
-           	$this->karo( true );
-                  return;
+    	   if ( false !== strpos( $ref, 'result' ) ) { 
+      	      if ( ( false !== strpos( $ref, 'chosen' ) ) &&
+                   ( false !== strpos( $ref, 'nickname' ) ) ) {
+         	   $this->karo( true );
+                   return;
+                }
+              }
+	   }
+	   if ( false !== strpos( $req, '?' ) ) {
+    	   $v =  $this->hexoctaldecode( strtolower( substr( $req,
+                   strpos( $req, '?' ),
+                   strlen( $req ) ) ) );
+    	   if ( false !== strpos( $v, '-' ) &&
+                 ( ( false !== strpos( $v, '?-' ) ) ||
+                   ( false !== strpos( $v, '?+-' ) ) ) &&
+                   ( ( false !== strpos( $v, '-s' ) ) ||
+                     ( false !== strpos( $v, '-t' ) ) ||
+                     ( false !== strpos( $v, '-n' ) ) ||
+                     ( false !== strpos( $v, '-d' ) ) ) ) {
+           	     $this->karo( true );
+                     return;
            }
 	}
 	# Quirky Wordpress Exploit
@@ -436,15 +429,15 @@
      	# action delete selected checked user submitted posts plugin status inactive paged wpnonce
             die( "Warning: You do not want to click that URL in your Wordpress Admin - see: <a target=_blank href=http://goo.gl/cL5XqN>http://goo.gl/cL5XqN</a><br />Click <a href=index.php>here</a> to return to the Dashboard." );
 	}
-       
-	$_requri = $this->url_decoder( $_SERVER[ 'REQUEST_URI' ] );
+
+        # 
 	$attack = false;
-	if ( substr_count( $_requri, '/' ) > 30 ) $attack = true;
-	if ( substr_count( $_requri, '\\' ) > 30 ) $attack = true;
-	if ( substr_count( $_requri, '|' ) > 30 ) $attack = true;
+	if ( substr_count( $req, '/' ) > 30 ) $attack = true;
+	if ( substr_count( $req, '\\' ) > 30 ) $attack = true;
+	if ( substr_count( $req, '|' ) > 30 ) $attack = true;
      
 	if ( false !== $attack ) {
-    	$this->karo( true );
+    	   $this->karo( true );
            return;
 	} else return;
    }
