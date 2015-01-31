@@ -6,7 +6,7 @@
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @version $Id: pareto_security.php 1.0.0
- * @btc:13hHJFR9ZQk3xi6hfDiiKfFnK2Rzt3Usih
+ * @btc:13hHJFR9ZQk3xi6hfDiiKfFnK2Rzt3Usih 
  **/
      
  # prevent direct viewing of pareto_security.php
@@ -351,9 +351,9 @@
           file\_get\_contents\(|onerror=prompt\(|script>alert\(|fopen\(|\_GET\['cmd|
           YWxlcnQo|ZnJvbUNoYXJDb2Rl";
      
-     $_blacklist[3] = "Baidu|WebLeacher|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck|\{ :;\};|\{:;\};|\{ :; \};";
+     $_blacklist[3] = "Baidu|WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck;";
 
-     $_blacklist[4] = "eval\(|fromCharCode|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|\{ :;\};|\{:;\};|\{ :; \};|Ki9XSEVSRS8q|YWxlcnQo";
+     $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
 
      $_thelist = $_blacklist[ ( int )$list ];
 
@@ -543,15 +543,12 @@
     * Bad Spider Block
     */
    function _SPIDER_SHIELD() {
-     if ( false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
-          if ( false !== $this->blacklistMatch( strtolower(  $this->hexoctaldecode( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
-               $header = array( 'HTTP/1.1 404 Not Found', 'HTTP/1.1 404 Not Found', 'Content-Length: 0' );
-               foreach ( $header as $sent ) {
-                    header( $sent );
-               }
-               die();
-          }
-     } else return;
+        if ( false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
+           if ( false !== $this->blacklistMatch( strtolower(  $this->hexoctaldecode( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
+                       $this->karo( true );
+                       return;
+           }
+       } else return;
    }
 
    function hexoctaldecode( $code ) {
