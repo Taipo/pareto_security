@@ -6,7 +6,7 @@
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @version $Id: pareto_security.php 1.0.0
- * @btc:1D92oWH7Mz3QBmYN8wViTUu7qKXT9w1nnY 
+ * @btc:13hHJFR9ZQk3xi6hfDiiKfFnK2Rzt3Usih
  **/
      
  # prevent direct viewing of pareto_security.php
