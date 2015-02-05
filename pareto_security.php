@@ -351,7 +351,7 @@
           file\_get\_contents\(|onerror=prompt\(|script>alert\(|fopen\(|\_GET\['cmd|
           YWxlcnQo|ZnJvbUNoYXJDb2Rl";
      
-     $_blacklist[3] = "Baidu|WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck;";
+     $_blacklist[3] = "Baidu|WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
 
      $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
 
@@ -900,8 +900,8 @@
    /**
     * url_decoder()
     */
-   private static function url_decoder( $var ) {
-     return rawurldecode( urldecode( $var ) );
+   function url_decoder( $var ) {
+     return rawurldecode( urldecode( str_replace( chr( 0 ), '', $var ) ) );
    }
    private static function getREQUEST_URI() {
      if ( false !== getenv( 'REQUEST_URI' ) ) {
@@ -922,7 +922,7 @@
     * 
     * @return
     */
-   private static function setReq_uri() {
+   function setReq_uri() {
      $_request_uri = '';
      if ( empty( $_SERVER[ 'REQUEST_URI' ] ) || ( php_sapi_name() != 'cgi-fcgi' && false !== ( bool )
           preg_match( "/^Microsoft-IIS\//", $_SERVER[ 'SERVER_SOFTWARE' ] ) ) ) {
@@ -942,7 +942,7 @@
            
     	  if ( !empty( $_SERVER[ 'QUERY_STRING' ] ) ) $_request_uri .= '?' . $_SERVER[ 'QUERY_STRING' ];
     	                                              $_SERVER[ 'REQUEST_URI' ] = $_request_uri;
-	  return $_request_uri;
+	  return $this->url_decoder( $_request_uri );
      } else {
    	  $x = 16;
     	  $_request_uri = $_SERVER[ 'REQUEST_URI' ];
@@ -950,7 +950,7 @@
                $_request_uri = str_replace( '//', '/', $_request_uri );
                $x--;
           }
-          return $_request_uri;
+          return $this->url_decoder( $_request_uri );
      }
    }
 
