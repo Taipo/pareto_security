@@ -755,12 +755,15 @@
      $rootDir = $this->setReq_uri();
      if ( false !== strpos( $rootDir, '/' ) ) {
           if ( ( strlen( $rootDir ) > 2 ) && ( $rootDir[0] == '/' ) ) {
-               $rootDir = substr( $rootDir, 1 );
-               $pos = strpos( strtolower( $rootDir ), strtolower( '/' ) );
-               $pos += strlen( '.' ) - 1;
-               $rootDir = substr( $rootDir, 0, $pos );
-               if ( strpos( $rootDir, '.php' ) ) $rootDir = '';
-               if ( ( strlen( $rootDir ) > 0 ) && ( '/' !== substr( $rootDir, -1 ) ) ) $rootDir = '/' . $rootDir . '/';
+                $rootDir = ( ( substr_count( $rootDir, '/' ) > 1 ) ) ? substr( $rootDir, 1 ) : substr( $rootDir, 0 );
+                $pos = strpos( strtolower( $rootDir ), '/' );
+                $pos += strlen( '.' ) - 1;
+                $rootDir = substr( $rootDir, 0, $pos );
+                if ( strpos( $rootDir, '.php' ) ) $rootDir = '';
+                if ( ( ( strlen( $rootDir ) > 0 ) &&
+                       ( substr_count( $rootDir, '/' ) > 0 ) &&
+                       ( '/' !== substr( $rootDir, -1 ) ) ) ||
+                     ( substr_count( $rootDir, '/' ) == 0 ) ) $rootDir = '/' . $rootDir . '/';
           }
      }
      if ( isset( $this->_doc_root ) && strlen( $this->_doc_root ) > 0 ) {
