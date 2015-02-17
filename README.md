@@ -3,7 +3,7 @@ Pareto_Security
 
 Pareto Security
 
-Designed as a broadbased PHP security fixer class for CMS such as Wordpress, Joomla, osCommerce and other content management systems.
+Designed as a broadbased PHP security fixer class for CMS such as Drupal, Wordpress, Joomla, osCommerce and other content management systems.
 
 Written in PHP 5
 
