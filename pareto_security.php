@@ -149,15 +149,15 @@
     * @return
     */
    function injectMatch( $string ) {
-     $string = $this->url_decoder( $string );
+     $string = $this->url_decoder( strtolower( $string ) );
      $kickoff = false;
 
      # these are the triggers to engage the rest of this function.
-     $vartrig = "\/\/|\.\.\/|\.js|%0D%0A|0x|all|ascii\(|base64|benchmark|by|char|
-               column|convert|cookie|create|declare|data|date|delete|drop|concat|
-               eval|exec|from|ftp|grant|group|insert|isnull|into|length\(|load|
-               master|onmouse|null|php|schema|select|set|shell|show|sleep|table|
-               union|update|utf|var|waitfor|while";
+     $vartrig = "\/\/|\.\.\/|%0d%0a|0x|all|ascii\(|base64|benchmark|by|char|
+                column|convert|cookie|create|declare|data|date|delete|drop|concat|
+                eval|exec|from|ftp|grant|group|insert|isnull|into|js|length\(|load|
+                master|onmouse|null|php|schema|select|set|shell|show|sleep|table|
+                union|update|utf|var|waitfor|while";
 
      $vartrig = preg_replace( "/[\s]/", "", $vartrig );
 
@@ -179,10 +179,10 @@
                     collation|concat|conv|convert|count|curdate|database|date|
                     decode|diff|distinct|elt|encode|encrypt|extract|field|_file|
                     floor|format|hex|if|inner|insert|instr|interval|join|lcase|left|
-                    length|load_file|locate|lock|log|lower|lpad|ltrim|max|md5|
+                    length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|md5|
                     mid|mod|name|now|null|ord|password|position|quote|rand|
                     repeat|replace|reverse|right|rlike|round|row_count|rpad|rtrim|
-                    _set|schema|select|sha1|sha2|sleep|serverproperty|soundex|
+                    _set|schema|select|sha1|sha2|serverproperty|soundex|
                     space|strcmp|substr|substr_index|substring|sum|time|trim|
                     truncate|ucase|unhex|upper|_user|user|values|varchar|
                     version|while|ws|xor)\(|\(0x|@@|cast|integer";
@@ -205,7 +205,7 @@
                     return true;
        	  } elseif ( false !== preg_match_all( "/\bload\b|\bdata\b|\binfile\b|\btable\b|\bterminated\b/i", $string, $matches ) > 3 ) {
                     return true;
-       	  } elseif ( ( ( false !== ( bool )preg_match( "/select|isnull|declare|ascii\(substring|length\(/i", $string ) ) &&
+       	  } elseif ( ( ( false !== ( bool )preg_match( "/select|sleep|isnull|declare|ascii\(substring|length\(/i", $string ) ) &&
                      ( false !== ( bool )preg_match( "/\band\b|\bif\b|group_|_ws|load_|concat\(|\bfrom\b/i", $string ) ) &&
                      ( false !== ( bool )preg_match( "/$sqlmatchlist/", $string ) ) ) ) {
                     return true;
@@ -215,12 +215,19 @@
                     false !== ( bool )preg_match( "/\bset\b/i", $string ) &&
                     false !== ( bool )preg_match( "/$sqlupdatelist/i", $string ) ) {
                     return true;
+       	  } elseif ( false !== strpos( $string, 'having' ) &&
+                    false !== ( bool )preg_match( "/\bor\b|\band\b/i", $string ) &&
+                    false !== ( bool )preg_match( "/$sqlupdatelist/i", $string ) ) {
+                    return true;
        	  # tackle the noDB / js issue
        	  } elseif ( ( substr_count( $string, 'var' ) > 1 ) &&
                     false !== ( bool )preg_match( "/date\(|while\(|sleep\(/i", $string ) ) {
                     return true;
+          # reflected download attack
+       	  } elseif ( ( substr_count( $string, '|' ) > 2 ) &&
+                    false !== ( bool )preg_match( "/json/i", $string ) ) {
+                    return true;
        	  }
-
        	  # run through a set of filters to find specific attack vectors
        	  $thenode = $this->cleanString( $j, $this->getREQUEST_URI() );
        	  $sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|
@@ -325,7 +332,7 @@
     * @return
     */
    private static function blacklistMatch( $val, $list = 0 ) {
-     
+
      # $list should never have a value of 0
      if ( $list == 0 ) die( 'there is an error' );
      $_blacklist = array();
@@ -350,7 +357,7 @@
           php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec|
           file\_get\_contents\(|onerror=prompt\(|script>alert\(|fopen\(|\_GET\['cmd|
           YWxlcnQo|ZnJvbUNoYXJDb2Rl";
-     
+
      $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
 
      $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
@@ -545,7 +552,7 @@
    function _SPIDER_SHIELD() {
         if ( false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
            if ( false !== $this->blacklistMatch( strtolower(  $this->hexoctaldecode( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
-                       $this->karo( true );
+                          $this->karo( true );
                        return;
            }
        } else return;
