@@ -351,7 +351,7 @@
           Set-Cookie|%27%a0%6f%72%a0%31%3d%31|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|\\\'|
           HTTP\/1\.|\{$\_|PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password| ping -c|
           \/var\/www\/php|\_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||
-          \.htaccess|system\(\%24|UTL\_HTTP\.REQUEST|<script>";
+          \.\.\/wp-|\.htaccess|system\(\%24|UTL\_HTTP\.REQUEST|<script>";
 
      $_blacklist[2] = "ZXZhbCg=|eval\(base64\_decode|fromCharCode|allow\_url\_include|
           php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec|
@@ -440,7 +440,7 @@
      if ( false !== $attack ) {
           $this->karo( true );
           return;
-     } else return;
+     }
    }
    /**
     * _GET_SHIELD()
@@ -507,7 +507,7 @@
      if ( false === ( bool )$this->_nonGETPOSTReqs ) return;
        
      $reqType = $_SERVER[ 'REQUEST_METHOD' ];
-     $req_whitelist = array( 'GET', 'OPTIONS', 'HEAD', 'POST' );
+     $req_whitelist = array( 'GET', 'POST' );
      # first check for numbers in REQUEST_METHOD
      if ( false !== ( bool )preg_match( "/[0-9]+/", $reqType ) ) {
     	  $this->karo( true );
@@ -531,7 +531,6 @@
    function _POST_SHIELD() {
      if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] )  return;
      $pnodes = $this->array_flatten( $_POST, false );
-     $i = 0;
      while ( $i < count( $pnodes ) ) {
           if ( ( is_string( $pnodes[ $i ] ) ) && ( strlen( $pnodes[ $i ] ) > 0 ) ) {
                $pnodes[ $i ] = strtolower( $pnodes[ $i ] );
