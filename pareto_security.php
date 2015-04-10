@@ -5,7 +5,7 @@
  * @author Hokioi Security <hokioi-security@riseup.net>
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
- * @version $Id: pareto_security.php 1.0.0
+ * @version $Id: pareto_security.php 1.0.1
  * @btc:13hHJFR9ZQk3xi6hfDiiKfFnK2Rzt3Usih 
  **/
      
@@ -62,7 +62,7 @@
 
      # make sure $_SERVER[ 'REQUEST_URI' ] is set
      $this->setReq_uri();
-     $this->_currentVersion = '1.0.0';
+     $this->_currentVersion = '1.0.1';
 
      # reliably set $PHP_SELF
      global $PHP_SELF; // for those apps that use it
