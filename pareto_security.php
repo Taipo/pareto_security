@@ -531,6 +531,7 @@
    function _POST_SHIELD() {
      if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] )  return;
      $pnodes = $this->array_flatten( $_POST, false );
+     $i = 0;
      while ( $i < count( $pnodes ) ) {
           if ( ( is_string( $pnodes[ $i ] ) ) && ( strlen( $pnodes[ $i ] ) > 0 ) ) {
                $pnodes[ $i ] = strtolower( $pnodes[ $i ] );
