@@ -1,11 +1,10 @@
 <?php
-
 /**
  * @package Pareto Security Class for Joomla / WordPress / osCommerce and more
  * @author Hokioi Security <hokioi-security@riseup.net>
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
- * @version $Id: pareto_security.php 1.0.1
+ * @version $Id: pareto_security.php 1.0.2
  * @btc:13hHJFR9ZQk3xi6hfDiiKfFnK2Rzt3Usih 
  **/
      
@@ -13,7 +12,6 @@
  if ( false !== strpos( strtolower( $_SERVER[ 'SCRIPT_NAME' ] ), Pareto_selfchk() ) ) send404();
     
  class ParetoSecurity {
-
    # protect from non-standard request types
    protected $_nonGETPOSTReqs = 0;
    # if open_basedir is not set in php.ini. Leave disabled unless you are sure about using this.
@@ -26,17 +24,13 @@
    protected $_doc_root = '';
    # default home page
    protected $_default = 'index.php'; 
-
    public function __construct() {
        
      $this->setVars();
-
      # if open_basedir is not set in php.ini then set it in the local scope
      if ( false !== ( bool )$this->_open_basedir ) $this->setOpenBaseDir();
-
      # prevent the version of php being discovered
      $this->x_secure_headers();
-
      # Shields Up
      $this->_REQUEST_SHIELD();
      $this->_QUERYSTRING_SHIELD();
@@ -44,13 +38,10 @@
      $this->_COOKIE_SHIELD();
      $this->_REQUESTTYPE_SHIELD();
      $this->_SPIDER_SHIELD();
-
      # merge $_REQUEST with _GET and _POST excluding _COOKIE data
      $_REQUEST = array_merge( $_GET, $_POST );
        
    } // end of __construct()
-
-
   /**
     * setVars()
     * 
@@ -59,18 +50,13 @@
    function setVars() {
        
      $this->_set_error_level();
-
      # make sure $_SERVER[ 'REQUEST_URI' ] is set
      $this->setReq_uri();
-     $this->_currentVersion = '1.0.1';
-
      # reliably set $PHP_SELF
      global $PHP_SELF; // for those apps that use it
      $PHP_SELF = $this->getPHP_SELF();
-
      # filter the $_SERVER ip headers for malicious code
      $this->_realIP = $this->getRealIP();
-
      $this->_threshold = false;
      $this->_banreason = ''; //for testing purposes
      $this->_htaccessfile = $this->getHTAccesspath();
@@ -111,7 +97,6 @@
 	  }
           die();
    }
-
    /**
     * getHTAccesspath()
     * 
@@ -120,7 +105,6 @@
    function getHTAccesspath() {
      return $this->getDir() . '.htaccess';    
    }
-
    /**
     * karo()
     * 
@@ -141,7 +125,6 @@
           $this->send403();
      }
    }
-
    /**
     * injectMatch()
     * 
@@ -151,16 +134,13 @@
    function injectMatch( $string ) {
      $string = $this->url_decoder( strtolower( $string ) );
      $kickoff = false;
-
      # these are the triggers to engage the rest of this function.
      $vartrig = "\/\/|\.\.\/|%0d%0a|0x|all|ascii\(|base64|benchmark|by|char|
                 column|convert|cookie|create|declare|data|date|delete|drop|concat|
                 eval|exec|from|ftp|grant|group|insert|isnull|into|js|length\(|load|
                 master|onmouse|null|php|schema|select|set|shell|show|sleep|table|
                 union|update|utf|var|waitfor|while";
-
      $vartrig = preg_replace( "/[\s]/", "", $vartrig );
-
      for( $x = 1; $x <= 5; $x++ ) {
           $string = $this->cleanString( $x, $string );
     	  if ( false !== ( bool )preg_match( "/$vartrig/i", $string ) ) {
@@ -276,7 +256,6 @@
                     _(?:decrypt|encrypt|get|post|server|cookie|global|or|
                     request|xor)|(?:column|db|load|not|octet|sql|table|xp)_';
        	  $sqlmatchlist = preg_replace( "/[\s]/i", '', $sqlmatchlist );
-
        	  if ( ( false !== ( bool )preg_match( "/\border by\b|\bgroup by\b/i", $string ) ) &&
                     ( false !== ( bool )preg_match( "/\bcolumn\b|\bdesc\b|\berror\b|\bfrom\b|hav|\blimit\b|offset|\btable\b|\/|--/i", $string ) ||
                     ( false !== ( bool )preg_match( "/\b[0-9]\b/i", $string ) ) ) ) {
@@ -325,21 +304,19 @@
      }
      return false;
    }
-
    /**
     * blacklistMatch()
     * 
     * @return
     */
    private static function blacklistMatch( $val, $list = 0 ) {
-
      # $list should never have a value of 0
      if ( $list == 0 ) die( 'there is an error' );
      $_blacklist = array();
      $_blacklist[1] = "php\/login|eval\(base64\_decode|asc%3Deval|eval\(\\$\_|EXTRACTVALUE\(|
           allow\_url\_include|safe\_mode|suhosin\.simulation|disable\_functions|phpinfo\(|
           open\_basedir|auto\_prepend\_file|php:\/\/input|\)limit|rush=|fromCharCode|\}catch\(e|
-          ;base64|base64,|onerror=prompt\(|onerror=alert\(|javascript:prompt\(|\/var\/lib\/php|
+          ;base64|base64,|prompt\(|onerror=alert\(|javascript:prompt\(|\/var\/lib\/php|
           javascript:alert\(|pwtoken\_get|php\_uname|%3Cform|passthru\(|sha1\(|sha2\(|\}if\(!|
           <\?php|\/iframe|; GET|\\$\_GET|=@@version|ob\_starting|and1=1|\.\.\/cmd|document\.cookie|
           document\.write|onload\=|mysql\_query|document\.location|window\.location|\]\);\}|
@@ -352,24 +329,18 @@
           HTTP\/1\.|\{$\_|PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password| ping -c|
           \/var\/www\/php|\_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||
           \.\.\/wp-|\.htaccess|system\(\%24|UTL\_HTTP\.REQUEST|<script>";
-
      $_blacklist[2] = "ZXZhbCg=|eval\(base64\_decode|fromCharCode|allow\_url\_include|
           php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec|
-          file\_get\_contents\(|onerror=prompt\(|script>alert\(|fopen\(|\_GET\['cmd|
+          file\_get\_contents\(|prompt\(|script>alert\(|fopen\(|\_GET\['cmd|\"><|<iframe|
           YWxlcnQo|ZnJvbUNoYXJDb2Rl";
-
      $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
-
      $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
-
      $_thelist = $_blacklist[ ( int )$list ];
-
      if ( false !== ( bool )preg_match( "/$_thelist/i", $val ) ) {
          return true;
      }
      return false;
    }
-
    /**
     * _REQUEST_Shield()
     * 
@@ -379,9 +350,7 @@
      # regardless of _GET or _POST
      # attacks that do not necessarily
      # involve query_string manipulation
-
      $req = $this->url_decoder( $this->getREQUEST_URI() );
-
      # osC admin bypass attack
      if ( false !== strpos( $req, '.php/login' ) ) {
          $this->karo( true );
@@ -430,7 +399,6 @@
      	  # action delete selected checked user submitted posts plugin status inactive paged wpnonce
                die( "Warning: You do not want to click that URL in your Wordpress Admin - see: <a target=_blank href=http://goo.gl/cL5XqN>http://goo.gl/cL5XqN</a><br />Click <a href=index.php>here</a> to return to the Dashboard." );
      }
-
      # 
      $attack = false;
      if ( substr_count( $req, '/' ) > 30 ) $attack = true;
@@ -468,7 +436,6 @@
      }
      return;
    }
-
    /**
     * _COOKIE_SHIELD()
     * 
@@ -497,7 +464,6 @@
     	  $i++;
      }
    }
-
    /**
     * _REQUESTTYPE_SHIELD()
     * 
@@ -545,7 +511,6 @@
      }
      return;
    }
-
    /**
     * Bad Spider Block
     */
@@ -557,7 +522,6 @@
            }
        } else return;
    }
-
    function hexoctaldecode( $code ) {
      $code = ( substr_count( $code, '\\x' ) > 0 ) ? $this->url_decoder( str_replace( '\\x', '%', $code ) ) : $code;
      if ( ( substr_count( $code, '&#x' ) > 0 ) && ( substr_count( $code, ';' ) > 0 ) ) {
@@ -566,7 +530,6 @@
      }
      return $code;
    }
-
    function cleanString( $b, $s ) {
      $s = strtolower( $this->url_decoder( $s ) );
      switch ( $b ) {
@@ -592,7 +555,6 @@
                return $this->url_decoder( $s );
      }
    }
-
    /**
     * htaccessbanip()
     * 
@@ -631,7 +593,6 @@
      fwrite( $myfile, implode( $mybans, '' ) );
      fclose( $myfile );
    }
-
    /**
     * hCoreFileChk()
     * 
@@ -686,7 +647,6 @@
           return $this->_default;
      }
    }
-
    /**
     * array_flatten()
     * 
@@ -710,23 +670,18 @@
 	  }
           return $flattened_array;
    }
-
    /**
     * byPass()
     * 
     * @return
     */
    function byPass() {
-
      # list of files to bypass. I have added a few for consideration. Try to keep this list short
      $filename_bypass = array();
-
      # bypass all files in a directory. Use this sparingly
      $dir_bypass = array();
-
      # list of IP exceptions. Add bypass ips and uncomment for use
      $exfrmBanlist = array();
-
      $realip = $this->getRealIP();
      if ( false === empty( $exfrmBanlist ) ) {
           foreach ( $exfrmBanlist as $exCeptions ) {
@@ -751,7 +706,6 @@
      }
      return true;
    }
-
    /**
     * getDir()
     * 
@@ -789,7 +743,6 @@
      }
      return $theDIR;
    }
-
    private static function is_server( $ip ) {
      if ( ( $_SERVER[ 'SERVER_ADDR' ] == $ip ) ||
           ( $ip == '127.0.0.1' ) ) return true;
@@ -817,7 +770,6 @@
                     $check = false;
                  } else $check = true; //passed the first test
        }
-
        if ( preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/", $ip ) ) {
            $check = true; //passed second test
            
@@ -838,7 +790,6 @@
             $this->send403();
        } else return true;
    }
-
    /**
     * getRealIP()
     * 
@@ -848,7 +799,6 @@
      global $_SERVER;
      $iplist = array();
      # check for IPs passing through proxies
-
      # start with the HTTP_X_FORWARDED_FOR
      if ( ! empty( $_SERVER[ 'HTTP_X_FORWARDED_FOR' ] ) ) {
   	  # check if multiple ips exist in var
@@ -868,7 +818,6 @@
      $serverVars = new ArrayIterator( array( 'HTTP_CLIENT_IP', 'HTTP_PROXY_USER',
 	                                     'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED',
 	                                     'HTTP_CF_CONNECTING_IP', 'HTTP_FORWARDED_FOR' ) );
-
      # the point here is to not accidentally ban an ip address that could be an upline proxy
      # instead just allow a page die() action
      while ( $serverVars->valid() ) {
@@ -890,7 +839,6 @@
           return @ini_set( 'open_basedir', $this->getDir() );
      }
    }
-
    /**
     * x_secure_headers()
     */
@@ -900,10 +848,8 @@
      if ( false !== ( bool )ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
           header( 'X-Powered-By: Hokioi-Security ' . $this->_psec );
      }
-
      header( 'X-Frame-Options: self' );
      header( 'X-Content-Type-Options: nosniff' );
-
      error_reporting( $errlevel );
      return;
    }
@@ -963,12 +909,8 @@
           return $this->url_decoder( $_request_uri );
      }
    }
-
-
 } // end of class
-
 $ParetoSecurity = new ParetoSecurity();
-
 /**
  * Pareto_selfchk()
  * 
@@ -986,7 +928,6 @@ function Pareto_selfchk() {
           }
      }
 }
-
 /**
 * send404()
 * 
