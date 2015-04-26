@@ -1,11 +1,13 @@
 <?php
 /**
  * @package Pareto Security Class for Joomla / WordPress / osCommerce and more
- * @author Hokioi Security <hokioi-security@riseup.net>
+ * @author Hokioi Security <hokioi-security@protonmail.ch>
+ * @website http://hokioisec7agisc4.onion
+ * @github https://github.com/Taipo/Pareto_Security
  * @copyright (c) Hokioi Security
  * @license http://opensource.org/licenses/gpl-license.php GNU Public License
  * @version $Id: pareto_security.php 1.0.2
- * @btc:13hHJFR9ZQk3xi6hfDiiKfFnK2Rzt3Usih 
+ * @btc:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX 
  **/
      
  # prevent direct viewing of pareto_security.php
@@ -845,11 +847,15 @@
    function x_secure_headers() {
      $errlevel = ini_get( 'error_reporting' );
      error_reporting( 0 );
-     if ( false !== ( bool )ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
-          header( 'X-Powered-By: Hokioi-Security ' . $this->_psec );
-     }
-     header( 'X-Frame-Options: self' );
-     header( 'X-Content-Type-Options: nosniff' );
+		header( 'strict-transport-security: max-age=31536000; includeSubDomains' );
+		header( 'content-security-policy: script-src \'self\'' );
+		header( 'access-control-allow-methods: POST, GET' );
+		header( 'x-frame-options: SAMEORIGIN' );
+		header( 'x-content-type-options: nosniff' );
+		header( 'x-xss-protection: 1; mode=block' );
+		if ( false !== ( bool )ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
+			 header( 'X-Powered-By: ' . $this->_psec . ' - http://hokioisec7agisc4.onion' );
+		}
      error_reporting( $errlevel );
      return;
    }
