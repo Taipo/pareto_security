@@ -31,7 +31,7 @@
      $this->setVars();
      # if open_basedir is not set in php.ini then set it in the local scope
      if ( false !== ( bool )$this->_open_basedir ) $this->setOpenBaseDir();
-     # prevent the version of php being discovered
+     # Send secure headers
      $this->x_secure_headers();
      # Shields Up
      $this->_REQUEST_SHIELD();
@@ -324,17 +324,17 @@
           document\.write|onload\=|mysql\_query|document\.location|window\.location|\]\);\}|
           location\.replace\(|\(\)\}|@@datadir|\/FRAMESET|<ahref=|\[url=http:\/\/|\[\/url\]|
           \[link=http:\/\/|\[\/link\]|YWxlcnQo|\_START\_|onunload%3d|PHP\_SELF|shell\_exec|
-          \\$\_SERVER|`;!--=|substr\(|\\$\_POST|\\$\_SESSION|\\$\_REQUEST|\\$\_ENV|GLOBALS\[|\$HTTP\_|
+          \\$\_SERVER|;!--=|substr\(|\\$\_POST|\\$\_SESSION|\\$\_REQUEST|\\$\_ENV|GLOBALS\[|\$HTTP\_|
           \.php\/admin|mosConfig\_|%3C@replace\(|hex\_ent|inurl:|replace\(|\/iframe>|return%20clk|
           php\/password\_for|unhex\(|error\_reporting\(|HTTP\_CMD|=alert\(|localhost|}\)%3B|
-          Set-Cookie|%27%a0%6f%72%a0%31%3d%31|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|\\\'|
+          Set-Cookie|%27%a0%6f%72%a0%31%3d%31|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|%27|
           HTTP\/1\.|\{$\_|PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password| ping -c|
           \/var\/www\/php|\_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||
-          \.\.\/wp-|\.htaccess|system\(\%24|UTL\_HTTP\.REQUEST|<script>";
+          \.\.\/wp-|\.htaccess|system\(\%24|UTL\_HTTP\.REQUEST|script>";
      $_blacklist[2] = "ZXZhbCg=|eval\(base64\_decode|fromCharCode|allow\_url\_include|
-          php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec|
-          file\_get\_contents\(|prompt\(|script>alert\(|fopen\(|\_GET\['cmd|\"><|<iframe|
-          YWxlcnQo|ZnJvbUNoYXJDb2Rl";
+          php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec\(|
+          file\_get\_contents\(|prompt\(|script>alert\(|fopen\(|\_GET\['cmd|\"><script|\"><javas|
+		  <iframe|YWxlcnQo|ZnJvbUNoYXJDb2Rl";
      $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
      $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
      $_thelist = $_blacklist[ ( int )$list ];
@@ -393,6 +393,14 @@
                     return;
           }
      }
+	 #magento-vuln
+	 if ( ( false !== strpos( $v, '.php/' ) &&
+		  ( false !== strpos( $v, 'Adminhtml_Downloadable_File' ) ) ) ) {
+                    $this->karo( true );
+                    return;
+	 }
+	  
+	 
      # Quirky Wordpress Exploit
      if ( isset( $_GET[ '_wp_http_referer' ] ) &&
           ( $this->getPHP_SELF() == 'edit-tags.php' || $this->getPHP_SELF() == 'edit-comments.php' || $this->getPHP_SELF() == 'index.php' ) &&
@@ -817,19 +825,22 @@
                }
  	  }
      }
-     $serverVars = new ArrayIterator( array( 'HTTP_CLIENT_IP', 'HTTP_PROXY_USER',
-	                                     'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED',
-	                                     'HTTP_CF_CONNECTING_IP', 'HTTP_FORWARDED_FOR' ) );
+	 
+	 $serverVars = array( 'HTTP_CLIENT_IP', 'HTTP_PROXY_USER',
+	                      'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED',
+	                      'HTTP_CF_CONNECTING_IP', 'HTTP_FORWARDED_FOR' );
+	 
      # the point here is to not accidentally ban an ip address that could be an upline proxy
      # instead just allow a page die() action
-     while ( $serverVars->valid() ) {
- 	  if ( array_key_exists( $serverVars->current(), $_SERVER )
-               && !empty( $_SERVER[ $serverVars->current() ] )
-               && false !== $this->check_ip( $_SERVER[ $serverVars->current() ] ) ) {
+     $x = 0;
+     while ( $x <= count( $serverVars ) ) {
+ 	  if ( array_key_exists( $_SERVER[ $serverVars[ $x ] ] )
+               && !empty( $_SERVER[ $serverVars[ $x ] ] )
+               && false !== $this->check_ip( $_SERVER[ $serverVars[ $x ] ] ) ) {
 	       # if a valid IP then prevent htaccess ban but still allow die()
        	       $this->_bypassbanip = true;
  	  }
- 	  $serverVars->next();
+ 	  $x++;
      }
      # never trust any headers
      return ( false !== $this->check_ip( getenv( 'REMOTE_ADDR' ) ) ) ?
@@ -851,7 +862,6 @@
 		header( 'content-security-policy: script-src \'self\'' );
 		header( 'access-control-allow-methods: POST, GET' );
 		header( 'x-frame-options: SAMEORIGIN' );
-		header( 'x-content-type-options: nosniff' );
 		header( 'x-xss-protection: 1; mode=block' );
 		if ( false !== ( bool )ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
 			 header( 'X-Powered-By: ' . $this->_psec . ' - http://hokioisec7agisc4.onion' );
@@ -903,17 +913,10 @@
           }
            
     	  if ( !empty( $_SERVER[ 'QUERY_STRING' ] ) ) $_request_uri .= '?' . $_SERVER[ 'QUERY_STRING' ];
-    	                                              $_SERVER[ 'REQUEST_URI' ] = $_request_uri;
-	  return $this->url_decoder( $_request_uri );
-     } else {
-   	  $x = 16;
-    	  $_request_uri = $_SERVER[ 'REQUEST_URI' ];
-          while ( $x >= 0 ) {
-               $_request_uri = str_replace( '//', '/', $_request_uri );
-               $x--;
-          }
-          return $this->url_decoder( $_request_uri );
      }
+     $_request_uri = str_replace( '//', '/', $_request_uri );
+	 $_SERVER[ 'REQUEST_URI' ] = $_request_uri;
+     return $this->url_decoder( $_request_uri );
    }
 } // end of class
 $ParetoSecurity = new ParetoSecurity();
