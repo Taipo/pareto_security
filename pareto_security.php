@@ -828,7 +828,7 @@
      # instead just allow a page die() action
      $x = 0;
      while ( $x <= count( $serverVars ) ) {
- 	  if ( array_key_exists( $_SERVER[ $serverVars[ $x ] ], $_SERVER )
+ 	  if ( array_key_exists( $serverVars[ $x ], $_SERVER )
                && !empty( $_SERVER[ $serverVars[ $x ] ] )
                && false !== $this->check_ip( $_SERVER[ $serverVars[ $x ] ] ) ) {
 	       # if a valid IP then prevent htaccess ban but still allow die()
