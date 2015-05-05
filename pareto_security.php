@@ -458,8 +458,8 @@
 	  $cvals = array_values( $_COOKIE );
 	  $i = 0;
           while ( $i < count( $ckeys ) ) {
-    	       $ckey = strtolower(  $this->hexoctaldecode( $ckeys[ $i ] ) );
-    	       $cval = $this->url_decoder( strtolower(  $this->hexoctaldecode( $cvals[ $i ] ) ) );
+    	       $ckey = is_string( $ckeys[ $i ] ) ? strtolower(  $this->hexoctaldecode( $ckeys[ $i ] ) ):strtolower(  $this->hexoctaldecode( $ckeys[ $i ][0] ) );
+    	       $cval = is_string( $cvals[ $i ] ) ? $this->url_decoder( strtolower(  $this->hexoctaldecode( $cvals[ $i ] ) ) ):$this->url_decoder( strtolower(  $this->hexoctaldecode( $cvals[ $i ][0] ) ) );
     	       if ( ( is_string( $ckey ) ) ) {
                     if ( false !== ( bool )$this->blacklistMatch( $ckey, 4 ) ||  false !== ( bool )$this->blacklistMatch( $this->hexoctaldecode( $cval ), 4 ) ) {
             	         $this->karo( true );
