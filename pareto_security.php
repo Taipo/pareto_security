@@ -640,17 +640,16 @@
      $filename = NULL;
      if ( false !== ( bool )ini_get( 'register_globals' ) ||
           ( ! isset( $HTTP_SERVER_VARS ) ) ) $HTTP_SERVER_VARS = $_SERVER;
-       
      $filename = basename( $this->setReq_uri() );
-     if ( ( 1 == strlen( $filename ) ) && ( '/' == $filename ) ) $filename = '/' . $this->_default; // or whatever your default file is
+     if ( 2 > strlen( $filename ) ) $filename = $this->_default; // or whatever your default file is
      preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
-     if ( is_array( $matches ) &&
-          array_key_exists( 0, $matches ) &&
+	 if ( is_array( $matches ) &&
+		  array_key_exists( 0, $matches ) &&
           ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) &&
           ( false !== $this->checkfilename( $matches[ 0 ] ) ) &&
           ( is_readable( $matches[ 0 ] ) ) ) {
     	  $filename = $matches[ 0 ];
-     } else $filename = NULL;
+     } else $filename = $this->_default;
      if ( !empty( $filename ) ) {
           return $filename;
      } else {
@@ -744,15 +743,9 @@
      } else {
           $theDIR = $_SERVER[ 'DOCUMENT_ROOT' ] . $rootDir;
      }
-          
-     $x = 26;
-     $theDIR = $theDIR . '/';
-     while ( $x >= 0 ) {
-          $theDIR = str_replace( '//', '/', $theDIR );
-     $x--;
-     }
-     return $theDIR;
+     return str_replace( '//', '/', $theDIR );
    }
+   
    private static function is_server( $ip ) {
      if ( ( $_SERVER[ 'SERVER_ADDR' ] == $ip ) ||
           ( $ip == '127.0.0.1' ) ) return true;
@@ -779,26 +772,27 @@
                                                  FILTER_FLAG_IPV6 ) ) {
                     $check = false;
                  } else $check = true; //passed the first test
-       }
-       if ( preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/", $ip ) ) {
-           $check = true; //passed second test
-           
-           $parts = explode( '.', $ip );
-           $x = 0;
-           while( $x < count( $parts ) ) {
-                if ( !is_numeric( $parts[ $x ] ) ||
-                   ( ( int )( $parts[ $x ] ) > 255 ) ||
-                   ( ( int )( $parts[ $x ] ) < 0 ) ) {
-                   $check = false;
-               }
-           $x++;
-           }
-           if ( ( count( $parts ) <> 4 ) || ( $parts[0] < 1 ) ) $check = false;
-       } else $check = false;
-       
-       if ( false === ( bool )$check ) {
-            $this->send403();
-       } else return true;
+       } else {
+		  if ( false !== preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/", $ip ) ) {
+			  $check = true; //passed second test
+			  
+			  $parts = explode( '.', $ip );
+			  $x = 0;
+			  while( $x < count( $parts ) ) {
+				   if ( !is_numeric( $parts[ $x ] ) ||
+					  ( ( int )( $parts[ $x ] ) > 255 ) ||
+					  ( ( int )( $parts[ $x ] ) < 0 ) ) {
+					  $check = false;
+				  }
+			  $x++;
+			  }
+			  if ( ( count( $parts ) <> 4 ) || ( $parts[0] < 1 ) ) $check = false;
+		  } else $check = false;
+		  
+		  if ( false === ( bool )$check ) {
+			   $this->send403();
+		  } else return true;
+	   }
    }
    /**
     * getRealIP()
@@ -915,7 +909,6 @@
     	  if ( !empty( $_SERVER[ 'QUERY_STRING' ] ) ) $_request_uri .= '?' . $_SERVER[ 'QUERY_STRING' ];
      }
      $_request_uri = str_replace( '//', '/', $_request_uri );
-	 $_SERVER[ 'REQUEST_URI' ] = $_request_uri;
      return $this->url_decoder( $_request_uri );
    }
 } // end of class
