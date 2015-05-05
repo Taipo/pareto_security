@@ -820,14 +820,14 @@
  	  }
      }
 	 
-	 $serverVars = array( 'HTTP_CLIENT_IP', 'HTTP_PROXY_USER',
+	 $serverVars = array( 'HTTP_FORWARDED_FOR', 'HTTP_PROXY_USER',
 	                      'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED',
-	                      'HTTP_CF_CONNECTING_IP', 'HTTP_FORWARDED_FOR' );
+	                      'HTTP_CF_CONNECTING_IP', 'HTTP_CLIENT_IP' );
 	 
      # the point here is to not accidentally ban an ip address that could be an upline proxy
      # instead just allow a page die() action
      $x = 0;
-     while ( $x <= count( $serverVars ) ) {
+     while ( $x < count( $serverVars ) ) {
  	  if ( array_key_exists( $serverVars[ $x ], $_SERVER )
                && !empty( $_SERVER[ $serverVars[ $x ] ] )
                && false !== $this->check_ip( $_SERVER[ $serverVars[ $x ] ] ) ) {
