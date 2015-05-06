@@ -853,7 +853,6 @@
      $errlevel = ini_get( 'error_reporting' );
      error_reporting( 0 );
 		header( 'strict-transport-security: max-age=31536000; includeSubDomains' );
-		header( 'content-security-policy: script-src \'self\'' );
 		header( 'access-control-allow-methods: POST, GET' );
 		header( 'x-frame-options: SAMEORIGIN' );
 		header( 'x-xss-protection: 1; mode=block' );
@@ -907,9 +906,10 @@
           }
            
     	  if ( !empty( $_SERVER[ 'QUERY_STRING' ] ) ) $_request_uri .= '?' . $_SERVER[ 'QUERY_STRING' ];
+		  $_request_uri = str_replace( '//', '/', $_request_uri );
+		  return $this->url_decoder( $_request_uri );
      }
-     $_request_uri = str_replace( '//', '/', $_request_uri );
-     return $this->url_decoder( $_request_uri );
+	 return $_SERVER[ 'REQUEST_URI' ];
    }
 } // end of class
 $ParetoSecurity = new ParetoSecurity();
