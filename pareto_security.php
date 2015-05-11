@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @package Pareto Security Class for Joomla / WordPress / osCommerce and more
  * @author Hokioi Security <hokioi-security@protonmail.ch>
@@ -27,7 +28,7 @@
    # default home page
    protected $_default = 'index.php'; 
    public function __construct() {
-       
+
      $this->setVars();
      # if open_basedir is not set in php.ini then set it in the local scope
      if ( false !== ( bool )$this->_open_basedir ) $this->setOpenBaseDir();
@@ -50,7 +51,6 @@
     * @return
     */
    function setVars() {
-       
      $this->_set_error_level();
      # make sure $_SERVER[ 'REQUEST_URI' ] is set
      $this->setReq_uri();
@@ -640,7 +640,8 @@
      $filename = NULL;
      if ( false !== ( bool )ini_get( 'register_globals' ) ||
           ( ! isset( $HTTP_SERVER_VARS ) ) ) $HTTP_SERVER_VARS = $_SERVER;
-     $filename = basename( $this->setReq_uri() );
+     $filename = ( ( ( strlen( ini_get( "cgi.fix_pathinfo" ) ) > 0 ) && ( ( bool )ini_get( "cgi.fix_pathinfo" ) == false ) ) ||
+            ! isset( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] ) ) ? basename( $HTTP_SERVER_VARS[ "PHP_SELF" ] ) : basename( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] );
      if ( 2 > strlen( $filename ) ) $filename = $this->_default; // or whatever your default file is
      preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
 	 if ( is_array( $matches ) &&
