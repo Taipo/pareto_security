@@ -2,11 +2,11 @@
 /*
 Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
-Description: Core Security Class - Defense against a range of common attacks
+Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.0.2
+Version: 1.0.3
 Author URI: http://hokioisec7agisc4.onion
-BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX 
+BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
 */
      
  # prevent direct viewing of pareto_security.php
@@ -340,6 +340,7 @@ BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
      $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
      $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
      $_thelist = $_blacklist[ ( int )$list ];
+	 $_thelist = preg_replace( "/[\s]/i", '', $_thelist );
      if ( false !== ( bool )preg_match( "/$_thelist/i", $val ) ) {
          return true;
      }
