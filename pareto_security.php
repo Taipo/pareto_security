@@ -1,19 +1,20 @@
 <?php
-
-/**
- * @package Pareto Security Class for Joomla / WordPress / osCommerce and more
- * @author Hokioi Security <hokioi-security@protonmail.ch>
- * @website http://hokioisec7agisc4.onion
- * @github https://github.com/Taipo/Pareto_Security
- * @copyright (c) Hokioi Security
- * @license http://opensource.org/licenses/gpl-license.php GNU Public License
- * @version $Id: pareto_security.php 1.0.2
- * @btc:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX 
- **/
+/*
+Plugin Name: Pareto Security
+Plugin URI: http://hokioisec7agisc4.onion/?p=25
+Description: Core Security Class - Defense against a range of common attacks
+Author: Te_Taipo
+Version: 1.0.2
+Author URI: http://hokioisec7agisc4.onion
+BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX 
+*/
      
  # prevent direct viewing of pareto_security.php
  if ( false !== strpos( strtolower( $_SERVER[ 'SCRIPT_NAME' ] ), Pareto_selfchk() ) ) send404();
-    
+ 
+ # Set Pareto Security as the first plugin loaded
+ if ( defined( 'WP_PLUGIN_DIR' ) ) add_action( "activated_plugin", "load_pareto_first" );
+ 
  class ParetoSecurity {
    # protect from non-standard request types
    protected $_nonGETPOSTReqs = 0;
@@ -57,6 +58,7 @@
      # reliably set $PHP_SELF
      global $PHP_SELF; // for those apps that use it
      $PHP_SELF = $this->getPHP_SELF();
+	 
      # filter the $_SERVER ip headers for malicious code
      $this->_realIP = $this->getRealIP();
      $this->_threshold = false;
@@ -544,10 +546,10 @@
      $s = strtolower( $this->url_decoder( $s ) );
      switch ( $b ) {
           case ( 1 ):
-               return preg_replace( "/[^\s{}a-z0-9_?,()=@%:{}\/.-]/i", '', $s );
+               return preg_replace( "/[^\s{}a-z0-9_?,()=@%:{}\/\.\-]/i", '', $s );
                break;
           case ( 2 ):
-               return preg_replace( "/[^\s{}a-z0-9_?,=@%:{}\/.-]/i", '', $s );
+               return preg_replace( "/[^\s{}a-z0-9_?,=@%:{}\/\.\-]/i", '', $s );
                break;
           case ( 3 ):
                return preg_replace( "/[^\s=a-z0-9]/i", '', $s );
@@ -639,7 +641,7 @@
    function getPHP_SELF() {
      $filename = NULL;
      if ( false !== ( bool )ini_get( 'register_globals' ) ||
-          ( ! isset( $HTTP_SERVER_VARS ) ) ) $HTTP_SERVER_VARS = $_SERVER;
+          ( ! isset( $HTTP_SERVER_VARS ) ) ) $HTTP_SERVER_VARS = $_SERVER; // back compatible for PHP 4
      $filename = ( ( ( strlen( ini_get( "cgi.fix_pathinfo" ) ) > 0 ) && ( ( bool )ini_get( "cgi.fix_pathinfo" ) == false ) ) ||
             ! isset( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] ) ) ? basename( $HTTP_SERVER_VARS[ "PHP_SELF" ] ) : basename( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] );
      if ( 2 > strlen( $filename ) ) $filename = $this->_default; // or whatever your default file is
@@ -744,6 +746,7 @@
      } else {
           $theDIR = $_SERVER[ 'DOCUMENT_ROOT' ] . $rootDir;
      }
+	 $theDIR = str_replace( '//', '/', $theDIR );
      return str_replace( '//', '/', $theDIR );
    }
    
@@ -942,5 +945,16 @@ function send404() {
           header( $sent );
      }
      die();
+}
+function load_pareto_first() {
+  $wp_path_to_this_file = preg_replace( '/(.*)plugins\/(.*)$/', WP_PLUGIN_DIR."/$2", __FILE__ );
+  $this_plugin = plugin_basename( trim($wp_path_to_this_file ) );
+  $active_plugins = get_option( 'active_plugins' );
+  $this_plugin_key = array_search( $this_plugin, $active_plugins );
+  if ( $this_plugin_key ) {
+	  array_splice( $active_plugins, $this_plugin_key, 1 );
+	  array_unshift( $active_plugins, $this_plugin );
+	  update_option( 'active_plugins', $active_plugins );
+  }
 }
 ?>
