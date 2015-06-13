@@ -1,14 +1,34 @@
 <?php
-/*
-Plugin Name: Pareto Security
-Plugin URI: http://hokioisec7agisc4.onion/?p=25
-Description: Core Security Class - Defense against a range of common attacks such as database injection
-Author: Te_Taipo
-Version: 1.0.3
-Author URI: http://hokioisec7agisc4.onion
-BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
-*/
-     
+  /*
+  Plugin Name: Pareto Security
+  Plugin URI: http://hokioisec7agisc4.onion/?p=25
+  Description: Core Security Class - Defense against a range of common attacks such as database injection
+  Author: Te_Taipo
+  Version: 1.0.3
+  Author URI: http://hokioisec7agisc4.onion
+  BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
+  */
+  
+  /*
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+  
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+  
+  See: See http://www.gnu.org/licenses/gpl-3.0.txt
+  
+  */
+
+
  # prevent direct viewing of pareto_security.php
  if ( false !== strpos( strtolower( $_SERVER[ 'SCRIPT_NAME' ] ), Pareto_selfchk() ) ) send404();
  
@@ -948,14 +968,14 @@ function send404() {
      die();
 }
 function load_pareto_first() {
-  $wp_path_to_this_file = preg_replace( '/(.*)plugins\/(.*)$/', WP_PLUGIN_DIR."/$2", __FILE__ );
-  $this_plugin = plugin_basename( trim($wp_path_to_this_file ) );
-  $active_plugins = get_option( 'active_plugins' );
-  $this_plugin_key = array_search( $this_plugin, $active_plugins );
-  if ( $this_plugin_key ) {
-	  array_splice( $active_plugins, $this_plugin_key, 1 );
-	  array_unshift( $active_plugins, $this_plugin );
-	  update_option( 'active_plugins', $active_plugins );
-  }
+	$wp_path_to_this_file = preg_replace( '/(.*)plugins\/(.*)$/', WP_PLUGIN_DIR."/$2", __FILE__ );
+	$this_plugin = plugin_basename( trim($wp_path_to_this_file ) );
+	$active_plugins = get_option( 'active_plugins' );
+	$this_plugin_key = array_search( $this_plugin, $active_plugins );
+	if ( $this_plugin_key ) {
+		array_splice( $active_plugins, $this_plugin_key, 1 );
+		array_unshift( $active_plugins, $this_plugin );
+		update_option( 'active_plugins', $active_plugins );
+	}
 }
 ?>
