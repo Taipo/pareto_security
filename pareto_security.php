@@ -357,7 +357,7 @@
           php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec\(|
           file\_get\_contents\(|prompt\(|script>alert\(|fopen\(|\_GET\['cmd|\"><script|\"><javas|
 		  <iframe|YWxlcnQo|ZnJvbUNoYXJDb2Rl";
-     $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
+     $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|Baidu|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
      $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
      $_thelist = $_blacklist[ ( int )$list ];
 	 $_thelist = preg_replace( "/[\s]/i", '', $_thelist );
@@ -416,9 +416,8 @@
                     return;
           }
      }
-	 #magento-vuln
-	 if ( ( false !== strpos( $v, '.php/' ) &&
-		  ( false !== strpos( $v, 'Adminhtml_Downloadable_File' ) ) ) ) {
+	 #osCommerce exploit
+	 if ( false !== strpos( $v, '.php/admin' ) ) {
                     $this->karo( true );
                     return;
 	 }
