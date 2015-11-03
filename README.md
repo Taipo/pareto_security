@@ -105,8 +105,3 @@ Email me at hokioi-security@protonmail.ch
 
 = 1.0.0 =
 * Converted from osC_Sec to Pareto_Security.php
-
-== Upgrade Notice ==
-
-= 1.0 =
-Upgrade notices describe the reason a user should upgrade.  No more than 300 characters.
