@@ -4,7 +4,7 @@
   Plugin URI: http://hokioisec7agisc4.onion/?p=25
   Description: Core Security Class - Defense against a range of common attacks such as database injection
   Author: Te_Taipo
-  Version: 1.0.7
+  Version: 1.1.2
   Author URI: http://hokioisec7agisc4.onion
   BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
   */
@@ -37,8 +37,8 @@
 	   exit();
    }
    add_action( "activated_plugin", "load_pareto_first" );
-   define( 'PARETO_VERSION', '1.0.7' );
-   define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1436477103' ) );
+   define( 'PARETO_VERSION', '1.1.2' );
+   define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1445887953' ) );
    define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
    define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
  }
@@ -67,8 +67,9 @@
 
 		register_activation_hook( __FILE__, array( $this,'activate' ) );
 		register_deactivation_hook( __FILE__, array( $this,'deactivate' ) );
-		$this->_banip = $ParetoSettings->ban_ips;
-		$this->_open_basedir = $ParetoSettings->set_open_basedir;
+
+		$this->_banip = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
+	  # $this->_open_basedir = $ParetoSettings->set_open_basedir;
 	 }
 	 
      $this->setVars();
@@ -116,22 +117,9 @@
 	function deactivate( $networkwide ) {
 		$this->network_propagate( array( $this, '_deactivate' ), $networkwide );
 	}
-
-	/*
-		Enter our plugin activation code here.
-	*/
-	function _activate() {}
-
-	/*
-		Enter our plugin deactivation code here.
-	*/
-	function _deactivate() {}
 	
-	function admin_init() {
-	}
-
-	function admin_menu() {
-	}
+	function _activate() {}
+	function _deactivate() {}
 	
   /**
     * setVars()
@@ -231,7 +219,7 @@
                 eval|exec|from|ftp|grant|group|insert|isnull|into|js|length\(|load|
                 master|onmouse|null|php|schema|select|set|shell|show|sleep|table|
                 union|update|utf|var|waitfor|while";
-     $vartrig = preg_replace( "/[\s]/", "", $vartrig );
+     $vartrig = preg_replace( "/[\s]/i", "", $vartrig );
      for( $x = 1; $x <= 5; $x++ ) {
           $string = $this->cleanString( $x, $string );
     	  if ( false !== ( bool )preg_match( "/$vartrig/i", $string ) ) {
@@ -244,152 +232,155 @@
      } else {
           $j = 1;
     	  # toggle through 6 different filters
+		  $sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
+							collation|concat|conv|convert|count|curdate|database|date|
+							decode|diff|distinct|elt|encode|encrypt|extract|field|_file|
+							floor|format|hex|if|inner|insert|instr|interval|join|lcase|left|
+							length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|md5|
+							mid|mod|name|now|null|ord|password|position|quote|rand|
+							repeat|replace|reverse|right|rlike|round|row_count|rpad|rtrim|
+							_set|schema|select|sha1|sha2|serverproperty|soundex|
+							space|strcmp|substr|substr_index|substring|sum|time|trim|
+							truncate|ucase|unhex|upper|_user|user|values|varchar|
+							version|while|ws|xor)\(|\(0x|@@|cast|integer";
+		  $sqlupdatelist = "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
+						    \bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
+						    \bval\b|0x|--";
+		  $sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|win.|
+							\bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
+							_log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
+							\bsql\b|tmp|tmp\/sess|\busr\b|\bvar\b|\/(?:uploa|passw)d';
+		  $sqlmatchlist2 = '@@|_and|ascii|b(?:enchmark|etween|in|itlength|
+							ulk)|c(?:ast|har|ookie|ollate|olumn|oncat|urrent)|\bdate\b|
+							dump|e(?:lt|xport)|false|\bfield\b|fetch|format|function|
+							\bhaving\b|i(?:dentity|nforma|nstr)|\bif\b|\bin\b|inner|insert|
+							l(?:case|eft|ength|ike|imit|oad|ocate|ower|pad|trim)|join|
+							m(:?ade by|ake|atch|d5|id)|not_like|not_regexp|null|\bon\b|
+							order|outfile|p(?:ass|ost|osition|riv)|\bquote\b|\br(?:egexp\b|
+							ename\b|epeat\b|eplace\b|equest\b|everse\b|eturn\b|ight\b|
+							like\b|pad\b|trim\b)|\bs(?:ql\b|hell\b|leep\b|trcmp\b|ubstr\b)|
+							\bt(?:able\b|rim\b|rue\b|runcate\b)|u(?:case|nhex|pdate|
+							pper|ser)|values|varchar|\bwhen\b|where|with|\(0x|
+							_(?:decrypt|encrypt|get|post|server|cookie|global|or|
+							request|xor)|(?:column|db|load|not|octet|sql|table|xp)_|
+							version|auto_prepend_file|allow_url_include';
           while( $j <= 6 ) {
-       	       $string = $this->cleanString( $j, $string );
-       	       $sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
-                    collation|concat|conv|convert|count|curdate|database|date|
-                    decode|diff|distinct|elt|encode|encrypt|extract|field|_file|
-                    floor|format|hex|if|inner|insert|instr|interval|join|lcase|left|
-                    length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|md5|
-                    mid|mod|name|now|null|ord|password|position|quote|rand|
-                    repeat|replace|reverse|right|rlike|round|row_count|rpad|rtrim|
-                    _set|schema|select|sha1|sha2|serverproperty|soundex|
-                    space|strcmp|substr|substr_index|substring|sum|time|trim|
-                    truncate|ucase|unhex|upper|_user|user|values|varchar|
-                    version|while|ws|xor)\(|\(0x|@@|cast|integer";
-       	  $sqlmatchlist = preg_replace( "/[\s]/i", '', $sqlmatchlist );
-          
-	  $sqlupdatelist = "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
-                    \bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
-                    \bval\b|0x|--";
-       	  $sqlupdatelist = preg_replace( "/[\s]/i", '', $sqlupdatelist );
-  
-       	  if ( false !== ( bool )preg_match( "/\bdrop\b/i", $string ) &&
-               false !== ( bool )preg_match( "/\btable\b|\buser\b/i", $string ) &&
-               false !== ( bool )preg_match( "/--|and||\//i", $string ) ) {
-                  return true;
-       	  } elseif ( ( false !== strpos( $string, 'grant' ) ) &&
-                     ( false !== strpos( $string, 'all' ) ) &&
-                     ( false !== strpos( $string, 'privileges' ) ) ) {
-                    return true;
-       	  } elseif ( false !== ( bool )preg_match( "/(?:(sleep\((\s*)(\d*)(\s*)\)|benchmark\((.*)\,(.*)\)))/i", $string ) ) {
-                    return true;
-       	  } elseif ( false !== preg_match_all( "/\bload\b|\bdata\b|\binfile\b|\btable\b|\bterminated\b/i", $string, $matches ) > 3 ) {
-                    return true;
-       	  } elseif ( ( ( false !== ( bool )preg_match( "/select|sleep|isnull|declare|ascii\(substring|length\(/i", $string ) ) &&
-                     ( false !== ( bool )preg_match( "/\band\b|\bif\b|group_|_ws|load_|concat\(|\bfrom\b/i", $string ) ) &&
-                     ( false !== ( bool )preg_match( "/$sqlmatchlist/", $string ) ) ) ) {
-                    return true;
-       	  } elseif ( false !== preg_match_all( "/$sqlmatchlist/", $string, $matches ) > 2 ) {
-                    return true;
-       	  } elseif ( false !== strpos( $string, 'update' ) &&
-                    false !== ( bool )preg_match( "/\bset\b/i", $string ) &&
-                    false !== ( bool )preg_match( "/$sqlupdatelist/i", $string ) ) {
-                    return true;
-       	  } elseif ( false !== strpos( $string, 'having' ) &&
-                    false !== ( bool )preg_match( "/\bor\b|\band\b/i", $string ) &&
-                    false !== ( bool )preg_match( "/$sqlupdatelist/i", $string ) ) {
-                    return true;
-       	  # tackle the noDB / js issue
-       	  } elseif ( ( substr_count( $string, 'var' ) > 1 ) &&
-                    false !== ( bool )preg_match( "/date\(|while\(|sleep\(/i", $string ) ) {
-                    return true;
-          # reflected download attack
-       	  } elseif ( ( substr_count( $string, '|' ) > 2 ) &&
-                    false !== ( bool )preg_match( "/json/i", $string ) ) {
-                    return true;
-       	  }
-       	  # run through a set of filters to find specific attack vectors
-       	  $thenode = $this->cleanString( $j, $this->getREQUEST_URI() );
-       	  $sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|
-                   \bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
-                   _log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
-                   \bsql\b|tmp|tmp\/sess|\busr\b|\bvar\b|\/(?:uploa|passw)d';
-       	  $sqlfilematchlist = preg_replace( "/[\s]/i", '', $sqlfilematchlist );
-       	  if ( ( false !== ( bool )preg_match( "/onmouse(?:down|over)/i", $string ) ) &&
-               ( 2 < ( int )preg_match_all( "/c(?:path|tthis|t\(this)|http:|(?:forgotte|admi)n|sqlpatch|,,|ftp:|(?:aler|promp)t/i", $thenode, $matches ) ) ) {
-                    return true;
-          } elseif ( ( ( false !== strpos( $thenode, 'ftp:' ) ) &&
-                    ( substr_count( $thenode, 'ftp' ) > 1 ) ) &&
-                    ( 2 < ( int )preg_match_all( "/@|\/\/|:/i", $thenode, $matches ) ) ) {
-                    return true;
-          } elseif ( ( 'POST' == $_SERVER[ 'REQUEST_METHOD' ] ) &&
-                    ( false !== ( bool )preg_match( "/(?:showimg|cookie|cookies)=/i", $string ) ) ) {
-                    return true;
-          } elseif ( ( substr_count( $string, '../' ) > 3 ) ||
-                    ( substr_count( $string, '..//' ) > 3 ) ) {
-            	    if ( false !== ( bool )preg_match( "/$sqlfilematchlist/i", $string ) ) {
-                       return true;
-                    }
-          } elseif ( ( substr_count( $string, '/' ) > 1 ) && ( 2 <= ( int )preg_match_all( "/$sqlfilematchlist/i", $thenode, $matches ) ) ) {
-                       return true;
-          } elseif ( ( false !== ( bool )preg_match( "/%0D%0A/i", $thenode ) ) &&
-                    ( false !== strpos( $thenode, 'utf-7' ) ) ) {
-                    return true;
-          } elseif ( false !== ( bool )preg_match( "/php:\/\/filter|convert.base64-(?:encode|decode)|zlib.(?:inflate|deflate)/i",$string ) ||
-                     false !== ( bool )preg_match( "/data:\/\/filter|text\/plain|http:\/\/(?:127.0.0.1|localhost)/i", $string ) ) {
-                    return true;
-          }
-  
-       	  if ( 5 <= substr_count( $string, '%' ) ) $string = str_replace( '%', '', $string );
-  
-          $sqlmatchlist = '@@|_and|ascii|b(?:enchmark|etween|in|itlength|
-                    ulk)|c(?:ast|har|ookie|ollate|olumn|oncat|urrent)|\bdate\b|
-                    dump|e(?:lt|xport)|false|\bfield\b|fetch|format|function|
-                    \bhaving\b|i(?:dentity|nforma|nstr)|\bif\b|\bin\b|inner|insert|
-                    l(?:case|eft|ength|ike|imit|oad|ocate|ower|pad|trim)|join|
-                    m(:?ade by|ake|atch|d5|id)|not_like|not_regexp|null|\bon\b|
-                    order|outfile|p(?:ass|ost|osition|riv)|\bquote\b|\br(?:egexp\b|
-                    ename\b|epeat\b|eplace\b|equest\b|everse\b|eturn\b|ight\b|
-                    like\b|pad\b|trim\b)|\bs(?:ql\b|hell\b|leep\b|trcmp\b|ubstr\b)|
-                    \bt(?:able\b|rim\b|rue\b|runcate\b)|u(?:case|nhex|pdate|
-                    pper|ser)|values|varchar|\bwhen\b|where|with|\(0x|
-                    _(?:decrypt|encrypt|get|post|server|cookie|global|or|
-                    request|xor)|(?:column|db|load|not|octet|sql|table|xp)_';
-       	  $sqlmatchlist = preg_replace( "/[\s]/i", '', $sqlmatchlist );
-       	  if ( ( false !== ( bool )preg_match( "/\border by\b|\bgroup by\b/i", $string ) ) &&
-                    ( false !== ( bool )preg_match( "/\bcolumn\b|\bdesc\b|\berror\b|\bfrom\b|hav|\blimit\b|offset|\btable\b|\/|--/i", $string ) ||
-                    ( false !== ( bool )preg_match( "/\b[0-9]\b/i", $string ) ) ) ) {
-                    return true;
-          } elseif ( ( false !== ( bool )preg_match( "/\btable\b|\bcolumn\b/i", $string ) ) &&
-                    false !== strpos( $string, 'exists' ) &&
-                    false !== ( bool )preg_match( "/\bif\b|\berror\b|\buser\b|\bno\b/i", $string ) ) {
-                    return true;
-          } elseif ( ( false !== strpos( $string, 'waitfor' ) &&
-                    false !== strpos( $string, 'delay' ) &&
-                    ( ( bool )preg_match( "/(:)/i", $string ) ) ) ||
-                    ( false !== strpos( $string, 'nowait' ) &&
-                    false !== strpos( $string, 'with' ) &&
-                    ( false !== ( bool )preg_match( "/--|\/|\blimit\b|\bshutdown\b|\bupdate\b|\bdesc\b/i", $string ) ) ) ) {
-                    return true;
-          } elseif ( false !== ( bool )preg_match( "/\binto\b/i", $string ) &&
-                    ( false !== ( bool )preg_match( "/\boutfile\b/i", $string ) ) ) {
-                    return true;
-          } elseif ( false !== ( bool )preg_match( "/\bdrop\b/i", $string ) &&
-                    ( false !== ( bool )preg_match( "/\buser\b/i", $string ) ) ) {
-                    return true;
-          } elseif ( ( ( false !== strpos( $string, 'create' ) &&
-                    false !== ( bool )preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) ||
-                    ( false !== strpos( $string, 'delete' ) &&
-                    false !== strpos( $string, 'from' ) ) ||
-                    ( false !== strpos( $string, 'insert' ) &&
-                    ( false !== ( bool )preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) ||
-                    ( false !== strpos( $string, 'select' ) &&
-                    ( false !== ( bool )preg_match( "/\bby\b|\bcase\b|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) &&
-                    ( ( false !== ( bool )preg_match( "/$sqlmatchlist/i", $string ) ) || ( 2 <= substr_count( $string, ',' ) ) ) ) {
-                    return true;
-          } elseif ( ( false !== strpos( $string, 'union' ) ) &&
-                    ( false !== strpos( $string, 'select' ) ) &&
-                    ( false !== strpos( $string, 'from' ) ) ) {
-                    return true;
-          } elseif ( false !== strpos( $string, 'etc/passwd' ) ) {
-                    return true;
-          } elseif ( false !== strpos( $string, 'null' ) ) {
-                    $nstring = preg_replace( "/[^a-z]/i", '', $this->url_decoder( $string ) );
-            	    if ( false !== ( bool )preg_match( "/(null){3,}/i", $nstring ) ) {
-                       return true;
-                    }
-          }
+       	      $string = $this->cleanString( $j, $string );
+       	       
+			  $sqlmatchlist = preg_replace( "/[\s]/i", '', $sqlmatchlist );
+			  $sqlupdatelist = preg_replace( "/[\s]/i", '', $sqlupdatelist );
+			  $sqlfilematchlist = preg_replace( "/[\s]/i", '', $sqlfilematchlist );
+			  $sqlmatchlist2 = preg_replace( "/[\s]/i", '', $sqlmatchlist2 );
+
+			  if ( false !== ( bool )preg_match( "/\bdrop\b/i", $string ) &&
+				   false !== ( bool )preg_match( "/\btable\b|\buser\b/i", $string ) &&
+				   false !== ( bool )preg_match( "/--|and||\//i", $string ) ) {
+					  return true;
+			  } elseif ( ( false !== strpos( $string, 'grant' ) ) &&
+						 ( false !== strpos( $string, 'all' ) ) &&
+						 ( false !== strpos( $string, 'privileges' ) ) ) {
+						return true;
+			  } elseif ( false !== ( bool )preg_match( "/(?:(sleep\((\s*)(\d*)(\s*)\)|benchmark\((.*)\,(.*)\)))/i", $string ) ) {
+						return true;
+			  } elseif ( false !== preg_match_all( "/\bload\b|\bdata\b|\binfile\b|\btable\b|\bterminated\b/i", $string, $matches ) > 3 ) {
+						return true;
+			  } elseif ( ( ( false !== ( bool )preg_match( "/select|sleep|isnull|declare|ascii\(substring|length\(/i", $string ) ) &&
+						 ( false !== ( bool )preg_match( "/\band\b|\bif\b|group_|_ws|load_|exec|concat\(|\bfrom\b/i", $string ) ) &&
+						 ( false !== ( bool )preg_match( "/$sqlmatchlist/i", $string ) ) ) ) {
+						return true;
+			  } elseif ( false !== preg_match_all( "/$sqlmatchlist/i", $string, $matches ) > 2 ) {
+						return true;
+			  } elseif ( false !== strpos( $string, 'update' ) &&
+						false !== ( bool )preg_match( "/\bset\b/i", $string ) &&
+						false !== ( bool )preg_match( "/$sqlupdatelist/i", $string ) ) {
+						return true;
+			  } elseif ( false !== strpos( $string, 'having' ) &&
+						false !== ( bool )preg_match( "/\bor\b|\band\b/i", $string ) &&
+						false !== ( bool )preg_match( "/$sqlupdatelist/i", $string ) ) {
+						return true;
+			  # tackle the noDB / js issue
+			  } elseif ( ( substr_count( $string, 'var' ) > 1 ) &&
+						false !== ( bool )preg_match( "/date\(|while\(|sleep\(/i", $string ) ) {
+						return true;
+			  # reflected download attack
+			  } elseif ( ( substr_count( $string, '|' ) > 2 ) &&
+						false !== ( bool )preg_match( "/json/i", $string ) ) {
+						return true;
+			  }
+			  # run through a set of filters to find specific attack vectors
+			  $thenode = $this->cleanString( $j, $this->getREQUEST_URI() );
+
+			  if ( ( false !== ( bool )preg_match( "/onmouse(?:down|over)/i", $string ) ) &&
+				   ( 2 < ( int )preg_match_all( "/c(?:path|tthis|t\(this)|http:|(?:forgotte|admi)n|sqlpatch|,,|ftp:|(?:aler|promp)t/i", $thenode, $matches ) ) ) {
+						return true;
+			  } elseif ( ( ( false !== strpos( $thenode, 'ftp:' ) ) &&
+						( substr_count( $thenode, 'ftp' ) > 1 ) ) &&
+						( 2 < ( int )preg_match_all( "/@|\/\/|:/i", $thenode, $matches ) ) ) {
+						return true;
+			  } elseif ( ( 'POST' == $_SERVER[ 'REQUEST_METHOD' ] ) &&
+						( false !== ( bool )preg_match( "/(?:showimg|cookie|cookies)=/i", $string ) ) ) {
+						return true;
+			  } elseif ( ( substr_count( $string, '../' ) > 3 ) ||
+						 ( substr_count( $string, '..//' ) > 3 ) ||
+						 ( substr_count( $string, '0x2e0x2e/' ) > 1 ) ) {
+						if ( false !== ( bool )preg_match( "/$sqlfilematchlist/i", $string ) ) {
+						   return true;
+						}
+			  } elseif ( ( substr_count( $string, '/' ) > 1 ) && ( 2 <= ( int )preg_match_all( "/$sqlfilematchlist/i", $thenode, $matches ) ) ) {
+						   return true;
+			  } elseif ( ( false !== ( bool )preg_match( "/%0D%0A/i", $thenode ) ) &&
+						( false !== strpos( $thenode, 'utf-7' ) ) ) {
+						return true;
+			  } elseif ( false !== ( bool )preg_match( "/php:\/\/filter|convert.base64-(?:encode|decode)|zlib.(?:inflate|deflate)/i",$string ) ||
+						 false !== ( bool )preg_match( "/data:\/\/filter|text\/plain|http:\/\/(?:127.0.0.1|localhost)/i", $string ) ) {
+						return true;
+			  }
+	  
+			  if ( 5 <= substr_count( $string, '%' ) ) $string = str_replace( '%', '', $string );
+
+			  if ( ( false !== ( bool )preg_match( "/\border by\b|\bgroup by\b/i", $string ) ) &&
+						( false !== ( bool )preg_match( "/\bcolumn\b|\bdesc\b|\berror\b|\bfrom\b|hav|\blimit\b|offset|\btable\b|\/|--/i", $string ) ||
+						( false !== ( bool )preg_match( "/\b[0-9]\b/i", $string ) ) ) ) {
+						return true;
+			  } elseif ( ( false !== ( bool )preg_match( "/\btable\b|\bcolumn\b/i", $string ) ) &&
+						false !== strpos( $string, 'exists' ) &&
+						false !== ( bool )preg_match( "/\bif\b|\berror\b|\buser\b|\bno\b/i", $string ) ) {
+						return true;
+			  } elseif ( ( false !== strpos( $string, 'waitfor' ) &&
+						false !== strpos( $string, 'delay' ) &&
+						( ( bool )preg_match( "/(:)/i", $string ) ) ) ||
+						( false !== strpos( $string, 'nowait' ) &&
+						false !== strpos( $string, 'with' ) &&
+						( false !== ( bool )preg_match( "/--|\/|\blimit\b|\bshutdown\b|\bupdate\b|\bdesc\b/i", $string ) ) ) ) {
+						return true;
+			  } elseif ( false !== ( bool )preg_match( "/\binto\b/i", $string ) &&
+						( false !== ( bool )preg_match( "/\boutfile\b/i", $string ) ) ) {
+						return true;
+			  } elseif ( false !== ( bool )preg_match( "/\bdrop\b/i", $string ) &&
+						( false !== ( bool )preg_match( "/\buser\b/i", $string ) ) ) {
+						return true;
+			  } elseif ( ( ( false !== strpos( $string, 'create' ) &&
+						false !== ( bool )preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) ||
+						( false !== strpos( $string, 'delete' ) &&
+						false !== strpos( $string, 'from' ) ) ||
+						( false !== strpos( $string, 'insert' ) &&
+						( false !== ( bool )preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) ||
+						( false !== strpos( $string, 'select' ) &&
+						( false !== ( bool )preg_match( "/\bby\b|\bcase\b|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) &&
+						( ( false !== ( bool )preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= substr_count( $string, ',' ) ) ) ) {
+						return true;
+			  } elseif ( ( false !== strpos( $string, 'union' ) ) &&
+						( false !== strpos( $string, 'select' ) ) &&
+						( false !== strpos( $string, 'from' ) ) ) {
+						return true;
+			  } elseif ( false !== strpos( $string, 'etc/passwd' ) ) {
+						return true;
+			  } elseif ( false !== strpos( $string, 'null' ) ) {
+						$nstring = preg_replace( "/[^a-z]/i", '', $this->url_decoder( $string ) );
+						if ( false !== ( bool )preg_match( "/(null){3,}/i", $nstring ) ) {
+						   return true;
+						}
+			  }
     	  $j++;
         }
      }
@@ -409,23 +400,24 @@
           open\_basedir|auto\_prepend\_file|php:\/\/input|\)limit|rush=|fromCharCode|\}catch\(e|
           ;base64|base64,|prompt\(|onerror=alert\(|javascript:prompt\(|\/var\/lib\/php|
           javascript:alert\(|pwtoken\_get|php\_uname|%3Cform|passthru\(|sha1\(|sha2\(|\}if\(!|
-          <\?php|\/iframe|; GET|\\$\_GET|=@@version|ob\_starting|and1=1|\.\.\/cmd|document\.cookie|
+          <\?php|\/iframe|; GET|\\$\_GET|@@version|ob\_starting|and1=1|\.\.\/cmd|document\.cookie|
           document\.write|onload\=|mysql\_query|document\.location|window\.location|\]\);\}|
-          location\.replace\(|\(\)\}|@@datadir|\/FRAMESET|0x3c62723e|\$HTTP\_| ping -c|
+          location\.replace\(|\(\)\}|@@datadir|\/FRAMESET|0x3c62723e|\$HTTP\_|ping -c|ping -i|
           \[link=http:\/\/|\[\/link\]|YWxlcnQo|\_START\_|onunload%3d|PHP\_SELF|shell\_exec|
           \\$\_SERVER|;!--=|substr\(|\\$\_POST|\\$\_SESSION|\\$\_REQUEST|\\$\_ENV|GLOBALS\[|
           \.php\/admin|mosConfig\_|%3C@replace\(|hex\_ent|inurl:|replace\(|\/iframe>|return%20clk|
-          php\/password\_for|unhex\(|error\_reporting\(|HTTP\_CMD|=alert\(|localhost|}\)%3B|
-          Set-Cookie|%27%a0%6f%72%a0%31%3d%31|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|%27|
-          HTTP\/1\.|\{$\_|PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password|
-          \/var\/www\/php|\_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||
-          \.\.\/wp-|\.htaccess|system\(\%24|UTL\_HTTP\.REQUEST|script>";
+          php\/password\_for|unhex\(|error\_reporting\(|HTTP\_CMD|=alert\(|localhost|127.0.0.1:|
+		  }\)%3B|Set-Cookie|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|%27|HTTP\/1\.|\{$\_|
+		  PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password|\/var\/www\/php|
+		  \_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||\.\.\/wp-|\.htaccess|
+		  \.passwd|\.htpasswd|; echo|system\(\%24|UTL\_HTTP\.REQUEST|script>";
      $_blacklist[2] = "ZXZhbCg=|eval\(base64\_decode|fromCharCode|allow\_url\_include|
           php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec\(|
           file\_get\_contents\(|prompt\(|script>alert\(|fopen\(|\_GET\['cmd|\"><script|\"><javas|
-		  <iframe|YWxlcnQo|ZnJvbUNoYXJDb2Rl";
+          YWxlcnQo|ZnJvbUNoYXJDb2Rl";
      $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|Baidu|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
-     $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo";
+     $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|
+					   system\(|Ki9XSEVSRS8q|YWxlcnQo|4294967296";
      $_thelist = $_blacklist[ ( int )$list ];
 	 $_thelist = preg_replace( "/[\s]/i", '', $_thelist );
      if ( false !== ( bool )preg_match( "/$_thelist/i", $val ) ) {
@@ -453,6 +445,11 @@
 	  $this->karo( true );
 	  return;
      }
+	 if ( false !== strpos( $req, 'server-status' ) ) {
+		$this->karo( true );
+		return;
+	 }
+	 
      # WP Author Discovery
      $ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ): NULL;
      if ( false === is_null( $ref ) ) {
@@ -574,7 +571,7 @@
      $reqType = $_SERVER[ 'REQUEST_METHOD' ];
      $req_whitelist = array( 'GET', 'POST' );
      # first check for numbers in REQUEST_METHOD
-     if ( false !== ( bool )preg_match( "/[0-9]+/", $reqType ) ) {
+     if ( false !== ( bool )preg_match( "/[0-9]+/i", $reqType ) ) {
     	  $this->karo( true );
           return;
      }
@@ -732,7 +729,7 @@
      $filename = ( ( ( strlen( ini_get( "cgi.fix_pathinfo" ) ) > 0 ) && ( ( bool )ini_get( "cgi.fix_pathinfo" ) == false ) ) ||
             ! isset( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] ) ) ? basename( $HTTP_SERVER_VARS[ "PHP_SELF" ] ) : basename( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] );
      if ( 2 > strlen( $filename ) ) $filename = $this->_default; // or whatever your default file is
-     preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
+		  preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
 	 if ( is_array( $matches ) &&
 		  array_key_exists( 0, $matches ) &&
           ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) &&
@@ -865,7 +862,7 @@
                     $check = false;
                  } else $check = true; //passed the first test
        } else {
-		  if ( false !== preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/", $ip ) ) {
+		  if ( false !== preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i", $ip ) ) {
 			  $check = true; //passed second test
 			  
 			  $parts = explode( '.', $ip );
@@ -944,7 +941,7 @@
    function x_secure_headers() {
      $errlevel = ini_get( 'error_reporting' );
      error_reporting( 0 );
-		header( 'strict-transport-security: max-age=31536000; includeSubDomains' );
+		header( 'strict-transport-security: max-age=31536000; includeSubDomains; preload' );
 		header( 'access-control-allow-methods: POST, GET' );
 		header( 'x-frame-options: SAMEORIGIN' );
 		header( 'x-xss-protection: 1; mode=block' );
@@ -982,7 +979,7 @@
    function setReq_uri() {
      $_request_uri = '';
      if ( empty( $_SERVER[ 'REQUEST_URI' ] ) || ( php_sapi_name() != 'cgi-fcgi' && false !== ( bool )
-          preg_match( "/^Microsoft-IIS\//", $_SERVER[ 'SERVER_SOFTWARE' ] ) ) ) {
+          preg_match( "/^Microsoft-IIS\//i", $_SERVER[ 'SERVER_SOFTWARE' ] ) ) ) {
           if ( false !== getenv( 'REQUEST_URI' ) ) {
                $_request_uri = getenv( 'REQUEST_URI' );
           } else {
