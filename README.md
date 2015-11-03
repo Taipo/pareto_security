@@ -1,5 +1,7 @@
 === Pareto Security ===
+
 Contributors: te_taipo
+
 Donate link: http://hokioisec7agisc4.onion 
 
 Tags: authentication bypass, CRLF, CSRF, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
