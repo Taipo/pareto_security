@@ -1,13 +1,11 @@
 === Pareto Security ===
-
 Contributors: te_taipo
-
 Donate link: http://hokioisec7agisc4.onion 
 
 Tags: authentication bypass, CRLF, CSRF, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
 Requires at least: 3.0.1
 Tested up to: 4.3.1
-Stable tag: 1.1.2
+Stable tag: 1.1.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -63,6 +61,13 @@ Email me at hokioi-security@protonmail.ch
 
 == Changelog ==
 
+= 1.1.3 =
+* Added 'X-Content-Type-Options: nosniff' security header
+* Removed 'Quirky Wordpress Exploit' as it is no longer relevant
+* Removed PHP 4.x code
+* Updated blacklists
+* Added pareto_security.php to the file bypass list
+
 = 1.1.2 =
 * Update to database injection filters
 * Code rearrangement to lower server CPU usage
@@ -105,3 +110,8 @@ Email me at hokioi-security@protonmail.ch
 
 = 1.0.0 =
 * Converted from osC_Sec to Pareto_Security.php
+
+== Upgrade Notice ==
+
+= 1.0 =
+Upgrade notices describe the reason a user should upgrade.  No more than 300 characters.
