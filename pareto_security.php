@@ -4,7 +4,7 @@
   Plugin URI: http://hokioisec7agisc4.onion/?p=25
   Description: Core Security Class - Defense against a range of common attacks such as database injection
   Author: Te_Taipo
-  Version: 1.1.2
+  Version: 1.1.3
   Author URI: http://hokioisec7agisc4.onion
   BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
   */
@@ -37,7 +37,7 @@
 	   exit();
    }
    add_action( "activated_plugin", "load_pareto_first" );
-   define( 'PARETO_VERSION', '1.1.2' );
+   define( 'PARETO_VERSION', '1.1.3' );
    define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1445887953' ) );
    define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
    define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -234,10 +234,10 @@
     	  # toggle through 6 different filters
 		  $sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
 							collation|concat|conv|convert|count|curdate|database|date|
-							decode|diff|distinct|elt|encode|encrypt|extract|field|_file|
-							floor|format|hex|if|inner|insert|instr|interval|join|lcase|left|
-							length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|md5|
-							mid|mod|name|now|null|ord|password|position|quote|rand|
+							decode|diff|distinct|else|elt|end||encode|encrypt|extract|field|
+							_file|floor|format|hex|if|inner|insert|instr|interval|join|lcase|
+							left|length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|
+							md5|mid|mod|name|now|null|ord|password|position|quote|rand|
 							repeat|replace|reverse|right|rlike|round|row_count|rpad|rtrim|
 							_set|schema|select|sha1|sha2|serverproperty|soundex|
 							space|strcmp|substr|substr_index|substring|sum|time|trim|
@@ -285,7 +285,7 @@
 			  } elseif ( false !== preg_match_all( "/\bload\b|\bdata\b|\binfile\b|\btable\b|\bterminated\b/i", $string, $matches ) > 3 ) {
 						return true;
 			  } elseif ( ( ( false !== ( bool )preg_match( "/select|sleep|isnull|declare|ascii\(substring|length\(/i", $string ) ) &&
-						 ( false !== ( bool )preg_match( "/\band\b|\bif\b|group_|_ws|load_|exec|concat\(|\bfrom\b/i", $string ) ) &&
+						 ( false !== ( bool )preg_match( "/\band\b|\bif\b|group_|_ws|load_|exec|when|then|concat\(|\bfrom\b/i", $string ) ) &&
 						 ( false !== ( bool )preg_match( "/$sqlmatchlist/i", $string ) ) ) ) {
 						return true;
 			  } elseif ( false !== preg_match_all( "/$sqlmatchlist/i", $string, $matches ) > 2 ) {
@@ -366,7 +366,7 @@
 						( false !== strpos( $string, 'insert' ) &&
 						( false !== ( bool )preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) ||
 						( false !== strpos( $string, 'select' ) &&
-						( false !== ( bool )preg_match( "/\bby\b|\bcase\b|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) &&
+						( false !== ( bool )preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) &&
 						( ( false !== ( bool )preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= substr_count( $string, ',' ) ) ) ) {
 						return true;
 			  } elseif ( ( false !== strpos( $string, 'union' ) ) &&
@@ -395,23 +395,23 @@
      # $list should never have a value of 0
      if ( $list == 0 ) die( 'there is an error' );
      $_blacklist = array();
-     $_blacklist[1] = "php\/login|eval\(base64\_decode|asc%3Deval|eval\(\\$\_|EXTRACTVALUE\(|
+     $_blacklist[1] = "php\/login|eval\(base64\_decode|asc%3Deval|eval\(\\$\_|@eval|EXTRACTVALUE\(|
           allow\_url\_include|safe\_mode|suhosin\.simulation|disable\_functions|phpinfo\(|
           open\_basedir|auto\_prepend\_file|php:\/\/input|\)limit|rush=|fromCharCode|\}catch\(e|
           ;base64|base64,|prompt\(|onerror=alert\(|javascript:prompt\(|\/var\/lib\/php|
           javascript:alert\(|pwtoken\_get|php\_uname|%3Cform|passthru\(|sha1\(|sha2\(|\}if\(!|
           <\?php|\/iframe|; GET|\\$\_GET|@@version|ob\_starting|and1=1|\.\.\/cmd|document\.cookie|
           document\.write|onload\=|mysql\_query|document\.location|window\.location|\]\);\}|
-          location\.replace\(|\(\)\}|@@datadir|\/FRAMESET|0x3c62723e|\$HTTP\_|ping -c|ping -i|
+          location\.replace\(|\(\)\}|@@datadir|\/FRAMESET|0x3c62723e|\\$HTTP\_|ping -c|ping -i|
           \[link=http:\/\/|\[\/link\]|YWxlcnQo|\_START\_|onunload%3d|PHP\_SELF|shell\_exec|
           \\$\_SERVER|;!--=|substr\(|\\$\_POST|\\$\_SESSION|\\$\_REQUEST|\\$\_ENV|GLOBALS\[|
           \.php\/admin|mosConfig\_|%3C@replace\(|hex\_ent|inurl:|replace\(|\/iframe>|return%20clk|
           php\/password\_for|unhex\(|error\_reporting\(|HTTP\_CMD|=alert\(|localhost|127.0.0.1:|
-		  }\)%3B|Set-Cookie|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|%27|HTTP\/1\.|\{$\_|
-		  PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password|\/var\/www\/php|
-		  \_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||\.\.\/wp-|\.htaccess|
-		  \.passwd|\.htpasswd|; echo|system\(\%24|UTL\_HTTP\.REQUEST|script>";
-     $_blacklist[2] = "ZXZhbCg=|eval\(base64\_decode|fromCharCode|allow\_url\_include|
+          }\)%3B|Set-Cookie|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|%27|HTTP\/1\.|\{\\$\_|
+          PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password|\/var\/www\/php|
+          \\$\_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||\.\.\/wp-|\.htaccess|
+          \.passwd|\.htpasswd|; echo|system\(\%24|UTL\_HTTP\.REQUEST|script>";
+     $_blacklist[2] = "ZXZhbCg=|eval\(base64\_decode|fromCharCode|allow\_url\_include|@eval|
           php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec\(|
           file\_get\_contents\(|prompt\(|script>alert\(|fopen\(|\_GET\['cmd|\"><script|\"><javas|
           YWxlcnQo|ZnJvbUNoYXJDb2Rl";
@@ -479,6 +479,11 @@
                     $this->karo( true );
                     return;
           }
+		  if ( false !== strpos( $v, 'allow_url_include' ) &&
+			   false !== strpos( $v, 'auto_prepend_file' ) ) {
+                    $this->karo( true );
+                    return;
+		  }
      }
 	 #osCommerce exploit
 	 if ( false !== strpos( $v, '.php/admin' ) ) {
@@ -773,7 +778,7 @@
     */
    function byPass() {
      # list of files to bypass. I have added a few for consideration. Try to keep this list short
-     $filename_bypass = array();
+     $filename_bypass = array( 'pareto_security.php' );
      # bypass all files in a directory. Use this sparingly
      $dir_bypass = array();
      # list of IP exceptions. Add bypass ips and uncomment for use
@@ -944,6 +949,7 @@
 		header( 'strict-transport-security: max-age=31536000; includeSubDomains; preload' );
 		header( 'access-control-allow-methods: POST, GET' );
 		header( 'x-frame-options: SAMEORIGIN' );
+		header( 'x-content-type-options: nosniff' );
 		header( 'x-xss-protection: 1; mode=block' );
 		if ( false !== ( bool )ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
 			 header( 'X-Powered-By: ' . $this->_psec . ' - http://hokioisec7agisc4.onion' );
