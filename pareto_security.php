@@ -98,10 +98,11 @@
 			if ( $networkwide ) {
 				$old_blog = $wpdb->blogid;
 				// Get all blog ids
-				$blogids = $wpdb->get_col("SELECT blog_id FROM {$wpdb->blogs}");
-				foreach ($blogids as $blog_id) {
-					switch_to_blog($blog_id);
-					call_user_func($pfunction, $networkwide);
+				$blogids = array();
+				$blogids = $wpdb->get_col( "SELECT blog_id FROM {$wpdb->blogs}" );
+				foreach ( $blogids as $blog_id ) {
+					switch_to_blog( $blog_id );
+					call_user_func( $pfunction, $networkwide );
 				}
 				switch_to_blog( $old_blog );
 				return;
@@ -490,16 +491,7 @@
                     $this->karo( true );
                     return;
 	 }
-	  
 	 
-     # Quirky Wordpress Exploit
-     if ( isset( $_GET[ '_wp_http_referer' ] ) &&
-          ( $this->getPHP_SELF() == 'edit-tags.php' || $this->getPHP_SELF() == 'edit-comments.php' || $this->getPHP_SELF() == 'index.php' ) &&
-          ( false === strpos( str_replace( 'http://', '', $_GET[ '_wp_http_referer' ] ), $this->_httphost ) ) &&
-          ( false === strpos( str_replace( 'http://', '', $_GET[ '_wp_http_referer' ] ),  $this->getPHP_SELF() ) ) ) {
-     	  # action delete selected checked user submitted posts plugin status inactive paged wpnonce
-               die( "Warning: You do not want to click that URL in your Wordpress Admin - see: <a target=_blank href=http://goo.gl/cL5XqN>http://goo.gl/cL5XqN</a><br />Click <a href=index.php>here</a> to return to the Dashboard." );
-     }
      # 
      $attack = false;
      if ( substr_count( $req, '/' ) > 30 ) $attack = true;
@@ -729,10 +721,8 @@
     */
    function getPHP_SELF() {
      $filename = NULL;
-     if ( false !== ( bool )ini_get( 'register_globals' ) ||
-          ( ! isset( $HTTP_SERVER_VARS ) ) ) $HTTP_SERVER_VARS = $_SERVER; // back compatible for PHP 4
-     $filename = ( ( ( strlen( ini_get( "cgi.fix_pathinfo" ) ) > 0 ) && ( ( bool )ini_get( "cgi.fix_pathinfo" ) == false ) ) ||
-            ! isset( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] ) ) ? basename( $HTTP_SERVER_VARS[ "PHP_SELF" ] ) : basename( $HTTP_SERVER_VARS[ "SCRIPT_NAME" ] );
+     $filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( ( bool )ini_get( 'cgi.fix_pathinfo' ) == false ) ) ||
+            false !== isset( $_SERVER[ 'SCRIPT_NAME' ] ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( $_SERVER[ 'SCRIPT_NAME' ] );
      if ( 2 > strlen( $filename ) ) $filename = $this->_default; // or whatever your default file is
 		  preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
 	 if ( is_array( $matches ) &&
@@ -1010,7 +1000,7 @@
 
 // Initialize our plugin object.
 global $ParetoSecurity;
-if ( class_exists( "ParetoSecurity" ) && !$ParetoSecurity ) {
+if ( class_exists( 'ParetoSecurity' ) && !$ParetoSecurity ) {
     $ParetoSecurity = new ParetoSecurity();
 }
 
