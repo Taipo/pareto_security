@@ -4,8 +4,8 @@ Donate link: http://hokioisec7agisc4.onion
 
 Tags: authentication bypass, CRLF, CSRF, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
 Requires at least: 3.0.1
-Tested up to: 4.3.1
-Stable tag: 1.1.3
+Tested up to: 4.4.2
+Stable tag: 1.1.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,11 @@ WordPress core security class: A Web Application Firewall to protect your Wordpr
 
 Wordpress has been plagued in recent times by plugins that bring with them security vulnerabilities. Users depend on 3rd party developers to check all user inputs and to escape all outputs from their plugin code, however in many many cases this is not done correctly leading to vulnerabilities and often websites being attacked, malware code installed, and in worst cases, entire servers taken over.
 
-Pareto Security class acts as a central security hub checking all inputs from users against a set of rules and against a blacklist. Any user inputs that break these rules are prevented from completing their action.
+Pareto Security class acts as a central security hub checking all inputs from users.
+
+Using the principle of "Artificial Ignorance" with blacklists rather than arbitrary blacklists, Pareto Security method ignores requests it knows aren't interesting and processes the remaining requests that must then be of interest.
+
+Any remaining user inputs/requests are most likely attempts to break rules and are tested against a list of rules, bad requests are prevented from completing their action.
 
 This acts as a temporary shield during that period of time between when a vulnerability is discovered in Wordpress or 3rd party plugins, and when they are patched, and, when you update your Wordpress website.
 
@@ -28,7 +32,7 @@ Features:
 * Automatically secures your Wordpress repository against unsecured inputs common in Wordpress 3rd party plugins
 * No customisation needed, works silently in the background
 * Protects against malicious database injections
-* Using a form of heuristic rules and blacklists, processes and checks all user inputs, the REQUEST_URI, QUERY_STRING, _GET, _POST, _COOKIE and browser user-agents to detect known security threats.
+* Using the principle of "Artificial Ignorance" with blacklists rather than arbitrary blacklists, processes and checks all user inputs, the REQUEST_URI, QUERY_STRING, _GET, _POST, _COOKIE and browser user-agents to detect known security threats.
 * Pareto Security is 100% free
 * Prevents uploading of backdoors
 * Locks down server error and information messages that can be used to assist attackers
@@ -36,6 +40,7 @@ Features:
 * Block known bad crawlers.
 * Checks against malicious Request Types
 * Pareto Security is multi-site ready
+* Options IP address banning 
 * Works silently in the background blocking attacks
 
 == Installation ==
@@ -60,6 +65,21 @@ Donations via Bitcoin to 1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
 Email me at hokioi-security@protonmail.ch
 
 == Changelog ==
+
+= 1.1.6 =
+* update file checking method
+* updated _REQUESTTYPE_SHIELD()
+* updated karo()
+* updated byPass()
+* removed getHTAccesspath(), bypass() and send404()
+
+= 1.1.5 =
+* adding in comments
+* removed duplicate code (osCommerce admin bypass block)
+* update to blacklists
+
+= 1.1.4 =
+* Updated blacklists
 
 = 1.1.3 =
 * Added 'X-Content-Type-Options: nosniff' security header
