@@ -4,7 +4,7 @@
   Plugin URI: http://hokioisec7agisc4.onion/?p=25
   Description: Core Security Class - Defense against a range of common attacks such as database injection
   Author: Te_Taipo
-  Version: 1.1.3
+  Version: 1.1.6
   Author URI: http://hokioisec7agisc4.onion
   BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
   */
@@ -37,8 +37,8 @@
 	   exit();
    }
    add_action( "activated_plugin", "load_pareto_first" );
-   define( 'PARETO_VERSION', '1.1.3' );
-   define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1445887953' ) );
+   define( 'PARETO_VERSION', '1.1.6' );
+   define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1456477692' ) );
    define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
    define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
  }
@@ -73,6 +73,7 @@
 	 }
 	 
      $this->setVars();
+	 
      # if open_basedir is not set in php.ini then set it in the local scope
      if ( false !== ( bool )$this->_open_basedir ) $this->setOpenBaseDir();
      # Send secure headers
@@ -84,7 +85,9 @@
      $this->_COOKIE_SHIELD();
      $this->_REQUESTTYPE_SHIELD();
      $this->_SPIDER_SHIELD();
-     # merge $_REQUEST with _GET and _POST excluding _COOKIE data
+     # Merge $_REQUEST with _GET and _POST excluding _COOKIE data
+     # php.ini may already do this
+     # This does not affect _GET or _POST in runtime
      $_REQUEST = array_merge( $_GET, $_POST );
 
    } // end of __construct()
@@ -139,7 +142,7 @@
      $this->_realIP = $this->getRealIP();
      $this->_threshold = false;
      $this->_banreason = ''; //for testing purposes
-     $this->_htaccessfile = $this->getHTAccesspath();
+     $this->_htaccessfile = '.htaccess'; //$this->getHTAccesspath();
      $this->_bypassbanip = false;
      $this->_psec = 'Pareto Security';
      $this->_rprefix = $this->_psec . '  detected ';
@@ -177,33 +180,28 @@
 	  }
           die();
    }
-   /**
-    * getHTAccesspath()
-    * 
-    * @return
-    */
-   function getHTAccesspath() {
-     return $this->getDir() . '.htaccess';    
-   }
+
    /**
     * karo()
     * 
     * @return
     */
    function karo( $t = false ) {
-     if ( false === $this->byPass() ) return;
-     if ( false !== $this->is_server( $this->getRealIP() ) ) return $this->send403(); // never htaccess ban the server IP
-     if ( ( false === ( bool )$t ) || ( false !== ( bool )$this->_bypassbanip ) ) {
-          $this->send403();
-     } else {
-  	  if ( ( false !== $t ) &&
-               ( false !== $this->hCoreFileChk( $this->_htaccessfile, TRUE, TRUE ) ) ) {
-      	       if ( false !== ( bool )$this->_banip ) {
-                  $this->htaccessbanip( $this->_realIP );
-               }
+	 if ( false === ( bool )$this->_banip ||
+		 'pareto_security.php' == $this->getPHP_SELF() ) $this->send403();
+	      # set strict conditions for htaccess banning an IP address
+	      # - htaccess exists and is writeable
+	      # - request is for an IP ban
+	      # - no bypass request triggered
+	      # - script manually set to ban IPs to htaccess
+  	      if ( ( false !== $this->hCoreFileChk( $this->_htaccessfile, TRUE, TRUE ) ) &&
+			   ( false !== ( bool )$t ) &&
+			   ( false === ( bool )$this->_bypassbanip ) &&
+			   ( false !== ( bool )$this->_banip ) ) {
+			     $this->htaccessbanip( $this->_realIP );
           }
-          $this->send403();
-     }
+		  # else soft ban
+		  $this->send403();
    }
    /**
     * injectMatch()
@@ -229,8 +227,8 @@
           }
      }
      if ( false === $kickoff ) {
-          return false;
-     } else {
+          return false; // if false then we are not interested in this query.
+     } else { // else we are very interested in this query.
           $j = 1;
     	  # toggle through 6 different filters
 		  $sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
@@ -276,21 +274,21 @@
 			  if ( false !== ( bool )preg_match( "/\bdrop\b/i", $string ) &&
 				   false !== ( bool )preg_match( "/\btable\b|\buser\b/i", $string ) &&
 				   false !== ( bool )preg_match( "/--|and||\//i", $string ) ) {
-					  return true;
+				   return true;
 			  } elseif ( ( false !== strpos( $string, 'grant' ) ) &&
 						 ( false !== strpos( $string, 'all' ) ) &&
 						 ( false !== strpos( $string, 'privileges' ) ) ) {
-						return true;
+						   return true;
 			  } elseif ( false !== ( bool )preg_match( "/(?:(sleep\((\s*)(\d*)(\s*)\)|benchmark\((.*)\,(.*)\)))/i", $string ) ) {
-						return true;
+						 return true;
 			  } elseif ( false !== preg_match_all( "/\bload\b|\bdata\b|\binfile\b|\btable\b|\bterminated\b/i", $string, $matches ) > 3 ) {
-						return true;
+						 return true;
 			  } elseif ( ( ( false !== ( bool )preg_match( "/select|sleep|isnull|declare|ascii\(substring|length\(/i", $string ) ) &&
 						 ( false !== ( bool )preg_match( "/\band\b|\bif\b|group_|_ws|load_|exec|when|then|concat\(|\bfrom\b/i", $string ) ) &&
 						 ( false !== ( bool )preg_match( "/$sqlmatchlist/i", $string ) ) ) ) {
-						return true;
+						   return true;
 			  } elseif ( false !== preg_match_all( "/$sqlmatchlist/i", $string, $matches ) > 2 ) {
-						return true;
+						 return true;
 			  } elseif ( false !== strpos( $string, 'update' ) &&
 						false !== ( bool )preg_match( "/\bset\b/i", $string ) &&
 						false !== ( bool )preg_match( "/$sqlupdatelist/i", $string ) ) {
@@ -320,21 +318,21 @@
 						return true;
 			  } elseif ( ( 'POST' == $_SERVER[ 'REQUEST_METHOD' ] ) &&
 						( false !== ( bool )preg_match( "/(?:showimg|cookie|cookies)=/i", $string ) ) ) {
-						return true;
+						  return true;
 			  } elseif ( ( substr_count( $string, '../' ) > 3 ) ||
 						 ( substr_count( $string, '..//' ) > 3 ) ||
 						 ( substr_count( $string, '0x2e0x2e/' ) > 1 ) ) {
 						if ( false !== ( bool )preg_match( "/$sqlfilematchlist/i", $string ) ) {
-						   return true;
+						     return true;
 						}
 			  } elseif ( ( substr_count( $string, '/' ) > 1 ) && ( 2 <= ( int )preg_match_all( "/$sqlfilematchlist/i", $thenode, $matches ) ) ) {
 						   return true;
 			  } elseif ( ( false !== ( bool )preg_match( "/%0D%0A/i", $thenode ) ) &&
 						( false !== strpos( $thenode, 'utf-7' ) ) ) {
-						return true;
+						  return true;
 			  } elseif ( false !== ( bool )preg_match( "/php:\/\/filter|convert.base64-(?:encode|decode)|zlib.(?:inflate|deflate)/i",$string ) ||
 						 false !== ( bool )preg_match( "/data:\/\/filter|text\/plain|http:\/\/(?:127.0.0.1|localhost)/i", $string ) ) {
-						return true;
+						 return true;
 			  }
 	  
 			  if ( 5 <= substr_count( $string, '%' ) ) $string = str_replace( '%', '', $string );
@@ -342,7 +340,7 @@
 			  if ( ( false !== ( bool )preg_match( "/\border by\b|\bgroup by\b/i", $string ) ) &&
 						( false !== ( bool )preg_match( "/\bcolumn\b|\bdesc\b|\berror\b|\bfrom\b|hav|\blimit\b|offset|\btable\b|\/|--/i", $string ) ||
 						( false !== ( bool )preg_match( "/\b[0-9]\b/i", $string ) ) ) ) {
-						return true;
+						  return true;
 			  } elseif ( ( false !== ( bool )preg_match( "/\btable\b|\bcolumn\b/i", $string ) ) &&
 						false !== strpos( $string, 'exists' ) &&
 						false !== ( bool )preg_match( "/\bif\b|\berror\b|\buser\b|\bno\b/i", $string ) ) {
@@ -353,13 +351,13 @@
 						( false !== strpos( $string, 'nowait' ) &&
 						false !== strpos( $string, 'with' ) &&
 						( false !== ( bool )preg_match( "/--|\/|\blimit\b|\bshutdown\b|\bupdate\b|\bdesc\b/i", $string ) ) ) ) {
-						return true;
+						  return true;
 			  } elseif ( false !== ( bool )preg_match( "/\binto\b/i", $string ) &&
 						( false !== ( bool )preg_match( "/\boutfile\b/i", $string ) ) ) {
-						return true;
+						  return true;
 			  } elseif ( false !== ( bool )preg_match( "/\bdrop\b/i", $string ) &&
 						( false !== ( bool )preg_match( "/\buser\b/i", $string ) ) ) {
-						return true;
+						  return true;
 			  } elseif ( ( ( false !== strpos( $string, 'create' ) &&
 						false !== ( bool )preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) ||
 						( false !== strpos( $string, 'delete' ) &&
@@ -369,17 +367,17 @@
 						( false !== strpos( $string, 'select' ) &&
 						( false !== ( bool )preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) &&
 						( ( false !== ( bool )preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= substr_count( $string, ',' ) ) ) ) {
-						return true;
+						    return true;
 			  } elseif ( ( false !== strpos( $string, 'union' ) ) &&
 						( false !== strpos( $string, 'select' ) ) &&
 						( false !== strpos( $string, 'from' ) ) ) {
-						return true;
+						   return true;
 			  } elseif ( false !== strpos( $string, 'etc/passwd' ) ) {
-						return true;
+						 return true;
 			  } elseif ( false !== strpos( $string, 'null' ) ) {
 						$nstring = preg_replace( "/[^a-z]/i", '', $this->url_decoder( $string ) );
 						if ( false !== ( bool )preg_match( "/(null){3,}/i", $nstring ) ) {
-						   return true;
+						     return true;
 						}
 			  }
     	  $j++;
@@ -393,9 +391,13 @@
     * @return
     */
    private static function blacklistMatch( $val, $list = 0 ) {
+	 # although we try not to do this, arbitrary blacklisting of certain request variables
+	 # cannot be avoided. however I will attempt to keep this list short.
+	
      # $list should never have a value of 0
      if ( $list == 0 ) die( 'there is an error' );
      $_blacklist = array();
+	 # _GET[]
      $_blacklist[1] = "php\/login|eval\(base64\_decode|asc%3Deval|eval\(\\$\_|@eval|EXTRACTVALUE\(|
           allow\_url\_include|safe\_mode|suhosin\.simulation|disable\_functions|phpinfo\(|
           open\_basedir|auto\_prepend\_file|php:\/\/input|\)limit|rush=|fromCharCode|\}catch\(e|
@@ -411,16 +413,20 @@
           }\)%3B|Set-Cookie|%bf%5c%27|%ef%bb%bf|%20regexp%20|\{\\$\{|%27|HTTP\/1\.|\{\\$\_|
           PRINT@@variable|xp\_cmdshell|xp\_availablemedia|sp\_password|\/var\/www\/php|
           \\$\_SESSION\[!|file\_get\_contents\(|\*\(\|\(objectclass=|\|\||\.\.\/wp-|\.htaccess|
-          \.passwd|\.htpasswd|; echo|system\(\%24|UTL\_HTTP\.REQUEST|script>";
+          \.passwd|\.htpasswd|; echo|;echo|system\(\%24|UTL\_HTTP\.REQUEST|script>";
+	 # _POST[]
      $_blacklist[2] = "ZXZhbCg=|eval\(base64\_decode|fromCharCode|allow\_url\_include|@eval|
           php:\/\/input|concat\(@@|suhosin\.simulation=|\#\!\/usr\/bin\/perl -I|shell\_exec\(|
           file\_get\_contents\(|prompt\(|script>alert\(|fopen\(|\_GET\['cmd|\"><script|\"><javas|
           YWxlcnQo|ZnJvbUNoYXJDb2Rl";
-     $_blacklist[3] = "WebLeacher|\/usr\/bin\/perl|:;\};|system\(|autoemailspider|Baidu|MSProxy|Yeti|Twiceler|blackhat|Mail\.Ru|fuck";
-     $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|U0VMRUNULyoqLw==|:;\};|wget http|
-					   system\(|Ki9XSEVSRS8q|YWxlcnQo|4294967296";
-     $_thelist = $_blacklist[ ( int )$list ];
-	 $_thelist = preg_replace( "/[\s]/i", '', $_thelist );
+	 # 'User-Agent'
+     $_blacklist[3] = "\/usr\/bin\/perl|:;\};|system\(|curl|python|base64\_|phpinfo|wget|eval\(|
+					   getconfig\(|\.chr\(|passthru|shell\_exec|popen\(|exec\(";
+	 # _COOKIE[]
+     $_blacklist[4] = "eval\(|fromCharCode|\/usr\/bin\/perl|prompt\(|ZXZhbCg=|ZnJvbUNoYXJDb2Rl|fsockopen|
+					   U0VMRUNULyoqLw==|:;\};|wget http|system\(|Ki9XSEVSRS8q|YWxlcnQo|4294967296";
+
+	 $_thelist = preg_replace( "/[\s]/i", '', $_blacklist[ ( int )$list ] );
      if ( false !== ( bool )preg_match( "/$_thelist/i", $val ) ) {
          return true;
      }
@@ -436,21 +442,29 @@
      # attacks that do not necessarily
      # involve query_string manipulation
      $req = $this->url_decoder( $this->getREQUEST_URI() );
-     # osC admin bypass attack
-     if ( false !== strpos( $req, '.php/login' ) ) {
-         $this->karo( true );
-         return;
-     }
+
      # Reflected File Download Attack
      if ( false !== ( bool )preg_match( "/\.(?:bat|cmd)/i", $req ) ) {
 	  $this->karo( true );
 	  return;
      }
-	 if ( false !== strpos( $req, 'server-status' ) ) {
-		$this->karo( true );
-		return;
+
+	 #osCommerce exploit
+	 if ( false !== strpos( $req, '.php/admin' ) ) {
+                    $this->karo( true );
+                    return;
 	 }
-	 
+     # this occurence of these many slashes etc are always an attack attempt
+     $attack = false;
+     if ( substr_count( $req, '/' ) > 30 ) $attack = true;
+     if ( substr_count( $req, '\\' ) > 30 ) $attack = true;
+     if ( substr_count( $req, '|' ) > 30 ) $attack = true;
+     
+     if ( false !== $attack ) {
+          $this->karo( true );
+          return;
+     }
+
      # WP Author Discovery
      $ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ): NULL;
      if ( false === is_null( $ref ) ) {
@@ -466,10 +480,10 @@
                }
           }
      }
+	 
      if ( false !== strpos( $req, '?' ) ) {
           $v =  $this->hexoctaldecode( strtolower( substr( $req,
-               strpos( $req, '?' ),
-               strlen( $req ) ) ) );
+                strpos( $req, '?' ), ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
     	  if ( false !== strpos( $v, '-' ) &&
                ( ( false !== strpos( $v, '?-' ) ) ||
                ( false !== strpos( $v, '?+-' ) ) ) &&
@@ -480,27 +494,6 @@
                     $this->karo( true );
                     return;
           }
-		  if ( false !== strpos( $v, 'allow_url_include' ) &&
-			   false !== strpos( $v, 'auto_prepend_file' ) ) {
-                    $this->karo( true );
-                    return;
-		  }
-     }
-	 #osCommerce exploit
-	 if ( false !== strpos( $v, '.php/admin' ) ) {
-                    $this->karo( true );
-                    return;
-	 }
-	 
-     # 
-     $attack = false;
-     if ( substr_count( $req, '/' ) > 30 ) $attack = true;
-     if ( substr_count( $req, '\\' ) > 30 ) $attack = true;
-     if ( substr_count( $req, '|' ) > 30 ) $attack = true;
-     
-     if ( false !== $attack ) {
-          $this->karo( true );
-          return;
      }
    }
    /**
@@ -510,7 +503,7 @@
     */
    function _QUERYSTRING_SHIELD() {
      if ( false !== empty( $_SERVER[ 'QUERY_STRING' ] ) ) {
-          return;
+          return; // of no interest to us
      } else {
     	  $q = array();
     	  $v = '';
@@ -535,7 +528,7 @@
     * @return
     */
    function _COOKIE_SHIELD() {
-     if ( false !== empty( $_COOKIE ) ) return;
+     if ( false !== empty( $_COOKIE ) ) return; // of no interest to us
 	  $injectattempt = false;
 	  $ckeys = array_keys( $_COOKIE );
 	  $cvals = array_values( $_COOKIE );
@@ -565,22 +558,12 @@
    function _REQUESTTYPE_SHIELD() {
      if ( false === ( bool )$this->_nonGETPOSTReqs ) return;
        
-     $reqType = $_SERVER[ 'REQUEST_METHOD' ];
      $req_whitelist = array( 'GET', 'POST' );
-     # first check for numbers in REQUEST_METHOD
-     if ( false !== ( bool )preg_match( "/[0-9]+/i", $reqType ) ) {
-    	  $this->karo( true );
-          return;
-     }
-     # then make sure its all UPPERCASE (for servers that do not filter the case of the request method)
-     if ( false === ctype_upper( $reqType ) ) {
-    	  $this->karo( true );
-          return;
-    	  # lastly check against the whitelist
-     } elseif ( false === in_array( $reqType, $req_whitelist ) ) {
-          $this->karo( true );
-          return;
-     }
+     if ( false !== ctype_upper( $_SERVER[ 'REQUEST_METHOD' ] ) &&
+		  false !== in_array( $_SERVER[ 'REQUEST_METHOD' ], $req_whitelist ) ) {
+			return; //  of no interest to us
+     } else $this->karo( false ); // soft block
+   return;
    }
    /**
     * _POST_SHIELD()
@@ -588,7 +571,7 @@
     * @return
     */
    function _POST_SHIELD() {
-     if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] )  return;
+     if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] )  return; // of no interest to us
      $pnodes = $this->array_flatten( $_POST, false );
      $i = 0;
      while ( $i < count( $pnodes ) ) {
@@ -605,13 +588,13 @@
      return;
    }
    /**
-    * Bad Spider Block
+    * Bad Spider Block / UA filter
     */
    function _SPIDER_SHIELD() {
         if ( false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
            if ( false !== $this->blacklistMatch( strtolower(  $this->hexoctaldecode( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
                           $this->karo( true );
-                       return;
+						  return;
            }
        } else return;
    }
@@ -655,14 +638,16 @@
     * @return
     */
    function htaccessbanip( $banip ) {
-     # if .htaccess is not readable and writeable
-     if ( false === $this->hCoreFileChk( $this->_htaccessfile, true, true ) )
-          return $this->send403();
-     $limitend = "# End of $this->_httphost $this->_psec Ban\n";
+     
+	 # if .htaccess is not readable and writeable
+     if ( false === $this->hCoreFileChk( $this->_htaccessfile, true, true ) ) return $this->send403();
+     
+	 $limitend = "# End of $this->_httphost $this->_psec Ban\n";
      $newline = "deny from $banip\n";
-     # if .htaccess is readable and writeable
+     
+	 # if .htaccess is readable and writeable
      if ( false !== $this->hCoreFileChk( $this->_htaccessfile, true, true ) ) {
-    	  $mybans = file( $this->_htaccessfile );
+    	  $mybans = file( $this->getDir() . $this->_htaccessfile );
     	  $lastline = "";
     	  if ( in_array( $newline, $mybans ) )
                exit();
@@ -682,7 +667,7 @@
      } else {
     	  $mybans = array( "# $this->_httphost $this->_psec Ban\n", "order allow,deny\n", $newline, "allow from all\n", $limitend );
      }
-     $myfile = fopen( $this->_htaccessfile, 'w' );
+     $myfile = fopen( $this->getDir() . $this->_htaccessfile, 'w' );
      fwrite( $myfile, implode( $mybans, '' ) );
      fclose( $myfile );
    }
@@ -691,15 +676,19 @@
     * 
     * @return boolean
     */
-   private static function hCoreFileChk( $f = NULL, $r = false, $w = false ) {
-       
+   function hCoreFileChk( $f = NULL, $r = false, $w = false ) {
+     # if file exists return bool
+     # if file exists & readable return bool
+     # if file exists, readable & writable return bool
      $x = false;
-     $x = file_exists( $f );
+	 $f = $this->getDir() . $f;
+	 if ( false !== $w ) $r = true;
+	 if ( false !== file_exists( $f ) ) {
+		  $x = true;
+	 } else return false;
      $x = ( false !== $r ) ? is_readable( $f ) : $x;
      $x = ( false !== $w ) ? is_writable( $f ) : $x;
-     if ( $x == true ) {
-          return true;
-     } else return false;
+     return ( bool )$x;
    }
    /**
     * checkfilename()
@@ -721,22 +710,28 @@
     */
    function getPHP_SELF() {
      $filename = NULL;
-     $filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( ( bool )ini_get( 'cgi.fix_pathinfo' ) == false ) ) ||
-            false !== isset( $_SERVER[ 'SCRIPT_NAME' ] ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( $_SERVER[ 'SCRIPT_NAME' ] );
-     if ( 2 > strlen( $filename ) ) $filename = $this->_default; // or whatever your default file is
-		  preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
-	 if ( is_array( $matches ) &&
-		  array_key_exists( 0, $matches ) &&
-          ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) &&
-          ( false !== $this->checkfilename( $matches[ 0 ] ) ) &&
-          ( is_readable( $matches[ 0 ] ) ) ) {
-    	  $filename = $matches[ 0 ];
-     } else $filename = $this->_default;
-     if ( !empty( $filename ) ) {
-          return $filename;
-     } else {
-          return $this->_default;
-     }
+     $filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) &&
+				 ( ( bool )ini_get( 'cgi.fix_pathinfo' ) == false ) ) ||
+				 false !== isset( $_SERVER[ 'SCRIPT_NAME' ] ) ) ?
+				 basename( $_SERVER[ 'PHP_SELF' ] ) : basename( $_SERVER[ 'SCRIPT_NAME' ] );
+				 
+				 if ( 2 > strlen( $filename ) ) $filename = $this->_default; // or whatever your default file is
+				 
+				 preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
+				 
+				 if ( is_array( $matches ) &&
+					  array_key_exists( 0, $matches ) &&
+					  ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) &&
+					  ( false !== $this->checkfilename( $matches[ 0 ] ) ) &&
+					  ( $this->hCoreFileChk( $matches[ 0 ], true ) ) ) {
+					    $filename = $matches[ 0 ];
+				 } else $filename = $this->_default;
+				 
+				 if ( !empty( $filename ) ) {
+					   return $filename;
+				 } else {
+					   return $this->_default;
+				 }
    }
    /**
     * array_flatten()
@@ -761,42 +756,7 @@
 	  }
           return $flattened_array;
    }
-   /**
-    * byPass()
-    * 
-    * @return
-    */
-   function byPass() {
-     # list of files to bypass. I have added a few for consideration. Try to keep this list short
-     $filename_bypass = array( 'pareto_security.php' );
-     # bypass all files in a directory. Use this sparingly
-     $dir_bypass = array();
-     # list of IP exceptions. Add bypass ips and uncomment for use
-     $exfrmBanlist = array();
-     $realip = $this->getRealIP();
-     if ( false === empty( $exfrmBanlist ) ) {
-          foreach ( $exfrmBanlist as $exCeptions ) {
-               if ( false !== ( strlen( $realip ) == strlen( $exCeptions ) ) && ( false !== strpos( $realip, $exCeptions ) ) ) {
-                    return false;
-               }
-          }
-     }
-     if ( false === empty( $filename_bypass ) ) {
-          foreach ( $filename_bypass as $filename ) {
-       	       if ( false !== strpos( $this->getPHP_SELF(), $filename ) ) {
-                    return false;
-               }
-          }
-     }
-     if ( false === empty( $dir_bypass ) ) {
-          foreach ( $dir_bypass as $dirname ) {
-               if ( false !== strpos( $this->setReq_uri(), $dirname ) ) {
-                    return false;
-               }
-          }
-     }
-     return true;
-   }
+
    /**
     * getDir()
     * 
@@ -831,9 +791,12 @@
    }
    
    private static function is_server( $ip ) {
-     if ( ( $_SERVER[ 'SERVER_ADDR' ] == $ip ) ||
-          ( $ip == '127.0.0.1' ) ) return true;
-          return false;
+	 # tests if ip address accessing webserver
+	 # is either server ip ( localhost access )
+	 # or is 127.0.0.1 ( i.e onion visitors )
+     if ( ( $_SERVER[ 'SERVER_ADDR' ] == $ip ) || ( $ip == '127.0.0.1' ) )
+			return true;
+	 return false;
    }
    
    /**
@@ -843,7 +806,7 @@
     * @return
     */
    function check_ip( $ip ) {
-       # if ip is the server
+       # if ip is the server or localhost
        if ( false !== $this->is_server( $ip ) ) return true;
        # simple ip format check
        $check = false;
@@ -855,10 +818,10 @@
                                                  FILTER_FLAG_IPV4 ||
                                                  FILTER_FLAG_IPV6 ) ) {
                     $check = false;
-                 } else $check = true; //passed the first test
+                 } else $check = true; //passed the test
        } else {
 		  if ( false !== preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i", $ip ) ) {
-			  $check = true; //passed second test
+			  $check = true;
 			  
 			  $parts = explode( '.', $ip );
 			  $x = 0;
@@ -872,11 +835,10 @@
 			  }
 			  if ( ( count( $parts ) <> 4 ) || ( $parts[0] < 1 ) ) $check = false;
 		  } else $check = false;
-		  
-		  if ( false === ( bool )$check ) {
-			   $this->send403();
-		  } else return true;
 	   }
+	   if ( false !== ( bool )$check ) {
+		   return true;
+	   } else $this->send403();
    }
    /**
     * getRealIP()
@@ -889,38 +851,41 @@
      # check for IPs passing through proxies
      # start with the HTTP_X_FORWARDED_FOR
      if ( ! empty( $_SERVER[ 'HTTP_X_FORWARDED_FOR' ] ) ) {
-  	  # check if multiple ips exist in var
- 	  $x_ff = $_SERVER[ 'HTTP_X_FORWARDED_FOR' ];
- 	  $x_ff = strpos( $x_ff, ',' ) ? str_replace( ' ', '', $x_ff ) : str_replace( ' ', ',', $x_ff );
- 	  if ( false !== strpos( $x_ff, ',' ) ) {
-     	       $iplist = explode( ',', $x_ff );
-     	       # Check the validity of each ip
-               foreach( $iplist as $ip ) {
-                    if ( false !== $this->check_ip( $ip ) ) {
-		         # if a valid IP then prevent htaccess ban but still allow die()
-              	         $this->_bypassbanip = true;
-                    }
-               }
- 	  }
+		# check if multiple ips exist in var
+		$x_ff = $_SERVER[ 'HTTP_X_FORWARDED_FOR' ];
+		$x_ff = strpos( $x_ff, ',' ) ? str_replace( ' ', '', $x_ff ) : str_replace( ' ', ',', $x_ff );
+		if ( false !== strpos( $x_ff, ',' ) ) {
+				 $iplist = explode( ',', $x_ff );
+				 # Check the validity of each ip
+				 foreach( $iplist as $ip ) {
+					  if ( false !== $this->check_ip( $ip ) ) {
+				   # if a valid IP then prevent htaccess ban but still allow die()
+				   # because X_FORWARDED_FOR is spoofable
+						   $this->_bypassbanip = true;
+					  }
+				 }
+		}
      }
 	 
 	 $serverVars = array( 'HTTP_FORWARDED_FOR', 'HTTP_PROXY_USER',
 	                      'HTTP_X_CLUSTER_CLIENT_IP', 'HTTP_FORWARDED',
 	                      'HTTP_CF_CONNECTING_IP', 'HTTP_CLIENT_IP' );
 	 
-     # the point here is to not accidentally ban an ip address that could be an upline proxy
-     # instead just allow a page die() action
+     # the point here is to not accidentally ban an ip address that could
+     # be an upline proxy, instead just allow a page die() action if
+	 # request is malicious
      $x = 0;
      while ( $x < count( $serverVars ) ) {
  	  if ( array_key_exists( $serverVars[ $x ], $_SERVER )
                && !empty( $_SERVER[ $serverVars[ $x ] ] )
                && false !== $this->check_ip( $_SERVER[ $serverVars[ $x ] ] ) ) {
 	       # if a valid IP then prevent htaccess ban but still allow die()
+	       # because all of the above are spoofable
        	       $this->_bypassbanip = true;
  	  }
  	  $x++;
      }
-     # never trust any headers
+     # never trust any headers except REMOTE_ADDR
      return ( false !== $this->check_ip( getenv( 'REMOTE_ADDR' ) ) ) ?
                                          getenv( 'REMOTE_ADDR' ) : $this->send403();
    }
@@ -1004,18 +969,6 @@ if ( class_exists( 'ParetoSecurity' ) && !$ParetoSecurity ) {
     $ParetoSecurity = new ParetoSecurity();
 }
 
-/**
-* send404()
-* 
-* @return
-*/
-function send404() {
-     $header = array( 'HTTP/1.1 404 Not Found', 'HTTP/1.1 404 Not Found', 'Content-Length: 0' );
-     foreach ( $header as $sent ) {
-          header( $sent );
-     }
-     die();
-}
 function load_pareto_first() {
 	$wp_path_to_this_file = preg_replace( '/(.*)plugins\/(.*)$/', WP_PLUGIN_DIR."/$2", __FILE__ );
 	$this_plugin = plugin_basename( trim($wp_path_to_this_file ) );
