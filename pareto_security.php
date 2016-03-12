@@ -442,7 +442,7 @@
      # attacks that do not necessarily
      # involve query_string manipulation
      $req = $this->url_decoder( $this->getREQUEST_URI() );
-	 $attack = false;
+     $attack = false;
      
 	 # Reflected File Download Attack
      if ( false !== ( bool )preg_match( "/\.(?:bat|cmd)/i", $req ) ) {
