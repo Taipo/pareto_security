@@ -442,41 +442,28 @@
      # attacks that do not necessarily
      # involve query_string manipulation
      $req = $this->url_decoder( $this->getREQUEST_URI() );
-
-     # Reflected File Download Attack
+	 $attack = false;
+     
+	 # Reflected File Download Attack
      if ( false !== ( bool )preg_match( "/\.(?:bat|cmd)/i", $req ) ) {
-	  $this->karo( true );
-	  return;
+		  $attack = true;
      }
 
 	 #osCommerce exploit
-	 if ( false !== strpos( $req, '.php/admin' ) ) {
-                    $this->karo( true );
-                    return;
-	 }
-     # this occurence of these many slashes etc are always an attack attempt
-     $attack = false;
-     if ( substr_count( $req, '/' ) > 30 ) $attack = true;
-     if ( substr_count( $req, '\\' ) > 30 ) $attack = true;
-     if ( substr_count( $req, '|' ) > 30 ) $attack = true;
-     
-     if ( false !== $attack ) {
-          $this->karo( true );
-          return;
+     if ( false !== strpos( $req, '.php/admin' ) ) {
+          $attack = true;
      }
 
      # WP Author Discovery
      $ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ): NULL;
      if ( false === is_null( $ref ) ) {
           if ( false !== strpos( $req, '?author=' ) ) {
-               $this->karo( true );
-               return;
+               $attack = true;
           }
     	  if ( false !== strpos( $ref, 'result' ) ) { 
       	       if ( ( false !== strpos( $ref, 'chosen' ) ) &&
                     ( false !== strpos( $ref, 'nickname' ) ) ) {
-         	    $this->karo( true );
-                    return;
+					  $attack = true;
                }
           }
      }
@@ -491,9 +478,17 @@
                ( false !== strpos( $v, '-t' ) ) ||
                ( false !== strpos( $v, '-n' ) ) ||
                ( false !== strpos( $v, '-d' ) ) ) ) {
-                    $this->karo( true );
-                    return;
+                           $attack = true;
           }
+     }
+     # this occurence of these many slashes etc are always an attack attempt
+     if ( substr_count( $req, '/' ) > 30 ) $attack = true;
+     if ( substr_count( $req, '\\' ) > 30 ) $attack = true;
+     if ( substr_count( $req, '|' ) > 30 ) $attack = true;
+     
+     if ( false !== $attack ) {
+          $this->karo( true );
+          return;
      }
    }
    /**
