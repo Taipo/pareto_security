@@ -4,8 +4,8 @@ Donate link: http://hokioisec7agisc4.onion
 
 Tags: authentication bypass, CRLF, CSRF, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
 Requires at least: 3.0.1
-Tested up to: 4.4.2
-Stable tag: 1.1.6
+Tested up to: 4.5.0
+Stable tag: 1.1.7
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,8 @@ Features:
 * Options IP address banning 
 * Works silently in the background blocking attacks
 
+Note: Wordfence will flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
+
 == Installation ==
 
 * <strong>Automated Setup Steps</strong>
@@ -65,6 +67,10 @@ Donations via Bitcoin to 1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
 Email me at hokioi-security@protonmail.ch
 
 == Changelog ==
+
+= 1.1.7 =
+* Removed $PHP_SELF
+* Updated karo(), setVars(), getDir() functions
 
 = 1.1.6 =
 * update file checking method
