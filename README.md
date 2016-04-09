@@ -69,8 +69,9 @@ Email me at hokioi-security@protonmail.ch
 == Changelog ==
 
 = 1.1.7 =
-* Removed $PHP_SELF
-* Updated karo(), setVars(), getDir() functions
+* Removed $PHP_SELF, setReq_uri()
+* Updated karo(), setVars(), getDir(), getRealIP() and getPHP_SELF() functions
+* Added getREMOTE_ADDR(), string_prop()
 
 = 1.1.6 =
 * update file checking method
