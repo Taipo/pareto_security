@@ -28,7 +28,6 @@ See: See http://www.gnu.org/licenses/gpl-3.0.txt
 
 */
 
-# Set Pareto Security as the first plugin loaded
 if ( defined( 'WP_PLUGIN_DIR' ) ) {
     // don't load directly
     if ( !function_exists( 'is_admin' ) ) {
@@ -36,9 +35,11 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
         header( 'HTTP/1.1 403 Forbidden' );
         exit();
     }
+    # Set Pareto Security as the first plugin loaded
     add_action( "activated_plugin", "load_pareto_first" );
+    
     define( 'PARETO_VERSION', '1.1.7' );
-    define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1459318419' ) );
+    define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1459977176' ) );
     define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
     define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -50,12 +51,10 @@ class ParetoSecurity {
     public $_open_basedir = 0;
     # ban attack ip address to the root /.htaccess file. Leave this disabled if you are hosting a website using TOR's Hidden Services
     public $_banip = 0;
+    # path to the root directory of the site, e.g /home/user/public_html
+    public $_doc_root = '';
     # Correct Production Server Settings = 0, prevent any errors from displaying = 1, Show all errors = 2 ( depends on the php.ini settings )
     protected $_quietscript = 0;
-    # path to the root directory of the site, e.g /home/user/public_html
-    protected $_doc_root = '';
-    # default home page
-    protected $_default = 'index.php';
     
     var $settings, $options_page;
     
@@ -146,8 +145,6 @@ class ParetoSecurity {
      */
     function setVars() {
         $this->_set_error_level();
-        # make sure $_SERVER[ 'REQUEST_URI' ] is set
-        $this->setReq_uri();
         $this->_bypassbanip = false;
     }
     
@@ -177,8 +174,8 @@ class ParetoSecurity {
     function send403() {
         $header = array(
              'HTTP/1.1 403 Access Denied',
-            'Status: 403 Access Denied by Hokioi-Security :: Pareto Security',
-            'Content-Length: 0' 
+             'Status: 403 Access Denied by Hokioi-Security :: Pareto Security',
+             'Content-Length: 0' 
         );
         foreach ( $header as $sent ) {
             header( $sent );
@@ -192,6 +189,7 @@ class ParetoSecurity {
      * @return
      */
     function karo( $t = false ) {
+                        $this->getPHP_SELF();
         if ( false === ( bool ) $this->_banip )
             $this->send403();
         # set strict conditions for htaccess banning an IP address
@@ -200,9 +198,9 @@ class ParetoSecurity {
         # - no bypass request triggered
         # - script manually set to ban IPs to htaccess
         if ( ( false !== $this->hCoreFileChk( '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) && ( false !== ( bool ) $this->_banip ) ) {
-            $this->htaccessbanip( $this->getRealIP() );
+            $this->htaccessbanip( ( strlen( $this->getRealIP() ) < 7 ) ? $_SERVER[ 'REMOTE_ADDR' ] : $this->getRealIP() );
         }
-        # else soft ban
+        # end with soft ban
         $this->send403();
     }
     /**
@@ -460,21 +458,23 @@ class ParetoSecurity {
      * @return
      */
     function _QUERYSTRING_SHIELD() {
-        if ( false !== empty( $_SERVER[ 'QUERY_STRING' ] ) ) {
+        if ( false === $this->string_prop( $this->getQUERY_STRING() ) ) {
             return; // of no interest to us
         } else {
             $q     = array();
-            $v     = '';
+            $v     = array();
             $val   = '';
             $x     = 0;
             $qsdec = $this->url_decoder( $_SERVER[ 'QUERY_STRING' ] );
             $q     = explode( '&', $qsdec );
             for ( $x = 0; $x < count( $q ); $x++ ) {
-                $v   = is_array( $q[ $x ] ) ? $this->array_flatten( $q[ $x ] ) : $q[ $x ];
-                $val = $this->hexoctaldecode( substr( $v, strpos( $v, '=' ) + 1, strlen( $v ) ) );
-                if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->blacklistMatch( $val, 1 ) ) {
-                    $this->karo( true );
-                    return;
+                $v = explode( '=', $q[ $x ] );
+                if ( false !== $this->string_prop( $v[1] ) ) {
+                    $val = $this->hexoctaldecode( $v[1] );
+                    if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->blacklistMatch( $val, 1 ) ) {
+                        $this->karo( true );
+                        return;
+                    }
                 }
             }
         }
@@ -493,9 +493,9 @@ class ParetoSecurity {
         $cvals         = array_values( $_COOKIE );
         $i             = 0;
         while ( $i < count( $ckeys ) ) {
-            $ckey = is_string( $ckeys[ $i ] ) ? strtolower( $this->hexoctaldecode( $ckeys[ $i ] ) ) : strtolower( $this->hexoctaldecode( $ckeys[ $i ][ 0 ] ) );
-            $cval = is_string( $cvals[ $i ] ) ? $this->url_decoder( strtolower( $this->hexoctaldecode( $cvals[ $i ] ) ) ) : $this->url_decoder( strtolower( $this->hexoctaldecode( $cvals[ $i ][ 0 ] ) ) );
-            if ( ( is_string( $ckey ) ) ) {
+            $ckey = $this->string_prop( $ckeys[ $i ] ) ? strtolower( $this->hexoctaldecode( $ckeys[ $i ] ) ) : strtolower( $this->hexoctaldecode( $ckeys[ $i ][ 0 ] ) );
+            $cval = $this->string_prop( $cvals[ $i ] ) ? $this->url_decoder( strtolower( $this->hexoctaldecode( $cvals[ $i ] ) ) ) : $this->url_decoder( strtolower( $this->hexoctaldecode( $cvals[ $i ][ 0 ] ) ) );
+            if ( ( $this->string_prop( $ckey ) ) ) {
                 if ( false !== ( bool ) $this->blacklistMatch( $ckey, 4 ) || false !== ( bool ) $this->blacklistMatch( $this->hexoctaldecode( $cval ), 4 ) ) {
                     $this->karo( true );
                     return;
@@ -539,7 +539,7 @@ class ParetoSecurity {
         $pnodes = $this->array_flatten( $_POST, false );
         $i      = 0;
         while ( $i < count( $pnodes ) ) {
-            if ( ( is_string( $pnodes[ $i ] ) ) && ( strlen( $pnodes[ $i ] ) > 0 ) ) {
+            if ( $this->string_prop( $pnodes[ $i ] ) ) {
                 $pnodes[ $i ] = strtolower( $pnodes[ $i ] );
                 if ( false !== $this->blacklistMatch( $this->hexoctaldecode( $pnodes[ $i ] ), 2 ) || false !== $this->blacklistMatch( $this->url_decoder( $pnodes[ $i ] ), 2 ) ) {
                     $this->karo( false ); // while some post content can be attacks, its best to 403 die().
@@ -602,17 +602,13 @@ class ParetoSecurity {
      * @return
      */
     function htaccessbanip( $banip ) {
-        
-        # if .htaccess is not readable and writeable
-        if ( false === $this->hCoreFileChk( '.htaccess', true, true ) )
+        # if IP is empty or too short, or .htaccess is not read/write
+        if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->hCoreFileChk( '.htaccess', true, true ) ) ) {
             return $this->send403();
-        
-        $limitend = "# End of " . $this->get_http_host() . " Pareto Security Ban\n";
-        $newline  = "deny from $banip\n";
-        
-        # if .htaccess is readable and writeable
-        if ( false !== $this->hCoreFileChk( '.htaccess', true, true ) ) {
-            $mybans   = file( $this->getDir() . '.htaccess' );
+        } else {
+            $limitend = "# End of " . $this->get_http_host() . " Pareto Security Ban\n";
+            $newline  = "deny from $banip\n";
+            $mybans   = file( str_replace( '//', DIRECTORY_SEPARATOR, $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess' ) );
             $lastline = "";
             if ( in_array( $newline, $mybans ) )
                 exit();
@@ -628,18 +624,11 @@ class ParetoSecurity {
             } else {
                 array_push( $mybans, "\n\n# " . $this->get_http_host() . " Pareto Security Ban\n", "order allow,deny\n", $newline, "allow from all\n", $limitend );
             }
-        } else {
-            $mybans = array(
-                 "# " . $this->get_http_host() . " Pareto Security Ban\n",
-                "order allow,deny\n",
-                $newline,
-                "allow from all\n",
-                $limitend 
-            );
+        
+            $myfile = fopen( str_replace( '//', DIRECTORY_SEPARATOR, $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess' ), 'w' );
+            fwrite( $myfile, implode( $mybans, '' ) );
+            fclose( $myfile );
         }
-        $myfile = fopen( $this->getDir() . '.htaccess', 'w' );
-        fwrite( $myfile, implode( $mybans, '' ) );
-        fclose( $myfile );
     }
     /**
      * hCoreFileChk()
@@ -651,15 +640,15 @@ class ParetoSecurity {
         # if file exists & readable return bool
         # if file exists, readable & writable return bool
         $x = false;
-        $f = $this->getDir() . $f;
-        if ( false !== $w )
+        $f = $this->getDir() . DIRECTORY_SEPARATOR . $f;
+        if ( false !== ( bool ) $w )
             $r = true;
         if ( false !== file_exists( $f ) ) {
             $x = true;
         } else
             return false;
-        $x = ( false !== $r ) ? is_readable( $f ) : $x;
-        $x = ( false !== $w ) ? is_writable( $f ) : $x;
+        $x = ( false !== ( bool ) $r ) ? is_readable( $f ) : $x;
+        $x = ( false !== ( bool ) $w ) ? is_writable( $f ) : $x;
         return ( bool ) $x;
     }
     /**
@@ -669,7 +658,7 @@ class ParetoSecurity {
      * @return
      */
     private static function checkfilename( $fname ) {
-        if ( ( !empty( $fname ) ) && ( ( substr_count( $fname, '.php' ) == 1 ) && ( '.php' == substr( $fname, -4 ) ) ) ) {
+        if ( ( false === empty( $fname ) ) && ( ( substr_count( $fname, '.php' ) == 1 ) && ( '.php' == substr( $fname, -4 ) ) ) ) {
             return true;
         } else
             return false;
@@ -689,22 +678,26 @@ class ParetoSecurity {
      */
     function getPHP_SELF() {
         $filename = NULL;
-        $filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( ( bool ) ini_get( 'cgi.fix_pathinfo' ) == false ) ) || false !== isset( $_SERVER[ 'SCRIPT_NAME' ] ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( $_SERVER[ 'SCRIPT_NAME' ] );
-        
-        if ( 2 > strlen( $filename ) )
-            $filename = $this->_default; // or whatever your default file is
-        
-        preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
-        
-        if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->hCoreFileChk( $matches[ 0 ], true ) ) ) {
-            $filename = $matches[ 0 ];
-        } else
-            $filename = $this->_default;
-        
-        if ( !empty( $filename ) ) {
+#        $filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( ( bool ) ini_get( 'cgi.fix_pathinfo' ) == false ) ) || false !== isset( $_SERVER[ 'SCRIPT_NAME' ] ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( $_SERVER[ 'SCRIPT_NAME' ] );
+
+        # Need to proposition as type this to death
+        if ( false !== $this->string_prop( $filename, 4 ) ) {
+            preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
+            if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->hCoreFileChk( $matches[ 0 ], true ) ) ) {
+                $filename = $matches[ 0 ];
+            }
+        }
+
+        if ( false === $this->string_prop( $filename, 4 ) ) {
+            $f = explode( '/', __FILE__ );
+            $filename = $f[ count( $f )-1 ];
+            $filename = ( false !== strpos( $filename, '.php' ) && ( false !== $this->hCoreFileChk( $filename, true ) ) )? $filename : 'index.php';
+        }
+
+        if ( false !== $this->string_prop( $filename, 4 ) ) {
             return $filename;
         } else {
-            return $this->_default;
+            return 'index.php';
         }
     }
     /**
@@ -738,38 +731,41 @@ class ParetoSecurity {
      */
     function getDir() {
         $get_root  = '';
-        $rootDir = $this->setReq_uri();
+        $rootDir = $this->getREQUEST_URI();
         if ( false !== strpos( $rootDir, DIRECTORY_SEPARATOR ) ) {
-            if ( ( strlen( $rootDir ) > 2 ) && ( $rootDir[ 0 ] == DIRECTORY_SEPARATOR ) ) {
+            # first we need to find if webroot is a sub directory
+            # this can screw things up, if so manually set $_doc_root
+            if ( false !== $this->string_prop( $rootDir, 2 ) && ( $rootDir[ 0 ] == DIRECTORY_SEPARATOR ) ) {
                 $rootDir = ( ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) > 1 ) ) ? substr( $rootDir, 1 ) : substr( $rootDir, 0 );
                 $pos     = strpos( strtolower( $rootDir ), DIRECTORY_SEPARATOR );
                 $pos += strlen( '.' ) - 1;
                 $rootDir = substr( $rootDir, 0, $pos );
-                if ( strpos( $rootDir, '.php' ) )
+                if ( strpos( $rootDir, '.php' ) || ( strlen( $rootDir ) == 1 ) && ( $rootDir == DIRECTORY_SEPARATOR ) || false !== empty( $rootDir ) )
                     $rootDir = '';
-                if ( ( ( strlen( $rootDir ) > 0 ) && ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) > 0 ) && ( DIRECTORY_SEPARATOR !== substr( $rootDir, -1 ) ) ) || ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) == 0 ) )
+                if ( ( false !== $this->string_prop( $rootDir, 0 ) && ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) > 0 ) && ( DIRECTORY_SEPARATOR !== substr( $rootDir, -1 ) ) ) || ( false !== $this->string_prop( $rootDir, 0 ) ) && ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) == 0 ) ) {
                     $rootDir = DIRECTORY_SEPARATOR . $rootDir . DIRECTORY_SEPARATOR;
+                }
             }
         }
-        if ( isset( $this->_doc_root ) && strlen( $this->_doc_root ) > 0 ) {
+        if ( isset( $this->_doc_root ) && ( false !== $this->string_prop( $this->_doc_root, 0, true ) ) ) {
             # is set by the user
             $get_root = $this->_doc_root;
-        } elseif ( false !== strpos( $_SERVER[ 'DOCUMENT_ROOT' ], 'usr/local' ) || empty( $_SERVER[ 'DOCUMENT_ROOT' ] ) || strlen( $_SERVER[ 'DOCUMENT_ROOT' ] ) < 1 ) {
-            # doing this the bad way
+        } elseif ( false !== strpos( $_SERVER[ 'DOCUMENT_ROOT' ], 'usr/local' ) || empty( $_SERVER[ 'DOCUMENT_ROOT' ] ) || strlen( $_SERVER[ 'DOCUMENT_ROOT' ] ) < 4 ) {
+            # if for some reason there is a problem with DOCUMENT_ROOT, then do this the bad way
             $f     = dirname( __FILE__ );
             $sf    = $_SERVER[ 'SCRIPT_FILENAME' ];
             $fbits = explode( DIRECTORY_SEPARATOR, $f );
             foreach ( $fbits as $a => $b ) {
                 if ( false == empty( $b ) && ( false === strpos( $sf, $b ) ) ) {
                     $f = str_replace( $b, '', $f );
+                    $f = str_replace( '//', '', $f );
                 }
             }
-            $get_root = str_replace( '//', '', $f );
+            $get_root = realpath( $f );
         } else {
-            $get_root = str_replace( 'wp-admin/', '', $_SERVER[ 'DOCUMENT_ROOT' ] ) . $rootDir;
+            $get_root = ( false === empty( $rootDir ) ) ? realpath( $_SERVER[ 'DOCUMENT_ROOT' ] ) . $rootDir : realpath( $_SERVER[ 'DOCUMENT_ROOT' ] );
         }
-        $get_root = preg_replace( "/wp-admin\/|wp-content\/|wp-include\//i", '', $get_root );
-        return str_replace( '//', DIRECTORY_SEPARATOR, $get_root );
+        return preg_replace( "/wp-admin\/|wp-content\/|wp-include\//i", '', $get_root );
     }
     
     private static function is_server( $ip ) {
@@ -792,6 +788,8 @@ class ParetoSecurity {
         if ( false !== $this->is_server( $ip ) )
             return true;
         # simple ip format check
+        if ( strlen( $ip ) < 7 ) return false; // 8.8.8.8
+
         $check = false;
         if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_IP' ) && defined( 'FILTER_FLAG_IPV4' ) && defined( 'FILTER_FLAG_IPV6' ) ) {
             if ( false === filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 || FILTER_FLAG_IPV6 ) ) {
@@ -868,7 +866,7 @@ class ParetoSecurity {
             $x++;
         }
         # never trust any headers except REMOTE_ADDR
-        return ( false !== $this->check_ip( getenv( 'REMOTE_ADDR' ) ) ) ? getenv( 'REMOTE_ADDR' ) : $this->send403();
+        return ( false !== $this->check_ip( $this->getREMOTE_ADDR() ) ) ? $this->getREMOTE_ADDR() : $this->send403();
     }
     
     function setOpenBaseDir() {
@@ -899,48 +897,32 @@ class ParetoSecurity {
     function url_decoder( $var ) {
         return rawurldecode( urldecode( str_replace( chr( 0 ), '', $var ) ) );
     }
-    private static function getREQUEST_URI() {
-        if ( false !== getenv( 'REQUEST_URI' ) ) {
+    function getREQUEST_URI() {
+        if ( false !== getenv( 'REQUEST_URI' ) && ( false !== $this->string_prop( getenv( 'REQUEST_URI' ) ) ) ) {
             return getenv( 'REQUEST_URI' );
         } else {
             return $_SERVER[ 'REQUEST_URI' ];
         }
     }
-    private static function issetStrlen( $str ) {
-        if ( isset( $str ) && ( strlen( $str ) > 0 ) ) {
-            return true;
+    function getREMOTE_ADDR() {
+        if ( false !== getenv( 'REMOTE_ADDR' ) && ( false !== $this->string_prop( getenv( 'REMOTE_ADDR' ), 6 ) ) ) {
+            return getenv( 'REMOTE_ADDR' );
         } else {
-            return false;
+            return $_SERVER[ 'REMOTE_ADDR' ];
         }
     }
-    /**
-     * setReq_uri()
-     * 
-     * @return
-     */
-    function setReq_uri() {
-        $_request_uri = '';
-        if ( empty( $_SERVER[ 'REQUEST_URI' ] ) || ( php_sapi_name() != 'cgi-fcgi' && false !== ( bool ) preg_match( "/^Microsoft-IIS\//i", $_SERVER[ 'SERVER_SOFTWARE' ] ) ) ) {
-            if ( false !== getenv( 'REQUEST_URI' ) ) {
-                $_request_uri = getenv( 'REQUEST_URI' );
-            } else {
-                if ( !isset( $_SERVER[ 'PATH_INFO' ] ) && isset( $_SERVER[ 'ORIG_PATH_INFO' ] ) )
-                    $_SERVER[ 'PATH_INFO' ] = $_SERVER[ 'ORIG_PATH_INFO' ];
-                if ( isset( $_SERVER[ 'PATH_INFO' ] ) ) {
-                    if ( $_SERVER[ 'PATH_INFO' ] == $_SERVER[ 'SCRIPT_NAME' ] ) {
-                        $_request_uri = $_SERVER[ 'PATH_INFO' ];
-                    } else {
-                        $_request_uri = $_SERVER[ 'SCRIPT_NAME' ] . $_SERVER[ 'PATH_INFO' ];
-                    }
-                }
-            }
-            
-            if ( !empty( $_SERVER[ 'QUERY_STRING' ] ) )
-                $_request_uri .= '?' . $_SERVER[ 'QUERY_STRING' ];
-            $_request_uri = str_replace( '//', DIRECTORY_SEPARATOR, $_request_uri );
-            return $this->url_decoder( $_request_uri );
+    function getQUERY_STRING() {
+        if ( false !== getenv( 'QUERY_STRING' ) && ( false !== $this->string_prop( getenv( 'QUERY_STRING' ) ) ) ) {
+            return getenv( 'QUERY_STRING' );
+        } else {
+            return $_SERVER[ 'QUERY_STRING' ];
         }
-        return $_SERVER[ 'REQUEST_URI' ];
+    }
+    
+    private static function string_prop( $str, $len=0 ) {
+        if ( false !== is_array( $str ) ) return false;
+        $x = ( is_string( $str ) ) ? ( ( strlen( $str ) > ( int ) $len ) ? true: false ): false;
+        return ( bool ) $x;
     }
 } // end of class
 
