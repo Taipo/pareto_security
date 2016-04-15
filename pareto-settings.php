@@ -13,9 +13,9 @@ class Pareto_Security_Settings {
 	public static $default_settings = 
 		array( 	
 			  	'perm_ban_ips' => '0',
-				'set_open_basedir' => '0'
+				'req_method' => '0'
 				);
-	var $pagehook, $page_id, $settings_field, $options, $set_open_basedir, $ban_ips;
+	var $pagehook, $page_id, $settings_field, $options, $reqmethod, $ban_ips;
 	
 	function __construct() {	
 		$this->page_id = 'pareto_security_settings';
@@ -26,9 +26,9 @@ class Pareto_Security_Settings {
 		if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
 			foreach( $_POST as $key => $val ) {
 					if ( is_array( $val ) ) {
-						if ( isset( $_POST[ "pareto_security_settings_options" ]["set_open_basedir" ] ) &&
-							 ( ( strlen( $_POST[ "pareto_security_settings_options" ]["set_open_basedir" ] ) > 1 ) ) ) {
-							     $_POST[ "pareto_security_settings_options" ]["set_open_basedir" ] = 0;
+						if ( isset( $_POST[ "pareto_security_settings_options" ]["req_method" ] ) &&
+							 ( ( strlen( $_POST[ "pareto_security_settings_options" ]["req_method" ] ) > 1 ) ) ) {
+							     $_POST[ "pareto_security_settings_options" ]["req_method" ] = 0;
 						}
 						if ( isset( $_POST[ "pareto_security_settings_options" ]["perm_ban_ips" ] ) &&
 							 ( ( strlen( $_POST[ "pareto_security_settings_options" ]["perm_ban_ips" ] ) > 1 ) ) ) {
@@ -40,7 +40,7 @@ class Pareto_Security_Settings {
 		}
 
 		$this->ban_ips = isset( $this->options[ 'perm_ban_ips' ] ) ? $this->options[ 'perm_ban_ips' ]:0;
-		$this->set_open_basedir = isset( $this->options[ 'set_open_basedir' ] ) ? $this->options[ 'set_open_basedir' ]:0;
+		$this->reqmethod = isset( $this->options[ 'req_method' ] ) ? $this->options[ 'req_method' ]:0;
 		
 		if ( ( false !== ( bool )defined( 'WP_ADMIN' ) &&
 			   false !== WP_ADMIN ) &&
@@ -62,7 +62,7 @@ class Pareto_Security_Settings {
 		// Add a new submenu to the standard Settings panel
 		$this->pagehook = $page =  add_options_page(	
 			__( 'Pareto Security Settings', 'pareto_security_settings' ), __( 'Pareto Security Settings', 'pareto_security_settings' ), 
-			'administrator', $this->page_id, array($this,'render' ) );
+			'administrator', $this->page_id, array( $this,'render' ) );
 		
 		// Executed on-load. Add all metaboxes.
 		add_action( 'load-' . $this->pagehook, array( $this, 'metaboxes' ) );
@@ -192,20 +192,25 @@ class Pareto_Security_Settings {
 	function condition_box() {
 		if ( ( false !== ( bool )defined( 'WP_ADMIN' ) && false !== WP_ADMIN ) && ( false !== ( bool)is_admin() ) ) {
 	?>
-		<p>        
-			<h4>Permanently Ban IP Addresses:</h4>
-			This will allow Pareto Security to automatically add IP addresses from attacks to your .htaccess file.
+		<p>
+			<br />
+			<b>Permanently Ban IP Addresses:</b><br />
+			This will allow Pareto Security to automatically add IP addresses from attacks to your .htaccess file. If unchecked, bad requests are soft banned only.
 			<br />
 			<input type="checkbox" name="<?php echo $this->get_field_name( 'perm_ban_ips' ); ?>" id="<?php echo $this->get_field_id( 'perm_ban_ips' ); ?>" value="<?php echo isset( $this->options['perm_ban_ips'] ) ? 1 : 0; ?>" <?php echo isset( $this->options['perm_ban_ips'] ) ? checked : ''; ?> /> 
 			<label for="<?php echo $this->get_field_id( 'perm_ban_ips' ); ?>"><?php _e( 'Permanently ban IPs', 'pareto_security_settings' ); ?></label>
+			<br /><br />
+			<b>Check the request method:</b><br />
+			Restricted requests to GET or POST. This works ok for PHP files, but is better achieved however via .htaccess.<br /><br />
+			Example:<br />
+<code>&lt;LimitExcept GET POST&gt;</code><br />
+<code>&nbsp&nbspOrder Allow,Deny</code><br />
+<code>&nbsp&nbspRequire all denied</code><br />
+<code>&lt;/LimitExcept&gt;</code><br /><br />
+			If you do not know what this is, then leave it unchecked.
 			<br />
-			<?php /* ?>
-			<h4>Restricts PHP's open_basedir() function to your root directory:</h4>
-			If you do not know what this is, then leave it unchecked
-			<br />
-			<input type="checkbox" name="<?php echo $this->get_field_name( 'set_open_basedir' ); ?>" id="<?php echo $this->get_field_id( 'set_open_basedir' ); ?>" value="<?php echo isset( $this->options['set_open_basedir'] ) ? 1 : 0;?>" <?php echo isset($this->options['set_open_basedir']) ? 'checked' : '';?> />
-			<label for="<?php echo $this->get_field_id( 'set_open_basedir' ); ?>"><?php _e( 'Set open_basedir', 'pareto_security_settings' ); ?></label>
-			<?php */ ?>
+			<input type="checkbox" name="<?php echo $this->get_field_name( 'req_method' ); ?>" id="<?php echo $this->get_field_id( 'req_method' ); ?>" value="<?php echo isset( $this->options['req_method'] ) ? 1 : 0;?>" <?php echo isset($this->options['req_method']) ? 'checked' : '';?> />
+			<label for="<?php echo $this->get_field_id( 'req_method' ); ?>"><?php _e( 'Set request method', 'pareto_security_settings' ); ?></label>
 		</p>
 	<?php }
 	}
