@@ -69,9 +69,10 @@ Email me at hokioi-security@protonmail.ch
 == Changelog ==
 
 = 1.1.7 =
-* Removed $PHP_SELF, setReq_uri()
-* Updated karo(), setVars(), getDir(), getRealIP() and getPHP_SELF() functions
-* Added getREMOTE_ADDR(), string_prop()
+* Added ability to restrict the request method to GET or POST in Pareto Security Settings
+* Removed $PHP_SELF, setReq_uri(), setVars()
+* Updated karo(), getDir(), getRealIP() and getPHP_SELF() functions
+* Added getREMOTE_ADDR(), string_prop() and integ_prop() functions
 
 = 1.1.6 =
 * update file checking method
