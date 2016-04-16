@@ -26,22 +26,21 @@ class Pareto_Security_Settings {
 		if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
 			foreach( $_POST as $key => $val ) {
 					if ( is_array( $val ) ) {
-						if ( isset( $_POST[ "pareto_security_settings_options" ]["req_method" ] ) &&
-							 ( ( strlen( $_POST[ "pareto_security_settings_options" ]["req_method" ] ) > 1 ) ) ) {
-							     $_POST[ "pareto_security_settings_options" ]["req_method" ] = 0;
+						if ( isset( $_POST[ $this->settings_field ]["req_method" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ]["req_method" ] ) > 1 ) ) ) {
+							     $_POST[ $this->settings_field ]["req_method" ] = 0;
 						}
-						if ( isset( $_POST[ "pareto_security_settings_options" ]["perm_ban_ips" ] ) &&
-							 ( ( strlen( $_POST[ "pareto_security_settings_options" ]["perm_ban_ips" ] ) > 1 ) ) ) {
-							   $_POST[ "pareto_security_settings_options" ]["perm_ban_ips" ] = 0;
+						if ( isset( $_POST[ $this->settings_field ]["perm_ban_ips" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ]["perm_ban_ips" ] ) > 1 ) ) ) {
+							   $_POST[ $this->settings_field ]["perm_ban_ips" ] = 0;
 						}
 
 					}
 			}
 		}
-
 		$this->ban_ips = isset( $this->options[ 'perm_ban_ips' ] ) ? $this->options[ 'perm_ban_ips' ]:0;
 		$this->reqmethod = isset( $this->options[ 'req_method' ] ) ? $this->options[ 'req_method' ]:0;
-		
+
 		if ( ( false !== ( bool )defined( 'WP_ADMIN' ) &&
 			   false !== WP_ADMIN ) &&
 			   false !== ( bool)is_admin() ) {
@@ -51,7 +50,7 @@ class Pareto_Security_Settings {
 	}
 	
 	function admin_init() {
-		register_setting( $this->settings_field, $this->settings_field, array($this, 'sanitize_theme_options' ) );
+		register_setting( $this->settings_field, $this->settings_field, array( $this, 'sanitize_theme_options' ) );
 		add_option( $this->settings_field, Pareto_Security_Settings::$default_settings );
 	}
 
@@ -91,7 +90,7 @@ class Pareto_Security_Settings {
 		Sanitize our plugin settings array as needed.
 	*/	
 	function sanitize_theme_options($options) {
-		$options['pareto_security_settings_text'] = stripcslashes($options['pareto_security_settings_text']);
+		$options['pareto_security_settings_text'] = stripcslashes( $options['pareto_security_settings_text'] );
 		return $options;
 	}
 
