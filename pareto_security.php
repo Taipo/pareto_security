@@ -74,11 +74,9 @@ class ParetoSecurity {
                  $this,
                 'deactivate' 
             ) );
-            
             $this->_banip = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
             $this->_nonGETPOSTReqs = isset( $ParetoSettings->reqmethod ) ? $ParetoSettings->reqmethod : $this->_nonGETPOSTReqs;
         }
-        
         $this->_set_error_level();
         $this->_bypassbanip = false;
         # if open_basedir is not set in php.ini then set it in the local scope
@@ -95,7 +93,6 @@ class ParetoSecurity {
         # Merge $_REQUEST with _GET and _POST excluding _COOKIE data
         # php.ini may already do this
         $_REQUEST = array_merge( $_GET, $_POST );
-        
     } // end of __construct()
     
     function network_propagate( $pfunction, $networkwide ) {
@@ -443,12 +440,26 @@ class ParetoSecurity {
         }
     }
     /**
-     * _GET_SHIELD()
+     * get_filter()
+     * 
+     * @return
+     */
+    function get_filter( $val, $key ) {
+        if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
+            $val = $this->hexoctaldecode( $val );
+            if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->blacklistMatch( $val, 1 ) ) {
+                $this->karo( true );
+            }
+        }
+        return;
+    }
+    /**
+     * _QUERYSTRING_SHIELD()
      * 
      * @return
      */
     function _QUERYSTRING_SHIELD() {
-        if ( false === ( bool ) $this->string_prop( $this->getQUERY_STRING() ) ) {
+        if ( false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
             return; // of no interest to us
         } else {
             $q     = array();
@@ -457,16 +468,42 @@ class ParetoSecurity {
             $x     = 0;
             $qsdec = $this->getQUERY_STRING();
             $q     = explode( '&', $qsdec );
-            for ( $x = 0; $x < count( $q ); $x++ ) {
-                $v = explode( '=', $q[ $x ] );
-                if ( false !== ( bool ) $this->string_prop( $v[1] ) ) {
-                    $val = $this->hexoctaldecode( $v[1] );
-                    if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->blacklistMatch( $val, 1 ) ) {
-                        $this->karo( true );
-                        return;
-                    }
-                }
-            }
+            array_walk_recursive( $q, array( $this, 'get_filter' ) );
+        }
+        return;
+    }
+    /**
+     * post_filter()
+     * 
+     * @return
+     */
+    function post_filter( $val, $key ) {
+        if ( false !== $this->blacklistMatch( $this->hexoctaldecode( $val ), 2 ) || false !== $this->blacklistMatch( $this->url_decoder( $val ), 2 ) ) {
+            $this->karo( false ); // while some post content can be attacks, its best to 403 die().
+        }
+        return;
+    }
+    
+    /**
+     * _POST_SHIELD()
+     * 
+     * @return
+     */
+    function _POST_SHIELD() {
+        if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] ) return; // of no interest to us
+        array_walk_recursive( $_POST, array( $this, 'post_filter' ) );
+    }
+    /**
+     * cookie_filter()
+     * 
+     * @return
+     */
+    function cookie_filter( $val, $key ) {
+        if ( false !== ( bool ) $this->blacklistMatch( $key, 4 ) || false !== ( bool ) $this->blacklistMatch( $this->hexoctaldecode( $val ), 4 ) ) {
+            $this->karo( true );
+        }
+        if ( false !== ( bool ) $this->injectMatch( $key ) || false !== ( bool ) $this->injectMatch( $val ) ) {
+            $this->karo( true );
         }
         return;
     }
@@ -476,28 +513,8 @@ class ParetoSecurity {
      * @return
      */
     function _COOKIE_SHIELD() {
-        if ( false !== empty( $_COOKIE ) )
-            return; // of no interest to us
-        $injectattempt = false;
-        $ckeys         = array_keys( $_COOKIE );
-        $cvals         = array_values( $_COOKIE );
-        $i             = 0;
-        while ( $i < count( $ckeys ) ) {
-            $ckey = ( false !== ( bool ) $this->string_prop( $ckeys[ $i ] ) ) ? strtolower( $this->hexoctaldecode( $ckeys[ $i ] ) ) : strtolower( $this->hexoctaldecode( $ckeys[ $i ][ 0 ] ) );
-            $cval = ( false !== ( bool ) $this->string_prop( $cvals[ $i ] ) ) ? $this->url_decoder( strtolower( $this->hexoctaldecode( $cvals[ $i ] ) ) ) : $this->url_decoder( strtolower( $this->hexoctaldecode( $cvals[ $i ][ 0 ] ) ) );
-            if ( false !== ( bool ) $this->string_prop( $ckey ) ) {
-                if ( false !== ( bool ) $this->blacklistMatch( $ckey, 4 ) || false !== ( bool ) $this->blacklistMatch( $this->hexoctaldecode( $cval ), 4 ) ) {
-                    $this->karo( true );
-                    return;
-                }
-            }
-            $injectattempt = ( ( bool ) $this->injectMatch( $ckey ) ) ? true : ( ( bool ) $this->injectMatch( $cval ) );
-            if ( false !== ( bool ) $injectattempt ) {
-                $this->karo( true );
-                return;
-            }
-            $i++;
-        }
+        if ( false !== empty( $_COOKIE ) ) return; // of no interest to us
+        array_walk_recursive( $_COOKIE, array( $this, 'cookie_filter' ) );
     }
     /**
      * _REQUESTTYPE_SHIELD()
@@ -521,28 +538,7 @@ class ParetoSecurity {
             $this->karo( false ); // soft block
         return;
     }
-    /**
-     * _POST_SHIELD()
-     * 
-     * @return
-     */
-    function _POST_SHIELD() {
-        if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] )
-            return; // of no interest to us
-        $pnodes = $this->array_flatten( $_POST, false );
-        $i      = 0;
-        while ( $i < count( $pnodes ) ) {
-            if ( false !== ( bool ) $this->string_prop( $pnodes[ $i ] ) ) {
-                $pnodes[ $i ] = strtolower( $pnodes[ $i ] );
-                if ( false !== $this->blacklistMatch( $this->hexoctaldecode( $pnodes[ $i ] ), 2 ) || false !== $this->blacklistMatch( $this->url_decoder( $pnodes[ $i ] ), 2 ) ) {
-                    $this->karo( false ); // while some post content can be attacks, its best to 403 die().
-                    return;
-                }
-            }
-            $i++;
-        }
-        return;
-    }
+    
     /**
      * Bad Spider Block / UA filter
      */
@@ -693,30 +689,7 @@ class ParetoSecurity {
             return 'index.php';
         }
     }
-    /**
-     * array_flatten()
-     * 
-     * @param mixed $array
-     * @param bool $preserve_keys
-     * @return
-     */
-    function array_flatten( $array, $preserve_keys = false ) {
-        if ( false === $preserve_keys ) {
-            $array = array_values( $array );
-        }
-        $flattened_array = array();
-        foreach ( $array as $k => $v ) {
-            if ( is_array( $v ) ) {
-                $flattened_array = array_merge( $flattened_array, $this->array_flatten( $v, $preserve_keys ) );
-            } elseif ( $preserve_keys ) {
-                $flattened_array[ $k ] = $v;
-            } else {
-                $flattened_array[] = $v;
-            }
-        }
-        return $flattened_array;
-    }
-    
+   
     /**
      * getDir()
      * 
@@ -733,14 +706,14 @@ class ParetoSecurity {
                 $pos     = strpos( strtolower( $rootDir ), DIRECTORY_SEPARATOR );
                 $pos += strlen( '.' ) - 1;
                 $rootDir = substr( $rootDir, 0, $pos );
-                if ( strpos( $rootDir, '.php' ) || ( strlen( $rootDir ) == 1 ) && ( $rootDir == DIRECTORY_SEPARATOR ) || false !== empty( $rootDir ) )
-                    $rootDir = '';
-                if ( ( false !== ( bool ) $this->string_prop( $rootDir ) && ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) > 0 ) && ( DIRECTORY_SEPARATOR !== substr( $rootDir, -1 ) ) ) || ( false !== $this->string_prop( $rootDir ) ) && ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) == 0 ) ) {
+                if ( strpos( $rootDir, '.php' ) || ( strlen( $rootDir ) == 1 ) && ( $rootDir == DIRECTORY_SEPARATOR ) || false !== empty( $rootDir ) ) $rootDir = '';
+                if ( ( false !== ( bool ) $this->string_prop( $rootDir, 2 ) && ( substr_count( $rootDir, DIRECTORY_SEPARATOR ) > 0 ) && ( DIRECTORY_SEPARATOR !== substr( $rootDir, -1 ) ) ) ) {
                     $rootDir = DIRECTORY_SEPARATOR . $rootDir . DIRECTORY_SEPARATOR;
                 }
             }
         }
-        if ( isset( $this->_doc_root ) && ( false !== ( bool ) $this->string_prop( $this->_doc_root ) ) ) {
+
+        if ( isset( $this->_doc_root ) && ( false !== ( bool ) $this->string_prop( $this->_doc_root, 2 ) ) ) {
             # is set by the user
             $get_root = $this->_doc_root;
         } elseif ( false !== strpos( $_SERVER[ 'DOCUMENT_ROOT' ], 'usr/local' ) || empty( $_SERVER[ 'DOCUMENT_ROOT' ] ) || strlen( $_SERVER[ 'DOCUMENT_ROOT' ] ) < 4 ) {
@@ -758,6 +731,7 @@ class ParetoSecurity {
         } else {
             $get_root = ( false === empty( $rootDir ) ) ? realpath( $_SERVER[ 'DOCUMENT_ROOT' ] ) . $rootDir : realpath( $_SERVER[ 'DOCUMENT_ROOT' ] );
         }
+
         return preg_replace( "/wp-admin\/|wp-content\/|wp-include\//i", '', $get_root );
     }
     /**
@@ -899,7 +873,7 @@ class ParetoSecurity {
      * getREQUEST_URI()
      */
     function getREQUEST_URI() {
-        if ( false !== getenv( 'REQUEST_URI' ) && ( false !== ( bool ) $this->string_prop( getenv( 'REQUEST_URI' ) ) ) ) {
+        if ( false !== getenv( 'REQUEST_URI' ) && ( false !== ( bool ) $this->string_prop( getenv( 'REQUEST_URI' ), 2 ) ) ) {
             return getenv( 'REQUEST_URI' );
         } else {
             return $_SERVER[ 'REQUEST_URI' ];
