@@ -70,7 +70,8 @@ Email me at hokioi-security@protonmail.ch
 
 = 1.1.7 =
 * Added ability to restrict the request method to GET or POST in Pareto Security Settings
-* Removed $PHP_SELF, setReq_uri(), setVars()
+* Employing a better method of walking through multidimentional arrays
+* Removed $PHP_SELF, setReq_uri(), setVars(), array_flatten
 * Updated karo(), getDir(), getRealIP() and getPHP_SELF() functions
 * Added getREMOTE_ADDR(), string_prop() and integ_prop() functions
 
