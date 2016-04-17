@@ -71,9 +71,9 @@ Email me at hokioi-security@protonmail.ch
 = 1.1.7 =
 * Added ability to restrict the request method to GET or POST in Pareto Security Settings
 * Employing a better method of walking through multidimentional arrays
-* Removed $PHP_SELF, setReq_uri(), setVars(), array_flatten
-* Updated karo(), getDir(), getRealIP() and getPHP_SELF() functions
-* Added getREMOTE_ADDR(), string_prop() and integ_prop() functions
+* Removed functions: $PHP_SELF, setReq_uri(), setVars(), array_flatten, hexoctaldecode(), getPHP_SELF()
+* Updated functions: karo(), getDir(), getRealIP() and getPHP_SELF() functions
+* Added functions: getREMOTE_ADDR(), string_prop() and integ_prop(), decode_code() 
 
 = 1.1.6 =
 * update file checking method
