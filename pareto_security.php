@@ -39,7 +39,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
     add_action( "activated_plugin", "load_pareto_first" );
     
     define( 'PARETO_VERSION', '1.1.7' );
-    define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1460759778' ) );
+    define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1460782252' ) );
     define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
     define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -421,7 +421,7 @@ class ParetoSecurity {
         }
         
         if ( false !== strpos( $req, '?' ) ) {
-            $v = $this->hexoctaldecode( strtolower( substr( $req, strpos( $req, '?' ), ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
+            $v = $this->decode_code( strtolower( substr( $req, strpos( $req, '?' ), ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
             if ( false !== strpos( $v, '-' ) && ( ( false !== strpos( $v, '?-' ) ) || ( false !== strpos( $v, '?+-' ) ) ) && ( ( false !== strpos( $v, '-s' ) ) || ( false !== strpos( $v, '-t' ) ) || ( false !== strpos( $v, '-n' ) ) || ( false !== strpos( $v, '-d' ) ) ) ) {
                 $attack = true;
             }
@@ -446,12 +446,11 @@ class ParetoSecurity {
      */
     function get_filter( $val, $key ) {
         if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
-            $val = $this->hexoctaldecode( $val );
+            $val = $this->decode_code( $val );
             if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->blacklistMatch( $val, 1 ) ) {
                 $this->karo( true );
             }
         }
-        return;
     }
     /**
      * _QUERYSTRING_SHIELD()
@@ -462,50 +461,45 @@ class ParetoSecurity {
         if ( false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
             return; // of no interest to us
         } else {
-            $q     = array();
-            $v     = array();
-            $val   = '';
-            $x     = 0;
-            $qsdec = $this->getQUERY_STRING();
-            $q     = explode( '&', $qsdec );
+            $q = array();
+            $q     = explode( '&', $this->getQUERY_STRING() );
             array_walk_recursive( $q, array( $this, 'get_filter' ) );
         }
         return;
     }
+    
+    
     /**
      * post_filter()
      * 
      * @return
      */
     function post_filter( $val, $key ) {
-        if ( false !== $this->blacklistMatch( $this->hexoctaldecode( $val ), 2 ) || false !== $this->blacklistMatch( $this->url_decoder( $val ), 2 ) ) {
+        if ( false !== $this->blacklistMatch( $this->decode_code( $val ), 2 ) ) {
             $this->karo( false ); // while some post content can be attacks, its best to 403 die().
         }
-        return;
     }
     
     /**
      * _POST_SHIELD()
-     * 
-     * @return
      */
     function _POST_SHIELD() {
         if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] ) return; // of no interest to us
         array_walk_recursive( $_POST, array( $this, 'post_filter' ) );
     }
+    
     /**
      * cookie_filter()
      * 
      * @return
      */
     function cookie_filter( $val, $key ) {
-        if ( false !== ( bool ) $this->blacklistMatch( $key, 4 ) || false !== ( bool ) $this->blacklistMatch( $this->hexoctaldecode( $val ), 4 ) ) {
+        if ( false !== ( bool ) $this->blacklistMatch( $this->decode_code( $key ), 4 ) || false !== ( bool ) $this->blacklistMatch( $this->decode_code( $val ), 4 ) ) {
             $this->karo( true );
         }
         if ( false !== ( bool ) $this->injectMatch( $key ) || false !== ( bool ) $this->injectMatch( $val ) ) {
             $this->karo( true );
         }
-        return;
     }
     /**
      * _COOKIE_SHIELD()
@@ -544,21 +538,14 @@ class ParetoSecurity {
      */
     function _SPIDER_SHIELD() {
         if ( false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
-            if ( false !== $this->blacklistMatch( strtolower( $this->hexoctaldecode( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
+            if ( false !== $this->blacklistMatch( strtolower( $this->decode_code( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
                 $this->karo( true );
                 return;
             }
         } else
             return;
     }
-    function hexoctaldecode( $code ) {
-        $code = ( substr_count( $code, '\\x' ) > 0 ) ? $this->url_decoder( str_replace( '\\x', '%', $code ) ) : $code;
-        if ( ( substr_count( $code, '&#x' ) > 0 ) && ( substr_count( $code, ';' ) > 0 ) ) {
-            $code = $this->url_decoder( str_replace( ';', '', $code ) );
-            $code = $this->url_decoder( str_replace( '&#x', '%', $code ) );
-        }
-        return $code;
-    }
+
     function cleanString( $b, $s ) {
         $s = strtolower( $this->url_decoder( $s ) );
         switch ( $b ) {
@@ -660,35 +647,6 @@ class ParetoSecurity {
     private static function get_http_host( $encoding = 'UTF-8' ) {
         return htmlspecialchars( preg_replace( "/^(?:([^\.]+)\.)?domain\.com$/", '\1', $_SERVER[ 'SERVER_NAME' ] ), ( ( phpversion() >= 5.4 ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
     }
-    /**
-     * getPHP_SELF()
-     * 
-     * @return
-     */
-    function getPHP_SELF() {
-        $filename = NULL;
-        $filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( ( bool ) ini_get( 'cgi.fix_pathinfo' ) == false ) ) || false !== isset( $_SERVER[ 'SCRIPT_NAME' ] ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( $_SERVER[ 'SCRIPT_NAME' ] );
-
-        # Need to proposition as type this to death
-        if ( false !== ( bool ) $this->string_prop( $filename, 4 ) ) {
-            preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
-            if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->hCoreFileChk( $matches[ 0 ], true ) ) ) {
-                $filename = $matches[ 0 ];
-            }
-        }
-
-        if ( false === ( bool ) $this->string_prop( $filename, 4 ) ) {
-            $f = explode( '/', __FILE__ );
-            $filename = $f[ count( $f )-1 ];
-            $filename = ( false !== strpos( $filename, '.php' ) && ( false !== $this->hCoreFileChk( $filename, true ) ) )? $filename : 'index.php';
-        }
-
-        if ( false !== ( bool ) $this->string_prop( $filename, 4 ) ) {
-            return $filename;
-        } else {
-            return 'index.php';
-        }
-    }
    
     /**
      * getDir()
@@ -719,7 +677,7 @@ class ParetoSecurity {
         } elseif ( false !== strpos( $_SERVER[ 'DOCUMENT_ROOT' ], 'usr/local' ) || empty( $_SERVER[ 'DOCUMENT_ROOT' ] ) || strlen( $_SERVER[ 'DOCUMENT_ROOT' ] ) < 4 ) {
             # if for some reason there is a problem with DOCUMENT_ROOT, then do this the bad way
             $f     = dirname( __FILE__ );
-            $sf    = $_SERVER[ 'SCRIPT_FILENAME' ];
+            $sf    = realpath( $_SERVER[ 'SCRIPT_FILENAME' ] );
             $fbits = explode( DIRECTORY_SEPARATOR, $f );
             foreach ( $fbits as $a => $b ) {
                 if ( false == empty( $b ) && ( false === strpos( $sf, $b ) ) ) {
@@ -731,7 +689,6 @@ class ParetoSecurity {
         } else {
             $get_root = ( false === empty( $rootDir ) ) ? realpath( $_SERVER[ 'DOCUMENT_ROOT' ] ) . $rootDir : realpath( $_SERVER[ 'DOCUMENT_ROOT' ] );
         }
-
         return preg_replace( "/wp-admin\/|wp-content\/|wp-include\//i", '', $get_root );
     }
     /**
@@ -862,6 +819,15 @@ class ParetoSecurity {
         }
         error_reporting( $errlevel );
         return;
+    }
+    /**
+     * decode_code()
+     * @return
+     */
+     function decode_code( $code ) {
+            $code = ( substr_count( $code, '\u00' ) > 0 ) ? str_replace( '\u00', '%', $code ) : $code;
+            $code = ( substr_count( $code, '&#x' ) > 0 && substr_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
+            return $this->url_decoder( $code );
     }
     /**
      * url_decoder()
