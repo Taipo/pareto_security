@@ -381,10 +381,10 @@ class ParetoSecurity {
 		$thislist = $_blacklist[ ( int ) $list ];
 
 		for( $x=0; $x < count( $thislist ); $x++ ) {
-            if ( false !== strpos( $val, strtolower( $this->decode_code( $thislist[ $x ] ) ) ) ) {
-                return true;
-            }
-        }
+			if ( false !== strpos( $val, strtolower( $this->decode_code( $thislist[ $x ] ) ) ) ) {
+				return true;
+			}
+		}
         return false;		
 	}
 	/**
