@@ -40,7 +40,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.1.7' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1461219658' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1461647696' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -259,7 +259,7 @@ class ParetoSecurity {
 				$sqlfilematchlist = preg_replace( "/[\s]/i", '', $sqlfilematchlist );
 				$sqlmatchlist2    = preg_replace( "/[\s]/i", '', $sqlmatchlist2 );
 				
-				if ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b/i", $string ) && false !== ( bool ) preg_match( "/--|and||\//i", $string ) ) {
+				if ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b/i", $string ) && false !== ( bool ) preg_match( "/--|and|\//i", $string ) ) {
 					return true;
 				} elseif ( ( false !== strpos( $string, 'grant' ) ) && ( false !== strpos( $string, 'all' ) ) && ( false !== strpos( $string, 'privileges' ) ) ) {
 					return true;
