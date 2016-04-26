@@ -40,7 +40,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.1.7' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1461647696' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1461667135' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -49,17 +49,17 @@ class ParetoSecurity {
 	# protect from non-standard request types
 	protected $_nonGETPOSTReqs = 0;
 	# if open_basedir is not set in php.ini. Leave disabled unless you are sure about using this.
-	public $_open_basedir = 0;
+	protected $_open_basedir = 0;
 	# ban attack ip address to the root /.htaccess file. Leave this disabled if you are hosting a website using TOR's Hidden Services
-	public $_banip = 0;
+	protected $_banip = 0;
 	# path to the root directory of the site, e.g /home/user/public_html
-	public $_doc_root = '';
+	protected $_doc_root = '';
 	# Correct Production Server Settings = 0, prevent any errors from displaying = 1, Show all errors = 2 ( depends on the php.ini settings )
 	protected $_quietscript = 0;
 	
 	# Other
 	protected $_bypassbanip = false;
-	var $settings, $options_page;
+	#var $settings, $options_page;
 	
 	public function __construct() {
 		
@@ -137,7 +137,7 @@ class ParetoSecurity {
 	function _deactivate() {
 	}
 	
-	function _set_error_level() {
+	protected function _set_error_level() {
 		$val = ( false !== $this->integ_prop( $this->_quietscript ) || false !== ctype_digit( $this->_quietscript ) ) ? ( int ) $this->_quietscript : 0;
 		switch ( ( int ) $val ) {
 			case ( 0 ):
@@ -197,7 +197,7 @@ class ParetoSecurity {
 	 * @param mixed $string
 	 * @return
 	 */
-	function injectMatch( $string ) {
+	protected function injectMatch( $string ) {
 		$string  = $this->url_decoder( strtolower( $string ) );
 		$kickoff = false;
 		# these are the triggers to engage the rest of this function.
@@ -338,7 +338,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function blacklistMatch( $val, $list = 0 ) {
+	protected function blacklistMatch( $val, $list = 0 ) {
 		# although we try not to do this, arbitrary blacklisting of certain request variables
 		# cannot be avoided. however I will attempt to keep this list short.
 		
@@ -392,7 +392,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function _REQUEST_SHIELD() {
+	protected function _REQUEST_SHIELD() {
 		# regardless of _GET or _POST
 		# attacks that do not necessarily
 		# involve query_string manipulation
@@ -443,7 +443,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function get_filter( $val, $key ) {
+	protected function get_filter( $val, $key ) {
 		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
 			$val = strtolower( $this->decode_code( $val ) );
 			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->blacklistMatch( $val, 1 ) ) {
@@ -456,7 +456,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function _QUERYSTRING_SHIELD() {
+	protected function _QUERYSTRING_SHIELD() {
 		if ( false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
 			return; // of no interest to us
 		} else {
@@ -476,7 +476,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function post_filter( $val, $key ) {
+	protected function post_filter( $val, $key ) {
 		if ( false !== $this->blacklistMatch( $this->decode_code( $val ), 2 ) ) {
 			# while some post content can be attacks, its best to 403 die().
 			$this->karo( false );
@@ -486,7 +486,7 @@ class ParetoSecurity {
 	/**
 	 * _POST_SHIELD()
 	 */
-	function _POST_SHIELD() {
+	protected function _POST_SHIELD() {
 		if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] )
 			return; // of no interest to us
 		$total_input_vars = count( $_POST, COUNT_RECURSIVE );
@@ -521,7 +521,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function cookie_filter( $val, $key ) {
+	protected function cookie_filter( $val, $key ) {
 		if ( false !== ( bool ) $this->blacklistMatch( $this->decode_code( $key ), 4 ) || false !== ( bool ) $this->blacklistMatch( $this->decode_code( $val ), 4 ) ) {
 			$this->karo( true );
 		}
@@ -534,7 +534,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function _COOKIE_SHIELD() {
+	protected function _COOKIE_SHIELD() {
 		if ( false !== empty( $_COOKIE ) )
 			return; // of no interest to us
 		array_walk_recursive( $_COOKIE, array(
@@ -547,7 +547,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function _REQUESTTYPE_SHIELD() {
+	protected function _REQUESTTYPE_SHIELD() {
 		if ( false === ( bool ) $this->_nonGETPOSTReqs )
 			return;
 		$req           = $_SERVER[ 'REQUEST_METHOD' ];
@@ -568,7 +568,7 @@ class ParetoSecurity {
 	/**
 	 * Bad Spider Block / UA filter
 	 */
-	function _SPIDER_SHIELD() {
+	protected function _SPIDER_SHIELD() {
 		if ( false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
 			if ( false !== $this->blacklistMatch( strtolower( $this->decode_code( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
 				$this->karo( true );
@@ -585,7 +585,7 @@ class ParetoSecurity {
 	 * @param bool $preserve_keys
 	 * @return
 	 */
-	function array_flatten( $array, $preserve_keys = false ) {
+	protected function array_flatten( $array, $preserve_keys = false ) {
 		if ( false === $preserve_keys ) {
 			$array = array_values( $array );
 		}
@@ -602,7 +602,7 @@ class ParetoSecurity {
 		return $flattened_array;
 	}
 	
-	function cleanString( $b, $s ) {
+	protected function cleanString( $b, $s ) {
 		$s = strtolower( $this->url_decoder( $s ) );
 		switch ( $b ) {
 			case ( 1 ):
@@ -633,7 +633,7 @@ class ParetoSecurity {
 	 * @param mixed $banip
 	 * @return
 	 */
-	function htaccessbanip( $banip ) {
+	protected function htaccessbanip( $banip ) {
 		# if IP is empty or too short, or .htaccess is not read/write
 		if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->hCoreFileChk( '.htaccess', true, true ) ) ) {
 			return $this->send403();
@@ -667,7 +667,7 @@ class ParetoSecurity {
 	 * 
 	 * @return boolean
 	 */
-	function hCoreFileChk( $f = NULL, $r = false, $w = false ) {
+	protected function hCoreFileChk( $f = NULL, $r = false, $w = false ) {
 		# if file exists return bool
 		# if file exists & readable return bool
 		# if file exists, readable & writable return bool
@@ -688,7 +688,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	private static function get_http_host( $encoding = 'UTF-8' ) {
+	protected function get_http_host( $encoding = 'UTF-8' ) {
 		return htmlspecialchars( preg_replace( "/^(?:([^\.]+)\.)?domain\.com$/", '\1', $_SERVER[ 'SERVER_NAME' ] ), ( ( phpversion() >= 5.4 ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
 	}
 	
@@ -740,7 +740,7 @@ class ParetoSecurity {
 	 * is_server()
 	 * @return bool
 	 */
-	private static function is_server( $ip ) {
+	protected function is_server( $ip ) {
 		# tests if ip address accessing webserver
 		# is either server ip ( localhost access )
 		# or is 127.0.0.1 ( i.e onion visitors )
@@ -832,7 +832,7 @@ class ParetoSecurity {
 			$x++;
 		}
         # for TorHS to prevent banning of server IP
-        if ( false !== $this->is_server( $ip ) )
+        if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) )
                 $this->_bypassbanip = true;
         
 		# never trust any headers except REMOTE_ADDR
