@@ -633,7 +633,7 @@ class ParetoSecurity {
 	 * @param mixed $banip
 	 * @return
 	 */
-	protected function htaccessbanip( $banip ) {
+	function htaccessbanip( $banip ) {
 		# if IP is empty or too short, or .htaccess is not read/write
 		if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->hCoreFileChk( '.htaccess', true, true ) ) ) {
 			return $this->send403();
@@ -710,12 +710,13 @@ class ParetoSecurity {
 				$subdir = substr( $subdir, 0, $pos );
 				if ( strpos( $subdir, '.php' ) || ( strlen( $subdir ) == 1 ) && ( $subdir == DIRECTORY_SEPARATOR ) || false !== empty( $subdir ) )
 					$subdir = '';
-				if ( ( false !== ( bool ) $this->string_prop( $subdir, 2 ) && ( substr_count( $subdir, DIRECTORY_SEPARATOR ) > 0 ) && ( DIRECTORY_SEPARATOR !== substr( $subdir, -1 ) ) ) ) {
-					$subdir = DIRECTORY_SEPARATOR . $subdir . DIRECTORY_SEPARATOR;
+				if ( false !== ( bool ) $this->string_prop( $subdir, 2 ) ) {
+					if ( ( substr_count( $subdir, DIRECTORY_SEPARATOR ) == 0 ) ) {
+						$subdir = DIRECTORY_SEPARATOR . $subdir;
+					}
 				}
 			}
 		}
-		
 		if ( isset( $this->_doc_root ) && ( false !== ( bool ) $this->string_prop( $this->_doc_root, 2 ) ) ) {
 			# is set by the user
 			$get_root = $this->_doc_root;
@@ -755,7 +756,7 @@ class ParetoSecurity {
 	 * @param mixed $ip
 	 * @return
 	 */
-	function check_ip( $ip ) {
+	protected function check_ip( $ip ) {
 		# if ip is the server or localhost
 		if ( false !== $this->is_server( $ip ) )
 			return true;
@@ -789,7 +790,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	function getRealIP() {
+	protected function getRealIP() {
 		global $_SERVER;
 		$iplist = array();
 		# check for IPs passing through proxies
@@ -839,7 +840,7 @@ class ParetoSecurity {
 		return $this->getREMOTE_ADDR();
 	}
 	
-	function setOpenBaseDir() {
+	protected function setOpenBaseDir() {
 		if ( false === ( bool ) $this->_open_basedir )
 			return;
 		if ( strlen( ini_get( 'open_basedir' ) == 0 ) ) {
@@ -849,7 +850,7 @@ class ParetoSecurity {
 	/**
 	 * x_secure_headers()
 	 */
-	function x_secure_headers() {
+	protected function x_secure_headers() {
 		$errlevel = ini_get( 'error_reporting' );
 		error_reporting( 0 );
 		header( 'strict-transport-security: max-age=31536000; includeSubDomains; preload' );
@@ -867,7 +868,7 @@ class ParetoSecurity {
 	 * decode_code()
 	 * @return
 	 */
-	function decode_code( $code ) {
+	protected function decode_code( $code ) {
 		$code = ( substr_count( $code, '\u00' ) > 0 ) ? str_replace( '\u00', '%', $code ) : $code;
 		$code = ( substr_count( $code, '&#x' ) > 0 && substr_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
 		return $this->url_decoder( $code );
@@ -875,13 +876,13 @@ class ParetoSecurity {
 	/**
 	 * url_decoder()
 	 */
-	function url_decoder( $var ) {
+	protected function url_decoder( $var ) {
 		return rawurldecode( urldecode( str_replace( chr( 0 ), '', $var ) ) );
 	}
 	/**
 	 * getREQUEST_URI()
 	 */
-	function getREQUEST_URI() {
+	protected function getREQUEST_URI() {
 		if ( false !== getenv( 'REQUEST_URI' ) && ( false !== ( bool ) $this->string_prop( getenv( 'REQUEST_URI' ), 2 ) ) ) {
 			return getenv( 'REQUEST_URI' );
 		} else {
@@ -891,7 +892,7 @@ class ParetoSecurity {
 	/**
 	 * getREMOTE_ADDR()
 	 */
-	function getREMOTE_ADDR() {
+	protected function getREMOTE_ADDR() {
 		if ( false !== getenv( 'REMOTE_ADDR' ) && ( false !== ( bool ) $this->string_prop( getenv( 'REMOTE_ADDR' ), 7 ) ) && false !== $this->check_ip( getenv( 'REMOTE_ADDR' ) ) ) {
 			return getenv( 'REMOTE_ADDR' );
 		} elseif ( false !== $_SERVER( 'REMOTE_ADDR' ) && ( false !== ( bool ) $this->string_prop( $_SERVER( 'REMOTE_ADDR' ), 6 ) ) && false !== $this->check_ip( $_SERVER( 'REMOTE_ADDR' ) ) ) {
@@ -901,7 +902,7 @@ class ParetoSecurity {
 	/**
 	 * getQUERY_STRING()
 	 */
-	function getQUERY_STRING() {
+	protected function getQUERY_STRING() {
 		if ( false !== getenv( 'QUERY_STRING' ) ) {
 			return strtolower( $this->url_decoder( getenv( 'QUERY_STRING' ) ) );
 		} else {
@@ -911,7 +912,7 @@ class ParetoSecurity {
 	/**
 	 * string_prop()
 	 */
-	private static function string_prop( $str, $len = 0 ) {
+	protected function string_prop( $str, $len = 0 ) {
 		# is not an array, is a string, is of at least a specified length ( default is greater than 0 )
 		if ( false !== is_array( $str ) )
 			return false;
@@ -921,7 +922,7 @@ class ParetoSecurity {
 	/**
 	 * integ_prop()
 	 */
-	private static function integ_prop( $integer ) {
+	protected function integ_prop( $integer ) {
 		# is an integer, is not a float, is not negative
 		if ( false !== is_int( $integer ) && false !== preg_match( '/^\d+$/D', $integer ) && ( int ) $integer >= 0 ) {
 			return true;
