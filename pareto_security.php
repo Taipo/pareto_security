@@ -40,7 +40,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.1.9' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1462094003' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1462576058' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -186,7 +186,7 @@ class ParetoSecurity {
 		# - request is for an IP ban
 		# - no bypass request triggered
 		# - script manually set to ban IPs to htaccess
-		if ( ( false !== $this->hCoreFileChk( '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
+		if ( ( false !== $this->hCoreFileChk( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
 			$this->htaccessbanip( $this->getRealIP() );
 		}
         $this->send403();
@@ -533,6 +533,7 @@ class ParetoSecurity {
 			$this->karo( true );
 		}
 	}
+	
 	/**
 	 * _COOKIE_SHIELD()
 	 * 
@@ -639,7 +640,7 @@ class ParetoSecurity {
 	 */
 	function htaccessbanip( $banip ) {
 		# if IP is empty or too short, or .htaccess is not read/write
-		if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->hCoreFileChk( '.htaccess', true, true ) ) ) {
+		if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->hCoreFileChk( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', true, true ) ) ) {
 			return $this->send403();
 		} else {
 			$limitend = "# End of " . $this->get_http_host() . " Pareto Security Ban\n";
@@ -676,7 +677,6 @@ class ParetoSecurity {
 		# if file exists & readable return bool
 		# if file exists, readable & writable return bool
 		$x = false;
-		$f = $this->getDir() . DIRECTORY_SEPARATOR . $f;
 		if ( false !== ( bool ) $w )
 			$r = true;
 		if ( false !== file_exists( $f ) ) {
