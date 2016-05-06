@@ -4,8 +4,8 @@ Donate link: http://hokioisec7agisc4.onion
 
 Tags: authentication bypass, CRLF, CSRF, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
 Requires at least: 3.0.1
-Tested up to: 4.5.0
-Stable tag: 1.1.7
+Tested up to: 4.5.2
+Stable tag: 1.1.9
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -68,11 +68,19 @@ Email me at hokioi-security@protonmail.ch
 
 == Changelog ==
 
+= 1.1.9 =
+* Updated functions: _REQUEST_SHIELD(), get_filter(), decode_code(), blacklistMatch(), hCoreFileChk()
+
+= 1.1.8 =
+* Updated functions: injectMatch(), _REQUEST_SHIELD(), getDir()
+* Fixed minor bug in is_server() and karo() functions
+
 = 1.1.7 =
+* Prevent denial of service POST attack on older versions of PHP where the attacker floods webservers with requests to create large multi-leafed arrays on the fly.
 * Added ability to restrict the request method to GET or POST in Pareto Security Settings
 * Employing a better method of walking through multidimentional arrays
-* Removed functions: $PHP_SELF, setReq_uri(), setVars(), array_flatten, hexoctaldecode(), getPHP_SELF()
-* Updated functions: karo(), getDir(), getRealIP() and getPHP_SELF() functions
+* Removed functions: $PHP_SELF, setReq_uri(), setVars(), hexoctaldecode(), getPHP_SELF(), checkfilename()
+* Updated functions: karo(), getDir(), getRealIP() and getPHP_SELF(), _REQUEST_SHIELD()
 * Added functions: getREMOTE_ADDR(), string_prop() and integ_prop(), decode_code() 
 
 = 1.1.6 =
