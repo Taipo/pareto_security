@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.1.9
+Version: 1.2.0
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -32,14 +32,20 @@ See: See http://www.gnu.org/licenses/gpl-3.0.txt
 if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	// don't load directly
 	if ( !function_exists( 'is_admin' ) ) {
-		header( 'Status: 403 Forbidden' );
-		header( 'HTTP/1.1 403 Forbidden' );
-		exit();
+		$header = array(
+			'HTTP/1.1 403 Access Denied',
+			'Status: 403 Access Denied by Hokioi-Security :: Pareto Security',
+			'Content-Length: 0' 
+		);
+		foreach ( $header as $sent ) {
+			header( $sent );
+		}
+		die();
 	}
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.1.9' );
+	define( 'PARETO_VERSION', '1.2.0' );
 	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1462576058' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -276,7 +282,7 @@ class ParetoSecurity {
 				} elseif ( false !== strpos( $string, 'having' ) && false !== ( bool ) preg_match( "/\bor\b|\band\b/i", $string ) && false !== ( bool ) preg_match( "/$sqlupdatelist/i", $string ) ) {
 					return true;
 					# tackle the noDB / js issue
-				} elseif ( ( substr_count( $string, 'var' ) > 1 ) && false !== ( bool ) preg_match( "/date\(|while\(|sleep\(/i", $string ) ) {
+				} elseif ( ( $this->substri_count( $string, 'var' ) > 1 ) && false !== ( bool ) preg_match( "/date\(|while\(|sleep\(/i", $string ) ) {
 					return true;
 					# reflected download attack
 				} elseif ( ( substr_count( $string, '|' ) > 2 ) && false !== ( bool ) preg_match( "/json/i", $string ) ) {
@@ -287,9 +293,9 @@ class ParetoSecurity {
 				
 				if ( ( false !== ( bool ) preg_match( "/onmouse(?:down|over)/i", $string ) ) && ( 2 < ( int ) preg_match_all( "/c(?:path|tthis|t\(this)|http:|(?:forgotte|admi)n|sqlpatch|,,|ftp:|(?:aler|promp)t/i", $thenode, $matches ) ) ) {
 					return true;
-				} elseif ( ( ( false !== strpos( $thenode, 'ftp:' ) ) && ( substr_count( $thenode, 'ftp' ) > 1 ) ) && ( 2 < ( int ) preg_match_all( "/@|\/\/|:/i", $thenode, $matches ) ) ) {
+				} elseif ( ( ( false !== strpos( $thenode, 'ftp:' ) ) && ( $this->substri_count( $thenode, 'ftp' ) > 1 ) ) && ( 2 < ( int ) preg_match_all( "/@|\/\/|:/i", $thenode, $matches ) ) ) {
 					return true;
-				} elseif ( ( substr_count( $string, '../' ) > 3 ) || ( substr_count( $string, '..//' ) > 3 ) || ( substr_count( $string, '0x2e0x2e/' ) > 1 ) ) {
+				} elseif ( ( substr_count( $string, '../' ) > 3 ) || ( substr_count( $string, '..//' ) > 3 ) || ( $this->substri_count( $string, '0x2e0x2e/' ) > 1 ) ) {
 					if ( false !== ( bool ) preg_match( "/$sqlfilematchlist/i", $string ) ) {
 						return true;
 					}
@@ -314,7 +320,7 @@ class ParetoSecurity {
 					return true;
 				} elseif ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && ( false !== ( bool ) preg_match( "/\buser\b/i", $string ) ) ) {
 					return true;
-				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= substr_count( $string, ',' ) ) ) ) {
+				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= $this->substri_count( $string, ',' ) ) ) ) {
 					return true;
 				} elseif ( ( false !== strpos( $string, 'union' ) ) && ( false !== strpos( $string, 'select' ) ) && ( false !== strpos( $string, 'from' ) ) ) {
 					return true;
@@ -344,7 +350,7 @@ class ParetoSecurity {
 		if ( $list == 0 )
 			die( 'there is an error' );
 		$_blacklist      = array();
-        $val = strtolower( $this->decode_code( $val ) );
+        $val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val ) ) );
 		# _GET[]
 		$_blacklist[ 1 ] = array( "php/login","eval(","@eval","extractvalue(","}catch(e",
 			"allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
@@ -367,12 +373,13 @@ class ParetoSecurity {
 		# _POST[]
 		$_blacklist[ 2 ] = array( "zxzhbcg","eval(base64_decode","fromcharcode","allow_url_include",
 			"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(",
-			"file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd\']","><script",
-			"><javas","ywxlcnqo","znjvbunoyxjdb2rl" );
+			"file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
+			"><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
 		
 		# 'User-Agent'
 		$_blacklist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
-			"wget","eval(","getconfig(",".chr(","passthru","shell_exec","popen(","exec(" );
+			"wget","eval(","getconfig(",".chr(","passthru","shell_exec","popen(","exec(", "onerror",
+			"document.location" );
 		
 		# _COOKIE[]
 		$_blacklist[ 4 ] = array( "eval(","fromcharcode","usr/bin/perl","prompt(","zxzhbcg=",
@@ -435,11 +442,11 @@ class ParetoSecurity {
 			}
 		}
 		# this occurence of these many slashes etc are always an attack attempt
-		if ( substr_count( $req, '/' ) > 20 )
+		if ( $this->substri_count( $req, '/' ) > 20 )
 			$this->karo( true );
-		if ( substr_count( $req, '\\' ) > 20 )
+		if ( $this->substri_count( $req, '\\' ) > 20 )
 			$this->karo( true );
-		if ( substr_count( $req, '|' ) > 20 )
+		if ( $this->substri_count( $req, '|' ) > 20 )
 			$this->karo( true );
 	}
 	/**
@@ -873,13 +880,16 @@ class ParetoSecurity {
 		error_reporting( $errlevel );
 		return;
 	}
+	function substri_count( $hs, $n )	{
+		return substr_count( strtoupper( $hs ), strtoupper( $n ) );
+	}
 	/**
 	 * decode_code()
 	 * @return
 	 */
 	protected function decode_code( $code, $escapeshell=false ) {
-		$code = ( substr_count( $code, '\u00' ) > 0 ) ? str_replace( '\u00', '%', $code ) : $code;
-		$code = ( substr_count( $code, '&#x' ) > 0 && substr_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
+		$code = ( $this->substri_count( $code, '\u00' ) > 0 ) ? str_ireplace( '\u00', '%', $code ) : $code;
+		$code = ( $this->substri_count( $code, '&#x' ) > 0 && $this->substri_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
 		if ( false !== $escapeshell ) {
 			return $this->url_decoder( escapeshellarg( $code ) );
 		} else
