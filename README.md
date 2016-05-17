@@ -69,7 +69,7 @@ Email me at hokioi-security@protonmail.ch
 == Changelog ==
 
 = 1.2.0 =
-* Updated functions: blacklistMatch(), decode_code()
+* Now allows users to enable/disable filtering of spiders/browser user-agents via Pareto Security Settings
 
 = 1.1.9 =
 * Updated functions: _REQUEST_SHIELD(), get_filter(), decode_code(), blacklistMatch(), hCoreFileChk()
