@@ -46,7 +46,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.2.0' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1462576058' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1463374894' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -56,6 +56,8 @@ class ParetoSecurity {
 	protected $_nonGETPOSTReqs = 0;
 	# if open_basedir is not set in php.ini. Leave disabled unless you are sure about using this.
 	protected $_open_basedir = 0;
+	# activate _SPIDER_SHIELD()
+	protected $_spider_block = 0;
 	# ban attack ip address to the root /.htaccess file. Leave this disabled if you are hosting a website using TOR's Hidden Services
 	protected $_banip = 0;
 	# path to the root directory of the site, e.g /home/user/public_html
@@ -82,6 +84,7 @@ class ParetoSecurity {
 			) );
 			$this->_banip          = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
 			$this->_nonGETPOSTReqs = isset( $ParetoSettings->reqmethod ) ? $ParetoSettings->reqmethod : $this->_nonGETPOSTReqs;
+			$this->_spider_block   = isset( $ParetoSettings->spider_block ) ? $ParetoSettings->spider_block : $this->_spider_block;
 		}
 		$this->_set_error_level();
 		$this->_bypassbanip = false;
@@ -371,7 +374,7 @@ class ParetoSecurity {
 			":;};","wget","script>" );
 
 		# _POST[]
-		$_blacklist[ 2 ] = array( "zxzhbcg","eval(base64_decode","fromcharcode","allow_url_include",
+		$_blacklist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
 			"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(",
 			"file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
 			"><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
@@ -578,16 +581,23 @@ class ParetoSecurity {
 	}
 	
 	/**
+	 * _SPIDER_SHIELD()
+	 * Basic whitelist
 	 * Bad Spider Block / UA filter
 	 */
 	protected function _SPIDER_SHIELD() {
-		if ( false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
+		if ( false === ( bool ) $this->spider_block || false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) )
+			return;
+		if ( false !== preg_match( "/mozilla|windows|chrome|safari|opera|google/i", strtolower( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ) {
 			if ( false !== $this->blacklistMatch( strtolower( $this->decode_code( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
 				$this->karo( true );
 				return;
-			}
-		} else
+			} else
+				return;
+		} else {
+			$this->karo( true );
 			return;
+		}
 	}
 	
 	/**
