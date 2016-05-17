@@ -8,8 +8,8 @@ if ( !class_exists( "Pareto_Security_Settings" ) ) :
 
 class Pareto_Security_Settings {
 
-public static $default_settings = array( 'perm_ban_ips' => 0, 'req_method' => 0 );
-var $pagehook, $page_id, $settings_field, $options, $reqmethod, $ban_ips;
+public static $default_settings = array( 'perm_ban_ips' => 0, 'req_method' => 0, 'spider_blocks' => 0 );
+var $pagehook, $page_id, $settings_field, $options, $reqmethod, $ban_ips, $spider_block;
 
 function __construct() {
 	$this->page_id = 'pareto_security_settings';
@@ -28,12 +28,16 @@ function __construct() {
 					 ( ( strlen( $_POST[ $this->settings_field ]["perm_ban_ips" ] ) > 1 ) ) ) {
 					   $_POST[ $this->settings_field ]["perm_ban_ips" ] = 0;
 				}
-
+				if ( isset( $_POST[ $this->settings_field ]["spider_blocks" ] ) &&
+					 ( ( strlen( $_POST[ $this->settings_field ]["spider_blocks" ] ) > 1 ) ) ) {
+					   $_POST[ $this->settings_field ]["spider_blocks" ] = 0;
+				}
 			}
 		}
 	}
 	$this->ban_ips = array_key_exists( 'perm_ban_ips', $this->options ) ? $this->options[ 'perm_ban_ips' ]:0;
 	$this->reqmethod = array_key_exists( 'req_method', $this->options ) ? $this->options[ 'req_method' ]:0;
+	$this->spider_block = array_key_exists( 'spider_blocks', $this->options ) ? $this->options[ 'spider_blocks' ]:0;
 
 	if ( ( false !== ( bool )defined( 'WP_ADMIN' ) &&
 		false !== WP_ADMIN ) &&
@@ -86,6 +90,7 @@ function sanitize_theme_options( $options ) {
 		if ( array_key_exists( 'pareto_security_settings_text', $options ) ) $options[ 'pareto_security_settings_text' ] = stripcslashes( $options[ 'pareto_security_settings_text' ] );
 		if ( array_key_exists( 'perm_ban_ips', $options ) ) $options[ 'perm_ban_ips' ] = ( int ) $options[ 'perm_ban_ips' ];
 		if ( array_key_exists( 'req_method', $options ) ) $options[ 'req_method' ] = ( int ) $options[ 'req_method' ];
+		if ( array_key_exists( 'spider_blocks', $options ) ) $options[ 'spider_blocks' ] = ( int ) $options[ 'spider_blocks' ];
 		return $options;
 	}
 }
@@ -180,7 +185,7 @@ function info_box() {
 }
 function donations_box() {
 	?>
-	<p><strong>BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX</p>
+	<p><strong><a href=BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX>BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX</a></p>
 	<?php
 }
 
@@ -189,13 +194,19 @@ function condition_box() {
 ?>
 	<p>
 		<br />
-		<b>Permanently Ban IP Addresses:</b><br />
+		<b>A) Permanently Ban IP Addresses:</b><br />
 		This will allow Pareto Security to automatically add IP addresses from attacks to your .htaccess file. If unchecked, bad requests are soft banned only.
 		<br />
 		<input type="checkbox" name="<?php echo $this->get_field_name( 'perm_ban_ips' ); ?>" id="<?php echo $this->get_field_id( 'perm_ban_ips' ); ?>" value="<?php echo isset( $this->options['perm_ban_ips'] ) ? 1 : 0; ?>" <?php echo isset( $this->options['perm_ban_ips'] ) ? 'checked' : ''; ?> />
 		<label for="<?php echo $this->get_field_id( 'perm_ban_ips' ); ?>"><?php _e( 'Permanently ban IPs', 'pareto_security_settings' ); ?></label>
 		<br /><br />
-		<b>Check the request method:</b><br />
+		<b>B) Filter web spiders / browser user-agents:</b><br />
+		1] Allows browsers/web spiders with standard format user-agents.<br />
+		2] Tests a browser user-agent against a number of attack methods.<br />
+		<input type="checkbox" name="<?php echo $this->get_field_name( 'spider_blocks' ); ?>" id="<?php echo $this->get_field_id( 'spider_blocks' ); ?>" value="<?php echo isset( $this->options['spider_blocks'] ) ? 1 : 0; ?>" <?php echo isset( $this->options['spider_blocks'] ) ? 'checked' : ''; ?> />
+		<label for="<?php echo $this->get_field_id( 'spider_blocks' ); ?>"><?php _e( 'Filter spiders/UA\'s', 'pareto_security_settings' ); ?></label>
+		<br /><br />
+		<b>C) Check the request method:</b><br />
 		Restricted requests to GET or POST. This works ok for PHP files, but is better achieved however via .htaccess.<br /><br />
 		Example:<br />
 <code>&lt;LimitExcept GET POST&gt;</code><br />
