@@ -46,7 +46,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.2.0' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1463374894' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1463546117' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -586,17 +586,14 @@ class ParetoSecurity {
 	 * Bad Spider Block / UA filter
 	 */
 	protected function _SPIDER_SHIELD() {
-		if ( false === ( bool ) $this->spider_block || false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) )
-			return;
-		if ( false !== preg_match( "/mozilla|windows|chrome|safari|opera|google/i", strtolower( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ) {
-			if ( false !== $this->blacklistMatch( strtolower( $this->decode_code( $_SERVER[ 'HTTP_USER_AGENT' ] ) ), 3 ) ) {
-				$this->karo( true );
+		if ( false !== ( bool ) $this->spider_block || false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
+			if ( false === preg_match( "/mozilla|windows|chrome|safari|opera|google/i", strtolower( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ) {
+				$this->karo( false );
 				return;
-			} else
-				return;
-		} else {
+			}
+		}
+		if ( false !== $this->injectMatch( $_SERVER[ 'HTTP_USER_AGENT' ] ) || false !== ( bool ) $this->blacklistMatch( $_SERVER[ 'HTTP_USER_AGENT' ], 3 ) ) {
 			$this->karo( true );
-			return;
 		}
 	}
 	
