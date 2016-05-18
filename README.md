@@ -70,6 +70,7 @@ Email me at hokioi-security@protonmail.ch
 
 = 1.2.0 =
 * Now allows users to enable/disable filtering of spiders/browser user-agents via Pareto Security Settings
+* _SPIDER_SHIELD() now tests for database injection attempts
 
 = 1.1.9 =
 * Updated functions: _REQUEST_SHIELD(), get_filter(), decode_code(), blacklistMatch(), hCoreFileChk()
