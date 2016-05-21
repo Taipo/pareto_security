@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.2.0
+Version: 1.2.1
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,7 +45,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.2.0' );
+	define( 'PARETO_VERSION', '1.2.1' );
 	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1463546117' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -82,7 +82,7 @@ class ParetoSecurity {
 				 $this,
 				'deactivate' 
 			) );
-			$this->_banip          = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
+			$this->_banip		  = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
 			$this->_nonGETPOSTReqs = isset( $ParetoSettings->reqmethod ) ? $ParetoSettings->reqmethod : $this->_nonGETPOSTReqs;
 			$this->_spider_block   = isset( $ParetoSettings->spider_block ) ? $ParetoSettings->spider_block : $this->_spider_block;
 		}
@@ -198,7 +198,7 @@ class ParetoSecurity {
 		if ( ( false !== $this->hCoreFileChk( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
 			$this->htaccessbanip( $this->getRealIP() );
 		}
-        $this->send403();
+		$this->send403();
 	}
 	/**
 	 * injectMatch()
@@ -211,10 +211,10 @@ class ParetoSecurity {
 		$kickoff = false;
 		# these are the triggers to engage the rest of this function.
 		$vartrig = "\/\/|\.\.\/|%0d%0a|0x|a(?:ll|lert|scii\()|b(?:ase64|enchmark|y)|
-                   c(?:har|olumn|onvert|ookie|reate)|d(?:eclare|ata|ate|elete|rop)|concat|
-                   e(?:rror|tc|val|xec)|f(?:rom|tp)|g(?:rant|roup)|having|i(?:f|nsert|snull|nto)|
+				   c(?:har|olumn|onvert|ookie|reate)|d(?:eclare|ata|ate|elete|rop)|concat|
+				   e(?:rror|tc|val|xec)|f(?:rom|tp)|g(?:rant|roup)|having|i(?:f|nsert|snull|nto)|
 				   j(?:s|json)|l(?:ength\(|oad)|master|onmouse|null|php|s(?:chema|elect|et|hell|
-                   how|leep)|table|u(?:nion|pdate|ser|tf)|var|w(?:aitfor|here|hile)";
+				   how|leep)|table|u(?:nion|pdate|ser|tf)|var|w(?:aitfor|here|hile)";
 		$vartrig = preg_replace( "/[\s]/i", "", $vartrig );
 		for ( $x = 1; $x <= 5; $x++ ) {
 			$string = $this->cleanString( $x, $string );
@@ -226,7 +226,7 @@ class ParetoSecurity {
 		if ( false === $kickoff ) {
 			return false; // if false then we are not interested in this query.
 		} else { // else we are very interested in this query.
-			$j                = 1;
+			$j				= 1;
 			# toggle through 6 different filters
 			$sqlmatchlist     = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
 							collation|concat|conv|convert|count|curdate|database|date|
@@ -239,14 +239,14 @@ class ParetoSecurity {
 							space|strcmp|substr|substr_index|substring|sum|time|trim|
 							truncate|ucase|unhex|upper|_user|user|values|varchar|
 							version|while|ws|xor)\(|\(0x|@@|cast|integer";
-			$sqlupdatelist    = "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
-						    \bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
-						    \bval\b|0x|--";
+			$sqlupdatelist	= "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
+							\bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
+							\bval\b|0x|--";
 			$sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|win.|
 							\bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
 							_log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
 							\bsql\b|tmp|tmp\/sess|\busr\b|\bvar\b|\/(?:uploa|passw)d';
-			$sqlmatchlist2    = '@@|_and|ascii|b(?:enchmark|etween|in|itlength|
+			$sqlmatchlist2	= '@@|_and|ascii|b(?:enchmark|etween|in|itlength|
 							ulk)|c(?:ast|har|ookie|ollate|olumn|oncat|urrent)|\bdate\b|
 							dump|e(?:lt|xport)|false|\bfield\b|fetch|format|function|
 							\bhaving\b|i(?:dentity|nforma|nstr)|\bif\b|\bin\b|inner|insert|
@@ -263,10 +263,10 @@ class ParetoSecurity {
 			while ( $j <= 6 ) {
 				$string = $this->cleanString( $j, $string );
 				
-				$sqlmatchlist     = preg_replace( "/[\s]/i", '', $sqlmatchlist );
-				$sqlupdatelist    = preg_replace( "/[\s]/i", '', $sqlupdatelist );
+				$sqlmatchlist	 = preg_replace( "/[\s]/i", '', $sqlmatchlist );
+				$sqlupdatelist	= preg_replace( "/[\s]/i", '', $sqlupdatelist );
 				$sqlfilematchlist = preg_replace( "/[\s]/i", '', $sqlfilematchlist );
-				$sqlmatchlist2    = preg_replace( "/[\s]/i", '', $sqlmatchlist2 );
+				$sqlmatchlist2	= preg_replace( "/[\s]/i", '', $sqlmatchlist2 );
 				
 				if ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b/i", $string ) && false !== ( bool ) preg_match( "/--|and|\//i", $string ) ) {
 					return true;
@@ -352,8 +352,8 @@ class ParetoSecurity {
 		# $list should never have a value of 0
 		if ( $list == 0 )
 			die( 'there is an error' );
-		$_blacklist      = array();
-        $val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val ) ) );
+		$_blacklist	  = array();
+		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val ) ) );
 		# _GET[]
 		$_blacklist[ 1 ] = array( "php/login","eval(","@eval","extractvalue(","}catch(e",
 			"allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
@@ -388,7 +388,7 @@ class ParetoSecurity {
 		$_blacklist[ 4 ] = array( "eval(","fromcharcode","usr/bin/perl","prompt(","zxzhbcg=",
 			"znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==",":;};","wget+http","system(",
 			"ki9xsevsrs8q","ywxlcnqo","4294967296" );
-        
+		
 		$thislist = $_blacklist[ ( int ) $list ];
 
 		for( $x=0; $x < count( $thislist ); $x++ ) {
@@ -396,7 +396,7 @@ class ParetoSecurity {
 				return true;
 			}
 		}
-        return false;		
+		return false;		
 	}
 	/**
 	 * _REQUEST_Shield()
@@ -421,18 +421,22 @@ class ParetoSecurity {
 		if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd)/i", $req ) )
 			$this->karo( true );
 		
+		# Prevent PHP Credits
+		if ( false !== stripos( $req, 'PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000' ) )
+			$this->karo( false );
+		
 		#osCommerce exploit
-		if ( false !== strpos( $req, '.php/admin' ) )
+		if ( false !== stripos( $req, '.php/admin' ) )
 			$this->karo( true );
 		
 		# WP Author Discovery
 		$ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ) : NULL;
 		if ( false === is_null( $ref ) ) {
-			if ( false !== strpos( $req, '?author=' ) ) {
+			if ( false !== stripos( $req, '?author=' ) ) {
 				$this->karo( false );
 			}
-			if ( false !== strpos( $ref, 'result' ) ) {
-				if ( ( false !== strpos( $ref, 'chosen' ) ) && ( false !== strpos( $ref, 'nickname' ) ) ) {
+			if ( false !== stripos( $ref, 'result' ) ) {
+				if ( ( false !== stripos( $ref, 'chosen' ) ) && ( false !== stripos( $ref, 'nickname' ) ) ) {
 					$this->karo( false );
 				}
 			}
@@ -440,7 +444,7 @@ class ParetoSecurity {
 		
 		if ( false !== strpos( $req, '?' ) ) {
 			$v = $this->decode_code( strtolower( substr( $req, strpos( $req, '?' ), ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
-			if ( false !== strpos( $v, '-' ) && ( ( false !== strpos( $v, '?-' ) ) || ( false !== strpos( $v, '?+-' ) ) ) && ( ( false !== strpos( $v, '-s' ) ) || ( false !== strpos( $v, '-t' ) ) || ( false !== strpos( $v, '-n' ) ) || ( false !== strpos( $v, '-d' ) ) ) ) {
+			if ( false !== strpos( $v, '-' ) && ( ( false !== strpos( $v, '?-' ) ) || ( false !== strpos( $v, '?+-' ) ) ) && ( ( false !== stripos( $v, '-s' ) ) || ( false !== stripos( $v, '-t' ) ) || ( false !== stripos( $v, '-n' ) ) || ( false !== stripos( $v, '-d' ) ) ) ) {
 				$this->karo( true );
 			}
 		}
@@ -511,7 +515,7 @@ class ParetoSecurity {
 			# array_walk_recursive, to avoid DoS conditions
 			# with large array flood attacks
 			$fpost = $this->array_flatten( $_POST, false );
-			$i     = 0;
+			$i	 = 0;
 			while ( $i < count( $fpost, COUNT_RECURSIVE ) ) {
 				if ( ( is_string( $fpost[ $i ] ) ) && ( strlen( $fpost[ $i ] ) > 0 ) ) {
 					$fpost[ $i ] = strtolower( $fpost[ $i ] );
@@ -565,7 +569,7 @@ class ParetoSecurity {
 	protected function _REQUESTTYPE_SHIELD() {
 		if ( false === ( bool ) $this->_nonGETPOSTReqs )
 			return;
-		$req           = $_SERVER[ 'REQUEST_METHOD' ];
+		$req		   = $_SERVER[ 'REQUEST_METHOD' ];
 		$req_whitelist = array(
 			 'GET',
 			'POST' 
@@ -587,7 +591,7 @@ class ParetoSecurity {
 	 */
 	protected function _SPIDER_SHIELD() {
 		if ( false !== ( bool ) $this->spider_block || false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
-			if ( false === preg_match( "/mozilla|windows|chrome|safari|opera|google/i", strtolower( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ) {
+			if ( false === preg_match( "/mozilla|windows|chrome|safari|opera|apple|google/i", strtolower( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ) {
 				$this->karo( false );
 				return;
 			}
@@ -723,7 +727,7 @@ class ParetoSecurity {
 			# this can screw things up, if so manually set $_doc_root
 			if ( false !== ( bool ) $this->string_prop( $subdir, 2 ) && ( $subdir[ 0 ] == DIRECTORY_SEPARATOR ) ) {
 				$subdir = ( ( substr_count( $subdir, DIRECTORY_SEPARATOR ) > 1 ) ) ? substr( $subdir, 1 ) : substr( $subdir, 0 );
-				$pos     = strpos( strtolower( $subdir ), DIRECTORY_SEPARATOR );
+				$pos	 = strpos( strtolower( $subdir ), DIRECTORY_SEPARATOR );
 				$pos += strlen( '.' ) - 1;
 				$subdir = substr( $subdir, 0, $pos );
 				if ( strpos( $subdir, '.php' ) || ( strlen( $subdir ) == 1 ) && ( $subdir == DIRECTORY_SEPARATOR ) || false !== empty( $subdir ) )
@@ -742,8 +746,8 @@ class ParetoSecurity {
 			$get_root = ABSPATH;
 		} elseif ( false !== strpos( $_SERVER[ 'DOCUMENT_ROOT' ], 'usr/local' ) || empty( $_SERVER[ 'DOCUMENT_ROOT' ] ) || strlen( $_SERVER[ 'DOCUMENT_ROOT' ] ) < 4 ) {
 			# if for some reason there is a problem with DOCUMENT_ROOT, then do this the bad way
-			$f     = dirname( __FILE__ );
-			$sf    = realpath( $_SERVER[ 'SCRIPT_FILENAME' ] );
+			$f	 = dirname( __FILE__ );
+			$sf	= realpath( $_SERVER[ 'SCRIPT_FILENAME' ] );
 			$fbits = explode( DIRECTORY_SEPARATOR, $f );
 			foreach ( $fbits as $a => $b ) {
 				if ( false == empty( $b ) && ( false === strpos( $sf, $b ) ) ) {
@@ -794,7 +798,7 @@ class ParetoSecurity {
 			# this section should not be necessary in later versions of PHP
 			if ( false !== preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i", $ip ) ) {
 				$parts = explode( '.', $ip );
-				$x     = 0;
+				$x	 = 0;
 				while ( $x < count( $parts ) ) {
 					if ( false === $this->integ_prop( $parts[ $x ] ) || ( int ) $parts[ $x ] > 255 ) {
 						$this->send403();
@@ -803,7 +807,7 @@ class ParetoSecurity {
 				}
 				if ( ( count( $parts ) <> 4 ) || ( $parts[ 0 ] < 1 ) )
 					$this->send403();
-                return true;
+				return true;
 			} else
 				$this->send403();
 		}
@@ -855,10 +859,10 @@ class ParetoSecurity {
 			}
 			$x++;
 		}
-        # for TorHS to prevent banning of server IP
-        if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) )
-                $this->_bypassbanip = true;
-        
+		# for TorHS to prevent banning of server IP
+		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) )
+				$this->_bypassbanip = true;
+		
 		# never trust any headers except REMOTE_ADDR
 		return $this->getREMOTE_ADDR();
 	}
@@ -969,9 +973,9 @@ if ( class_exists( 'ParetoSecurity' ) && !$ParetoSecurity ) {
 
 function load_pareto_first() {
 	$wp_path_to_this_file = preg_replace( '/(.*)plugins\/(.*)$/', WP_PLUGIN_DIR . "/$2", __FILE__ );
-	$this_plugin          = plugin_basename( trim( $wp_path_to_this_file ) );
-	$active_plugins       = get_option( 'active_plugins' );
-	$this_plugin_key      = array_search( $this_plugin, $active_plugins );
+	$this_plugin		  = plugin_basename( trim( $wp_path_to_this_file ) );
+	$active_plugins	   = get_option( 'active_plugins' );
+	$this_plugin_key	  = array_search( $this_plugin, $active_plugins );
 	if ( $this_plugin_key ) {
 		array_splice( $active_plugins, $this_plugin_key, 1 );
 		array_unshift( $active_plugins, $this_plugin );
