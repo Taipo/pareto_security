@@ -201,8 +201,7 @@ function condition_box() {
 		<label for="<?php echo $this->get_field_id( 'perm_ban_ips' ); ?>"><?php _e( 'Permanently ban IPs', 'pareto_security_settings' ); ?></label>
 		<br /><br />
 		<b>B) Filter web spiders / browser user-agents:</b><br />
-		1] Allows browsers/web spiders with standard format user-agents.<br />
-		2] Tests a browser user-agent against a number of attack methods.<br />
+		Only allows browsers/web spiders with standard format user-agents.<br />
 		<input type="checkbox" name="<?php echo $this->get_field_name( 'spider_blocks' ); ?>" id="<?php echo $this->get_field_id( 'spider_blocks' ); ?>" value="<?php echo isset( $this->options['spider_blocks'] ) ? 1 : 0; ?>" <?php echo isset( $this->options['spider_blocks'] ) ? 'checked' : ''; ?> />
 		<label for="<?php echo $this->get_field_id( 'spider_blocks' ); ?>"><?php _e( 'Filter spiders/UA\'s', 'pareto_security_settings' ); ?></label>
 		<br /><br />
