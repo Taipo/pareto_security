@@ -1,4 +1,5 @@
-<?php if (!function_exists( 'is_admin' ) ) {
+<?php
+if ( !function_exists( 'is_admin' ) ) {
 header( 'Status: 403 Forbidden' );
 header( 'HTTP/1.1 403 Forbidden' );
 exit();
@@ -206,9 +207,9 @@ function condition_box() {
 		<label for="<?php echo $this->get_field_id( 'spider_blocks' ); ?>"><?php _e( 'Filter spiders/UA\'s', 'pareto_security_settings' ); ?></label>
 		<br /><br />
 		<b>C) Check the request method:</b><br />
-		Restricted requests to GET or POST. This works ok for PHP files, but is better achieved however via .htaccess.<br /><br />
+		Restricted requests to GET, POST or HEAD. This works ok for PHP files, but is better achieved however via .htaccess.<br /><br />
 		Example:<br />
-<code>&lt;LimitExcept GET POST&gt;</code><br />
+<code>&lt;LimitExcept GET POST HEAD&gt;</code><br />
 <code>&nbsp&nbspOrder Allow,Deny</code><br />
 <code>&nbsp&nbspRequire all denied</code><br />
 <code>&lt;/LimitExcept&gt;</code><br /><br />
