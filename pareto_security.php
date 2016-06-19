@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.2.1
+Version: 1.2.3
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -34,7 +34,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	if ( !function_exists( 'is_admin' ) ) {
 		$header = array(
 			'HTTP/1.1 403 Access Denied',
-			'Status: 403 Access Denied by Hokioi-Security :: Pareto Security',
+			'Status: 403 Access Denied',
 			'Content-Length: 0' 
 		);
 		foreach ( $header as $sent ) {
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.2.1' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1463825386' ) );
+	define( 'PARETO_VERSION', '1.2.3' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1465424968' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -61,7 +61,7 @@ class ParetoSecurity {
 	# ban attack ip address to the root /.htaccess file. Leave this disabled if you are hosting a website using TOR's Hidden Services
 	protected $_banip = 0;
 	# path to the root directory of the site, e.g /home/user/public_html
-	protected $_doc_root = '';
+	public $_doc_root = '';
 	# Correct Production Server Settings = 0, prevent any errors from displaying = 1, Show all errors = 2 ( depends on the php.ini settings )
 	protected $_quietscript = 0;
 	
@@ -82,7 +82,7 @@ class ParetoSecurity {
 				 $this,
 				'deactivate' 
 			) );
-			$this->_banip		  = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
+			$this->_banip		   = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
 			$this->_nonGETPOSTReqs = isset( $ParetoSettings->reqmethod ) ? $ParetoSettings->reqmethod : $this->_nonGETPOSTReqs;
 			$this->_spider_block   = isset( $ParetoSettings->spider_block ) ? $ParetoSettings->spider_block : $this->_spider_block;
 		}
@@ -92,6 +92,8 @@ class ParetoSecurity {
 		$this->setOpenBaseDir();
 		# Send secure headers
 		$this->x_secure_headers();
+		# Merge $_REQUEST with _GET and _POST excluding _COOKIE data
+		$_REQUEST = array_merge( $_GET, $_POST );
 		# Shields Up
 		$this->_REQUEST_SHIELD();
 		$this->_QUERYSTRING_SHIELD();
@@ -99,9 +101,6 @@ class ParetoSecurity {
 		$this->_COOKIE_SHIELD();
 		$this->_REQUESTTYPE_SHIELD();
 		$this->_SPIDER_SHIELD();
-		# Merge $_REQUEST with _GET and _POST excluding _COOKIE data
-		# php.ini may already do this
-		$_REQUEST = array_merge( $_GET, $_POST );
 	} // end of __construct()
 	
 	function network_propagate( $pfunction, $networkwide ) {
@@ -169,9 +168,10 @@ class ParetoSecurity {
 	 * @return
 	 */
 	function send403() {
+		$status = '403 Access Denied';
 		$header = array(
-			'HTTP/1.1 403 Access Denied',
-			'Status: 403 Access Denied by Hokioi-Security :: Pareto Security',
+			'HTTP/1.1 ' . $status,
+			'Status:  ' . $status,
 			'Content-Length: 0' 
 		);
 		foreach ( $header as $sent ) {
@@ -228,7 +228,7 @@ class ParetoSecurity {
 		} else { // else we are very interested in this query.
 			$j				= 1;
 			# toggle through 6 different filters
-			$sqlmatchlist     = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
+			$sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
 							collation|concat|conv|convert|count|curdate|database|date|
 							decode|diff|distinct|else|elt|end||encode|encrypt|extract|field|
 							_file|floor|format|hex|if|inner|insert|instr|interval|join|lcase|
@@ -239,13 +239,16 @@ class ParetoSecurity {
 							space|strcmp|substr|substr_index|substring|sum|time|trim|
 							truncate|ucase|unhex|upper|_user|user|values|varchar|
 							version|while|ws|xor)\(|\(0x|@@|cast|integer";
+			
 			$sqlupdatelist	= "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
 							\bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
 							\bval\b|0x|--";
+			
 			$sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|win.|
 							\bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
 							_log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
 							\bsql\b|tmp|tmp\/sess|\busr\b|\bvar\b|\/(?:uploa|passw)d';
+			
 			$sqlmatchlist2	= '@@|_and|ascii|b(?:enchmark|etween|in|itlength|
 							ulk)|c(?:ast|har|ookie|ollate|olumn|oncat|urrent)|\bdate\b|
 							dump|e(?:lt|xport)|false|\bfield\b|fetch|format|function|
@@ -260,6 +263,7 @@ class ParetoSecurity {
 							_(?:decrypt|encrypt|get|post|server|cookie|global|or|
 							request|xor)|(?:column|db|load|not|octet|sql|table|xp)_|
 							version|auto_prepend_file|allow_url_include';
+			
 			while ( $j <= 6 ) {
 				$string = $this->cleanString( $j, $string );
 				
@@ -341,24 +345,25 @@ class ParetoSecurity {
 		return false;
 	}
 	/**
-	 * blacklistMatch()
+	 * datalist()
 	 * 
 	 * @return
 	 */
-	protected function blacklistMatch( $val, $list = 0 ) {
+	protected function datalist( $val, $list = 0 ) {
 		# although we try not to do this, arbitrary blacklisting of certain request variables
 		# cannot be avoided. however I will attempt to keep this list short.
 		
 		# $list should never have a value of 0
 		if ( $list == 0 )
 			die( 'there is an error' );
-		$_blacklist	  = array();
+		$_datalist	  = array();
 		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val ) ) );
-		# _GET[]
-		$_blacklist[ 1 ] = array( "php/login","eval(","@eval","extractvalue(","}catch(e",
-			"allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
-			"open_basedir","auto_prepend_file","php://input",")limit","rush=","fromcharcode",
-			";base64","base64,","prompt(","onerror=alert(","javascript:prompt(","/var/lib/php",
+		# _REQUEST[]
+		$_datalist[ 1 ] = array( "php/login","eval(gz","eval(base64","@eval","extractvalue(",
+			"}catch(e","allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
+			"shell_exec(","open_basedir","auto_prepend_file","php://input",")limit","rush=",
+			"string.fromcharcode",";base64","base64,","prompt(","onerror=alert(","/var/lib/php",
+			"get[\'cmd","><script","\$_request[\'cmd","wget+http",".passwd","usr/bin/perl",
 			"javascript:alert(","pwtoken_get","php_uname","passthru(","sha1(","sha2(","}if(!",
 			"<?php","/iframe","\$_get","@@version","ob_starting","../cmd","document.cookie",
 			"document.write","onload=","mysql_query","document.location","window.location","]);}",
@@ -368,36 +373,32 @@ class ParetoSecurity {
 			".php/admin","mosconfig_","<@replace(","hex_ent","inurl:","replace(","/iframe>",
 			"php/password_for","unhex(","error_reporting(","http_cmd","=alert(","localhost",
 			"set-cookie","{\${","http/1.","{\$_","print@@variable","xp_cmdshell","127.0.0.1:",
-			"xp_availablemedia","sp_password","/etc/","/var/htpasswd","file_get_contents(",".passwd",
-			"*(|(objectclass=|||","../wp-",".htaccess",".htpasswd",";echo","system(","usr/bin/perl",
+			"xp_availablemedia","sp_password","/etc/","/var/htpasswd","file_get_contents(",
+			"*(|(objectclass=|||","../wp-",".htaccess",".htpasswd",";echo","system(","<base",
 			"zxzhbcg=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==","ki9xsevsrs8q",
 			":;};","wget","script>" );
-
+		
 		# _POST[]
-		$_blacklist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
+		$_datalist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
 			"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(",
 			"file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
 			"><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
 		
 		# 'User-Agent'
-		$_blacklist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
+		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
 			"wget","eval(","getconfig(",".chr(","passthru","shell_exec","popen(","exec(", "onerror",
 			"document.location" );
 		
-		# _COOKIE[]
-		$_blacklist[ 4 ] = array( "eval(","fromcharcode","usr/bin/perl","prompt(","zxzhbcg=",
-			"znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==",":;};","wget+http","system(",
-			"ki9xsevsrs8q","ywxlcnqo","4294967296" );
-		
-		$thislist = $_blacklist[ ( int ) $list ];
+		$_datalist[ 4 ] = array( "mozilla","android","windows","chrome","safari","opera","apple","google" );
 
-		for( $x=0; $x < count( $thislist ); $x++ ) {
-			if ( false !== strpos( $val, $this->decode_code( $thislist[ $x ] ) ) ) {
+		for( $x=0; $x < count( $_datalist[ ( int ) $list ] ); $x++ ) {
+			if ( false !== strpos( $val, $this->decode_code( $_datalist[ ( int ) $list ][ $x ] ) ) ) {
 				return true;
 			}
 		}
 		return false;		
 	}
+	
 	/**
 	 * _REQUEST_Shield()
 	 * 
@@ -409,6 +410,12 @@ class ParetoSecurity {
 		# involve query_string manipulation
 		$req = $this->url_decoder( $this->getREQUEST_URI() );
 		
+		# prevent arbitrary file includes/uploads
+		if ( false !== ( bool ) @ini_get( 'allow_url_fopen' ) || false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
+				if ( preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", strtolower( $req ) ) ) {
+						$this->karo( false );
+				}
+		}
 		# short $_SERVER[ 'SERVER_NAME' ] can indicate server hack
 		# see http://bit.ly/1UeGu0W
 		if ( strlen( $this->get_http_host() ) < 4 )
@@ -425,10 +432,13 @@ class ParetoSecurity {
 		if ( false !== stripos( $req, 'PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000' ) )
 			$this->karo( false );
 		
-		#osCommerce exploit
+		# osCommerce specific exploit
 		if ( false !== stripos( $req, '.php/admin' ) )
 			$this->karo( true );
 		
+		# prevent attempts to esculate user privileges in WP
+		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && false === function_exists( 'is_admin' ) && false !== preg_grep( "/default_role/i" , $_REQUEST ) && false !== preg_grep( "/administrator'/i" , $_REQUEST ) ) $this->karo( false );
+
 		# WP Author Discovery
 		$ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ) : NULL;
 		if ( false === is_null( $ref ) ) {
@@ -456,6 +466,7 @@ class ParetoSecurity {
 		if ( $this->substri_count( $req, '|' ) > 20 )
 			$this->karo( true );
 	}
+
 	/**
 	 * get_filter()
 	 * 
@@ -464,7 +475,7 @@ class ParetoSecurity {
 	protected function get_filter( $val, $key ) {
 		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
 			$val = strtolower( $this->decode_code( $val, true ) );
-			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->blacklistMatch( $val, 1 ) ) {
+			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 1 ) ) {
 				$this->karo( true );
 			}
 		}
@@ -475,27 +486,26 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function _QUERYSTRING_SHIELD() {
-		if ( false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
+		if ( false !== empty( $_REQUEST ) || false === $this->cmpstr( 'GET', $_SERVER[ 'REQUEST_METHOD' ] ) || false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
 			return; // of no interest to us
 		} else {
-			$q = array();
-			$q = explode( '&', $this->getQUERY_STRING() );
-			array_walk_recursive( $q, array(
+			# run $_REQUEST through filters
+			# $_REQUEST *here* is basically $_GET...
+			array_walk_recursive( $_REQUEST, array(
 				 $this,
 				'get_filter' 
 			) );
 		}
 		return;
 	}
-	
-	
+
 	/**
 	 * post_filter()
 	 * 
 	 * @return
 	 */
 	protected function post_filter( $val, $key ) {
-		if ( false !== $this->blacklistMatch( $this->decode_code( $val ), 2 ) ) {
+		if ( false !== $this->datalist( $this->decode_code( $val ), 2 ) ) {
 			# while some post content can be attacks, its best to 403 die().
 			$this->karo( false );
 		}
@@ -505,21 +515,21 @@ class ParetoSecurity {
 	 * _POST_SHIELD()
 	 */
 	protected function _POST_SHIELD() {
-		if ( 'POST' !== $_SERVER[ 'REQUEST_METHOD' ] )
-			return; // of no interest to us
+		if ( false === $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) )
+			 return; // of no interest to us
 		$total_input_vars = count( $_POST, COUNT_RECURSIVE );
 		if ( $total_input_vars >= 10000 )
-			$this->karo( true ); // very likely an attack
+			 $this->karo( true ); // very likely a denial of service attack
 		if ( $total_input_vars >= 1000 ) {
 			# efficient method but not as thorough as
 			# array_walk_recursive, to avoid DoS conditions
 			# with large array flood attacks
 			$fpost = $this->array_flatten( $_POST, false );
-			$i	 = 0;
+			$i     = 0;
 			while ( $i < count( $fpost, COUNT_RECURSIVE ) ) {
 				if ( ( is_string( $fpost[ $i ] ) ) && ( strlen( $fpost[ $i ] ) > 0 ) ) {
 					$fpost[ $i ] = strtolower( $fpost[ $i ] );
-					if ( false !== $this->blacklistMatch( $this->decode_code( $fpost[ $i ] ), 2 ) ) {
+					if ( false !== $this->datalist( $this->decode_code( $fpost[ $i ] ), 2 ) ) {
 						# while some post content can be attacks, its best to 403 die().
 						$this->karo( false );
 					}
@@ -528,19 +538,19 @@ class ParetoSecurity {
 			}
 		} else
 		# more resource intensive, but thorough method
-			array_walk_recursive( $_POST, array(
-				 $this,
-				'post_filter' 
-			) );
+		# tests POST vars as well as REQUEST_URI ( due to $_REQUEST merge )
+		  array_walk_recursive( $_REQUEST, array(
+			   $this,
+			  'post_filter' 
+		  ) );
 	}
-	
 	/**
 	 * cookie_filter()
 	 * 
 	 * @return
 	 */
 	protected function cookie_filter( $val, $key ) {
-		if ( false !== ( bool ) $this->blacklistMatch( $this->decode_code( $key ), 4 ) || false !== ( bool ) $this->blacklistMatch( $this->decode_code( $val ), 4 ) ) {
+		if ( false !== ( bool ) $this->datalist( $this->decode_code( $key ), 1 ) || false !== ( bool ) $this->datalist( $this->decode_code( $val ), 1 ) ) {
 			$this->karo( true );
 		}
 		if ( false !== ( bool ) $this->injectMatch( $key ) || false !== ( bool ) $this->injectMatch( $val ) ) {
@@ -556,6 +566,8 @@ class ParetoSecurity {
 	protected function _COOKIE_SHIELD() {
 		if ( false !== empty( $_COOKIE ) )
 			return; // of no interest to us
+		# run through blacklist and injection filter
+		# regardless of _GET or _POST
 		array_walk_recursive( $_COOKIE, array(
 			 $this,
 			'cookie_filter' 
@@ -571,8 +583,9 @@ class ParetoSecurity {
 			return;
 		$req		   = $_SERVER[ 'REQUEST_METHOD' ];
 		$req_whitelist = array(
-			 'GET',
-			'POST' 
+			'GET',
+			'POST',
+			'HEAD'
 		);
 		# is at least a 3 char string, is uppercase, has no numbers, is not longer than 4, is in whitelist
 		if ( false !== $this->string_prop( $req, 3 ) && false !== ctype_upper( $req ) && false !== ( bool ) ( strcspn( $req, '0123456789' ) === strlen( $req ) ) && ( false !== strlen( $req ) <= 4 ) && false !== in_array( $req, $req_whitelist ) ) {
@@ -583,24 +596,54 @@ class ParetoSecurity {
 			$this->karo( false ); // soft block
 		return;
 	}
-	
+
 	/**
 	 * _SPIDER_SHIELD()
 	 * Basic whitelist
 	 * Bad Spider Block / UA filter
 	 */
 	protected function _SPIDER_SHIELD() {
-		if ( false !== ( bool ) $this->spider_block || false === empty( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) {
-			if ( false === preg_match( "/mozilla|windows|chrome|safari|opera|apple|google/i", strtolower( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ) {
-				$this->karo( false );
-				return;
+		$val = strtolower( $this->decode_code( $_SERVER[ 'HTTP_USER_AGENT' ], true ) );
+		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
+			# mandatory filtering
+			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 3 ) ) {
+				$this->karo( true );
 			}
-		}
-		if ( false !== $this->injectMatch( $_SERVER[ 'HTTP_USER_AGENT' ] ) || false !== ( bool ) $this->blacklistMatch( $_SERVER[ 'HTTP_USER_AGENT' ], 3 ) ) {
-			$this->karo( true );
-		}
+			if ( false !== ( bool ) $this->_spider_block && false === ( bool ) $this->datalist( $val, 4 ) ) {
+				$this->karo( false );
+			}
+		} else $this->karo( false );
 	}
-	
+
+   /**
+    * checkfilename()
+    * 
+    * @param mixed $fname
+    * @return
+    */
+   private static function checkfilename( $fname ) {
+     if ( ( ! empty( $fname ) ) &&
+          ( ( substr_count( $fname, '.php' ) == 1 ) &&
+          ( '.php' == substr( $fname, - 4 ) ) ) ) {
+               return true;
+     } else return false;
+   }
+   
+   /**
+    * getPHP_SELF()
+    * 
+    * @return
+    */
+   protected function get_filename() {
+		$filename = '';
+		$filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( false === ( bool )ini_get( 'cgi.fix_pathinfo' ) ) ) || ( false === isset( $_SERVER[ 'SCRIPT_FILENAME' ] ) && false !== isset( $_SERVER[ 'PHP_SELF' ] ) && false !== $this->string_prop( basename( $_SERVER[ 'PHP_SELF' ] ), 1 ) ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( realpath( $_SERVER[ 'SCRIPT_FILENAME' ] ) );
+		preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
+		if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->hCoreFileChk( $matches[ 0 ], true ) ) ) {
+			   $filename = $matches[ 0 ];
+		}
+		return $filename;
+   }
+
 	/**
 	 * array_flatten()
 	 * 
@@ -663,7 +706,7 @@ class ParetoSecurity {
 		} else {
 			$limitend = "# End of " . $this->get_http_host() . " Pareto Security Ban\n";
 			$newline  = "deny from $banip\n";
-			$mybans   = file( str_replace( '//', DIRECTORY_SEPARATOR, $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess' ) );
+			$mybans   = file( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess' );
 			$lastline = "";
 			if ( in_array( $newline, $mybans ) )
 				exit();
@@ -677,10 +720,10 @@ class ParetoSecurity {
 				$lastline = array_pop( $mybans ) . $lastline;
 				array_push( $mybans, $newline, $lastline );
 			} else {
-				array_push( $mybans, "\n\n# " . $this->get_http_host() . " Pareto Security Ban\n", "order allow,deny\n", $newline, "allow from all\n", $limitend );
+				array_push( $mybans, "\r\n# " . $this->get_http_host() . " Pareto Security Ban\n", "order allow,deny\n", $newline, "allow from all\n", $limitend );
 			}
 			
-			$myfile = fopen( str_replace( '//', DIRECTORY_SEPARATOR, $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess' ), 'w' );
+			$myfile = fopen( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', 'w' );
 			fwrite( $myfile, implode( $mybans, '' ) );
 			fclose( $myfile );
 		}
@@ -711,7 +754,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function get_http_host( $encoding = 'UTF-8' ) {
-		return htmlspecialchars( preg_replace( "/^(?:([^\.]+)\.)?domain\.com$/", '\1', $_SERVER[ 'SERVER_NAME' ] ), ( ( phpversion() >= 5.4 ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
+		return htmlspecialchars( preg_replace( "/^(?:([^\.]+)\.)?domain\.com$/", '\1', $_SERVER[ 'SERVER_NAME' ] ), ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
 	}
 	
 	/**
@@ -880,13 +923,17 @@ class ParetoSecurity {
 	protected function x_secure_headers() {
 		$errlevel = ini_get( 'error_reporting' );
 		error_reporting( 0 );
-		header( 'strict-transport-security: max-age=31536000; includeSubDomains; preload' );
-		header( 'access-control-allow-methods: POST, GET' );
-		header( 'x-frame-options: SAMEORIGIN' );
-		header( 'x-content-type-options: nosniff' );
-		header( 'x-xss-protection: 1; mode=block' );
+		header( "strict-transport-security: max-age=31536000; includeSubDomains; preload" );
+		header( "access-control-allow-methods: GET, POST, HEAD" );
+		header( "x-frame-options: SAMEORIGIN" );
+		header( "x-content-type-options: nosniff" );
+		header( "x-xss-protection: 1; mode=block" );
+		header( "x-download-options: noopen" );
+		header( "x-permitted-cross-domain-policies: master-only" );
+		header( "x-content-security-policy: default-src 'self'; script-src 'self';" );
+
 		if ( false !== ( bool ) ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
-			header( 'X-Powered-By: Pareto Security - http://hokioisec7agisc4.onion' );
+			header( "x-powered-by: Pareto Security - http://hokioisec7agisc4.onion" );
 		}
 		error_reporting( $errlevel );
 		return;
@@ -955,12 +1002,29 @@ class ParetoSecurity {
 	/**
 	 * integ_prop()
 	 */
-	protected function integ_prop( $integer ) {
+	protected function integ_prop( $integ ) {
 		# is an integer, is not a float, is not negative
-		if ( false !== is_int( $integer ) && false !== preg_match( '/^\d+$/D', $integer ) && ( int ) $integer >= 0 ) {
+		if ( false !== is_int( $integ ) && false !== preg_match( '/^\d+$/D', $integ ) && ( int ) $integ >= 0 ) {
 			return true;
 		} else {
 			return false;
+		}
+	}
+	/**
+	 * cmpstr()
+	 * @return bool
+	 */
+	protected function cmpstr( $s, $c, $ci = false ) {
+		if ( false !== $ci ) {
+			if ( strcasecmp( $s, $c ) == 0 ) {
+				return true;
+			} else
+				return false;
+		} elseif ( false === $ci ) {
+			if ( strcmp( $s, $c ) == 0 ) {
+				return true;
+			} else
+				return false;
 		}
 	}
 } // end of class
