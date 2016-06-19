@@ -7,7 +7,7 @@ Donate link: http://hokioisec7agisc4.onion
 Tags: authentication bypass, CRLF, CSRF, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
 Requires at least: 3.0.1
 Tested up to: 4.5.2
-Stable tag: 1.2.1
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -17,7 +17,9 @@ WordPress core security class: A Web Application Firewall to protect your Wordpr
 
 = Pareto Security Features =
 
-Wordpress has been plagued in recent times by plugins that bring with them security vulnerabilities. Users depend on 3rd party developers to check all user inputs and to escape all outputs from their plugin code, however in many many cases this is not done correctly leading to vulnerabilities and often websites being attacked, malware code installed, and in worst cases, entire servers taken over.
+Wordpress has been plagued by plugins that bring with them security vulnerabilities. Users depend on the security skills of 3rd party developers to check all user inputs and to escape all outputs from their plugin code.
+
+However in many many cases this is not done correctly leading to vulnerabilities and often websites being attacked, malware code installed, and in worst cases, entire servers taken over.
 
 Pareto Security class acts as a central security hub checking all inputs from users.
 
@@ -25,7 +27,7 @@ Using the principle of "Artificial Ignorance" with blacklists rather than arbitr
 
 Any remaining user inputs/requests are most likely attempts to break rules and are tested against a list of rules, bad requests are prevented from completing their action.
 
-This acts as a temporary shield during that period of time between when a vulnerability is discovered in Wordpress or 3rd party plugins, and when they are patched, and, when you update your Wordpress website.
+This acts as a "temporary" shield during that period of time between when a vulnerability is discovered in Wordpress or 3rd party plugins, and when they are patched, and, when you update your Wordpress website.
 
 Features:
 
@@ -36,7 +38,7 @@ Features:
 * Protects against malicious database injections
 * Using the principle of "Artificial Ignorance" with blacklists rather than arbitrary blacklists, processes and checks all user inputs, the REQUEST_URI, QUERY_STRING, _GET, _POST, _COOKIE and browser user-agents to detect known security threats.
 * Pareto Security is 100% free
-* Prevents uploading of backdoors
+* Prevents uploading of backdoors, arbitrary file includes
 * Locks down server error and information messages that can be used to assist attackers
 * Scans inputs from content submitted by visitors in comments and posts.
 * Block known bad crawlers.
@@ -45,7 +47,12 @@ Features:
 * Options IP address banning 
 * Works silently in the background blocking attacks
 
-Note: Wordfence will flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
+A Word on Security:
+Keeping a Wordpress CMS secure is not easy. The very best thing you can do to prevent attacks is to always keep your website code, themes and plugins up to date, and remove any plugins and themes you are not using.
+
+What Pareto Security cannot do ( as with any Web Application Firewall ) is save your website from really really badly written site, theme and/or plugin code, or save your site from attacks that result from when WP administrators do not follow basic security measures.
+
+Footnote: Wordfence file scanner will flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
 
 == Installation ==
 
@@ -70,8 +77,17 @@ Email me at hokioi-security@protonmail.ch
 
 == Changelog ==
 
+= 1.2.3 =
+* prevent attempts to esculate user privileges in WP
+* Updated functions: send403(), _QUERYSTRING_SHIELD(), _POST_SHIELD(), _REQUESTTYPE_SHIELD(), integ_prop(), get_http_host(), get_filename()
+
+= 1.2.2 =
+* Important update addressing arbitrary file includes/uploads
+* Updated functions: htaccessbanip(), datalist(), _REQUEST_SHIELD()
+
 = 1.2.1 =
-* Updated functions: _SPIDER_SHIELD(), _REQUEST_SHIELD()
+* Updated functions: __construct(), _REQUEST_SHIELD(), _QUERYSTRING_SHIELD(), x_secure_headers()
+* Fixed a bug in _SPIDER_SHIELD()
 
 = 1.2.0 =
 * Now allows users to enable/disable filtering of spiders/browser user-agents via Pareto Security Settings
