@@ -40,7 +40,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 		foreach ( $header as $sent ) {
 			header( $sent );
 		}
-		die();
+		exit();
 	}
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
@@ -177,7 +177,7 @@ class ParetoSecurity {
 		foreach ( $header as $sent ) {
 			header( $sent );
 		}
-		die();
+		exit();
 	}
 	
 	/**
@@ -352,10 +352,7 @@ class ParetoSecurity {
 	protected function datalist( $val, $list = 0 ) {
 		# although we try not to do this, arbitrary blacklisting of certain request variables
 		# cannot be avoided. however I will attempt to keep this list short.
-		
-		# $list should never have a value of 0
-		if ( $list == 0 )
-			die( 'there is an error' );
+
 		$_datalist	  = array();
 		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val ) ) );
 		# _REQUEST[]
@@ -506,7 +503,7 @@ class ParetoSecurity {
 	 */
 	protected function post_filter( $val, $key ) {
 		if ( false !== $this->datalist( $this->decode_code( $val ), 2 ) ) {
-			# while some post content can be attacks, its best to 403 die().
+			# while some post content can be attacks, its best to 403.
 			$this->karo( false );
 		}
 	}
@@ -530,7 +527,7 @@ class ParetoSecurity {
 				if ( ( is_string( $fpost[ $i ] ) ) && ( strlen( $fpost[ $i ] ) > 0 ) ) {
 					$fpost[ $i ] = strtolower( $fpost[ $i ] );
 					if ( false !== $this->datalist( $this->decode_code( $fpost[ $i ] ), 2 ) ) {
-						# while some post content can be attacks, its best to 403 die().
+						# while some post content can be attacks, its best to 403.
 						$this->karo( false );
 					}
 				}
@@ -874,7 +871,7 @@ class ParetoSecurity {
 				# Check the validity of each ip
 				foreach ( $iplist as $ip ) {
 					if ( false !== $this->check_ip( $ip ) ) {
-						# if a valid IP then prevent htaccess ban but still allow die()
+						# if a valid IP then prevent htaccess ban but still allow exit()
 						# because X_FORWARDED_FOR is spoofable
 						$this->_bypassbanip = true;
 					}
@@ -891,12 +888,12 @@ class ParetoSecurity {
 		);
 		
 		# the point here is to not accidentally ban an ip address that could
-		# be an upline proxy, instead just allow a page die() action if
+		# be an upline proxy, instead just allow an exit() action if
 		# request is malicious
 		$x = 0;
 		while ( $x < count( $svars ) ) {
 			if ( array_key_exists( $svars[ $x ], $_SERVER ) && false === empty( $_SERVER[ $svars[ $x ] ] ) && false !== $this->check_ip( $_SERVER[ $svars[ $x ] ] ) ) {
-				# if a valid IP then prevent htaccess ban but still allow die()
+				# if a valid IP then prevent htaccess ban but still allow exit()
 				# because all of the above are spoofable
 				$this->_bypassbanip = true;
 			}
