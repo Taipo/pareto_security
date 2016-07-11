@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.2.3
+Version: 1.2.5
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.2.3' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1465424968' ) );
+	define( 'PARETO_VERSION', '1.2.5' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1468143325' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -64,6 +64,8 @@ class ParetoSecurity {
 	public $_doc_root = '';
 	# Correct Production Server Settings = 0, prevent any errors from displaying = 1, Show all errors = 2 ( depends on the php.ini settings )
 	protected $_quietscript = 0;
+	# Custom set a number of above settings all at once
+	protected $_adv_mode = 0;
 	
 	# Other
 	protected $_bypassbanip = false;
@@ -82,12 +84,15 @@ class ParetoSecurity {
 				 $this,
 				'deactivate' 
 			) );
-			$this->_banip		   = isset( $ParetoSettings->ban_ips ) ? $ParetoSettings->ban_ips : $this->_banip;
-			$this->_nonGETPOSTReqs = isset( $ParetoSettings->reqmethod ) ? $ParetoSettings->reqmethod : $this->_nonGETPOSTReqs;
-			$this->_spider_block   = isset( $ParetoSettings->spider_block ) ? $ParetoSettings->spider_block : $this->_spider_block;
+			
+			$this->_adv_mode = isset( $ParetoSettings->advmode ) ? $ParetoSettings->advmode : $this->_adv_mode;
 		}
-		$this->_set_error_level();
+		
 		$this->_bypassbanip = false;
+		
+		$this->advanced_mode();
+		$this->_set_error_level();
+		
 		# if open_basedir is not set in php.ini then set it in the local scope
 		$this->setOpenBaseDir();
 		# Send secure headers
@@ -373,13 +378,13 @@ class ParetoSecurity {
 			"xp_availablemedia","sp_password","/etc/","/var/htpasswd","file_get_contents(",
 			"*(|(objectclass=|||","../wp-",".htaccess",".htpasswd",";echo","system(","<base",
 			"zxzhbcg=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==","ki9xsevsrs8q",
-			":;};","wget","script>" );
+			"expect://[cmd]",":;};","wget","script>" );
 		
 		# _POST[]
 		$_datalist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
-			"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(",
-			"file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
-			"><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
+			"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(","/bin/cat",
+			"/etc/passwd","file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
+			"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
 		
 		# 'User-Agent'
 		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
@@ -402,65 +407,69 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function _REQUEST_SHIELD() {
+
 		# regardless of _GET or _POST
 		# specific attacks that do not necessarily
 		# involve query_string manipulation
-		$req = $this->url_decoder( $this->getREQUEST_URI() );
-		
-		# prevent arbitrary file includes/uploads
-		if ( false !== ( bool ) @ini_get( 'allow_url_fopen' ) || false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
-				if ( preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", strtolower( $req ) ) ) {
-						$this->karo( false );
-				}
-		}
+		$req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
+
 		# short $_SERVER[ 'SERVER_NAME' ] can indicate server hack
 		# see http://bit.ly/1UeGu0W
 		if ( strlen( $this->get_http_host() ) < 4 )
 			$this->karo( false );
-		
-		if ( false !== isset( $_REQUEST[ 'cmd' ] ) || false !== isset( $_REQUEST[ 'system' ] ) )
-			$this->karo( false );
-		
+			
 		# Reflected File Download Attack
-		if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd)/i", $req ) )
+		if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd|ini)/i", $req ) )
 			$this->karo( true );
-		
-		# Prevent PHP Credits
-		if ( false !== stripos( $req, 'PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000' ) )
-			$this->karo( false );
-		
+
 		# osCommerce specific exploit
-		if ( false !== stripos( $req, '.php/admin' ) )
+		if ( false !== strpos( $req, '.php/admin' ) )
 			$this->karo( true );
 		
+		# if empty then the rest of no interest to us
+		if ( false !== empty( $_REQUEST ) ) return;
+
+		# lower case flattened _REQUEST()
+		$_request_lc = $this->array_flatten( $_REQUEST, true, true );
+		
+		# prevent arbitrary file includes/uploads
+		if ( false !== ( bool ) @ini_get( 'allow_url_fopen' ) || false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
+				if ( preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $req ) ) {
+						$this->karo( false );
+				}
+		}
+		# prevent command injection
+		if ( false !== array_key_exists( "'cmd'", $_request_lc ) || false !== array_key_exists( "'system'", $_request_lc ) )
+			$this->karo( true );
+
 		# prevent attempts to esculate user privileges in WP
-		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && false === function_exists( 'is_admin' ) && false !== preg_grep( "/default_role/i" , $_REQUEST ) && false !== preg_grep( "/administrator'/i" , $_REQUEST ) ) $this->karo( false );
+		if ( false === function_exists( 'is_admin' ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $_request_lc ) && 'administrator' == $_request_lc[ "'default_role'" ] ) ) $this->karo( false );
 
 		# WP Author Discovery
-		$ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ) : NULL;
+		$ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? strtolower( $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ) ) : NULL;
 		if ( false === is_null( $ref ) ) {
-			if ( false !== stripos( $req, '?author=' ) ) {
+			if ( false !== strpos( $req, '?author=' ) ) {
 				$this->karo( false );
 			}
-			if ( false !== stripos( $ref, 'result' ) ) {
-				if ( ( false !== stripos( $ref, 'chosen' ) ) && ( false !== stripos( $ref, 'nickname' ) ) ) {
+			if ( false !== strpos( $ref, 'result' ) ) {
+				if ( ( false !== strpos( $ref, 'chosen' ) ) && ( false !== strpos( $ref, 'nickname' ) ) ) {
 					$this->karo( false );
 				}
 			}
 		}
-		
+
 		if ( false !== strpos( $req, '?' ) ) {
-			$v = $this->decode_code( strtolower( substr( $req, strpos( $req, '?' ), ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
+			$v = $this->decode_code( substr( $req, strpos( $req, '?' ), ( strlen( $req ) - strpos( $req, '?' ) ) ) );
 			if ( false !== strpos( $v, '-' ) && ( ( false !== strpos( $v, '?-' ) ) || ( false !== strpos( $v, '?+-' ) ) ) && ( ( false !== stripos( $v, '-s' ) ) || ( false !== stripos( $v, '-t' ) ) || ( false !== stripos( $v, '-n' ) ) || ( false !== stripos( $v, '-d' ) ) ) ) {
 				$this->karo( true );
 			}
 		}
 		# this occurence of these many slashes etc are always an attack attempt
-		if ( $this->substri_count( $req, '/' ) > 20 )
+		if ( substr_count( $req, '/' ) > 20 )
 			$this->karo( true );
-		if ( $this->substri_count( $req, '\\' ) > 20 )
+		if ( substr_count( $req, '\\' ) > 20 )
 			$this->karo( true );
-		if ( $this->substri_count( $req, '|' ) > 20 )
+		if ( substr_count( $req, '|' ) > 20 )
 			$this->karo( true );
 	}
 
@@ -521,11 +530,10 @@ class ParetoSecurity {
 			# efficient method but not as thorough as
 			# array_walk_recursive, to avoid DoS conditions
 			# with large array flood attacks
-			$fpost = $this->array_flatten( $_POST, false );
+			$fpost = $this->array_flatten( $_POST, false, true );
 			$i     = 0;
 			while ( $i < count( $fpost, COUNT_RECURSIVE ) ) {
 				if ( ( is_string( $fpost[ $i ] ) ) && ( strlen( $fpost[ $i ] ) > 0 ) ) {
-					$fpost[ $i ] = strtolower( $fpost[ $i ] );
 					if ( false !== $this->datalist( $this->decode_code( $fpost[ $i ] ), 2 ) ) {
 						# while some post content can be attacks, its best to 403.
 						$this->karo( false );
@@ -640,7 +648,7 @@ class ParetoSecurity {
 		}
 		return $filename;
    }
-
+   
 	/**
 	 * array_flatten()
 	 * 
@@ -648,21 +656,28 @@ class ParetoSecurity {
 	 * @param bool $preserve_keys
 	 * @return
 	 */
-	protected function array_flatten( $array, $preserve_keys = false ) {
+	protected function array_flatten( $array, $preserve_keys = false, $lowercase = false ) {
+		if ( false !== empty( $array ) ) return array();
 		if ( false === $preserve_keys ) {
 			$array = array_values( $array );
 		}
 		$flattened_array = array();
 		foreach ( $array as $k => $v ) {
 			if ( is_array( $v ) ) {
-				$flattened_array = array_merge( $flattened_array, $this->array_flatten( $v, $preserve_keys ) );
-			} elseif ( $preserve_keys ) {
-				$flattened_array[ $k ] = $v;
+				$flattened_array = array_merge( $flattened_array, $this->array_flatten( $v, $preserve_keys, $lowercase ) );
+			} elseif ( false !== $preserve_keys ) {
+				$flattened_array[ $this->decode_code( $k, true ) ] = $this->decode_code( $v, false );
 			} else {
-				$flattened_array[] = $v;
+				$flattened_array[] = $this->decode_code( $v, false );
 			}
 		}
-		return $flattened_array;
+		if ( false !== $lowercase ) {
+			foreach ( $flattened_array as $k => $v ) {
+				$flattened_array_lc[ strtolower( $k ) ] = strtolower( $v );
+			}
+			return $flattened_array_lc;
+		} else
+			return $flattened_array;
 	}
 	
 	protected function cleanString( $b, $s ) {
@@ -845,8 +860,7 @@ class ParetoSecurity {
 					}
 					$x++;
 				}
-				if ( ( count( $parts ) <> 4 ) || ( $parts[ 0 ] < 1 ) )
-					$this->send403();
+				if ( ( count( $parts ) <> 4 ) || ( $parts[ 0 ] < 1 ) ) $this->send403();
 				return true;
 			} else
 				$this->send403();
@@ -883,6 +897,8 @@ class ParetoSecurity {
 			'HTTP_FORWARDED_FOR',
 			'HTTP_CLIENT_IP',
 			'HTTP_X_CLUSTER_CLIENT_IP',
+			'HTTP_X_ORIGINATING_IP',
+			'HTTP_X_REMOTE_IP',
 			'HTTP_FORWARDED',
 			'HTTP_CF_CONNECTING_IP' 
 		);
@@ -903,7 +919,7 @@ class ParetoSecurity {
 		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) )
 				$this->_bypassbanip = true;
 		
-		# never trust any headers except REMOTE_ADDR
+		# never trust any ip headers except REMOTE_ADDR
 		return $this->getREMOTE_ADDR();
 	}
 	
@@ -1022,6 +1038,14 @@ class ParetoSecurity {
 				return true;
 			} else
 				return false;
+		}
+	}
+	
+	protected function advanced_mode() {
+		if ( false !== ( bool ) $this->_adv_mode ) {
+			$this->_banip = 1;
+			$this->_nonGETPOSTReqs = 1;
+			$this->_spider_block = 1;
 		}
 	}
 } // end of class
