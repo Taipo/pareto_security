@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.2.5
+Version: 1.2.7
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.2.5' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1468143325' ) );
+	define( 'PARETO_VERSION', '1.2.7' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1468988438' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -157,7 +157,7 @@ class ParetoSecurity {
 				break;
 			case ( 1 ):
 				error_reporting( 0 );
-				ini_set( 'display_errors', 0 );
+				@ini_set( 'display_errors', 0 );
 				break;
 			case ( 2 ):
 				error_reporting( 32767 );
@@ -332,7 +332,7 @@ class ParetoSecurity {
 					return true;
 				} elseif ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && ( false !== ( bool ) preg_match( "/\buser\b/i", $string ) ) ) {
 					return true;
-				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= $this->substri_count( $string, ',' ) ) ) ) {
+				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= substr_count( $string, ',' ) ) ) ) {
 					return true;
 				} elseif ( ( false !== strpos( $string, 'union' ) ) && ( false !== strpos( $string, 'select' ) ) && ( false !== strpos( $string, 'from' ) ) ) {
 					return true;
@@ -434,8 +434,13 @@ class ParetoSecurity {
 		
 		# prevent arbitrary file includes/uploads
 		if ( false !== ( bool ) @ini_get( 'allow_url_fopen' ) || false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
-				if ( preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $req ) ) {
+				$req_url = preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $req );
+				if (  false !== $req_url ) {
+					if ( false === stripos( $req, $this->get_http_host() ) && substr_count( $req, 'http://' ) == 1 ) {
 						$this->karo( false );
+					} elseif ( false !== stripos( $req, $this->get_http_host() ) && substr_count( $req, 'http://' ) > 1 ) {
+						$this->karo( false );
+					}
 				}
 		}
 		# prevent command injection
@@ -443,8 +448,36 @@ class ParetoSecurity {
 			$this->karo( true );
 
 		# prevent attempts to esculate user privileges in WP
-		if ( false === function_exists( 'is_admin' ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $_request_lc ) && 'administrator' == $_request_lc[ "'default_role'" ] ) ) $this->karo( false );
+		if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $_request_lc ) && 'administrator' == $_request_lc[ "'default_role'" ] ) ) $this->karo( false );
 
+		# Test for HTTP Parameter pollution
+		# Build an array of _GET and _POST keys
+		$dup_check = array();
+		$req_arr = explode( '&', $this->decode_code( substr( $req, strpos( $req, '?' ) + 1, ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
+		for( $x = 0; $x < count( $req_arr ); $x++ ) {
+			$this_key = $this->decode_code( substr( $req_arr[ $x ], 0, strpos( $req_arr[ $x ], '=' ) ) );
+			if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
+				$this_key = str_replace( "'", "", $this_key );
+				$dup_check[ $x ] = str_replace( "''", "'", ( "'" . $this_key . "'" ) );
+			}
+		}
+		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
+			$_post_array = $this->array_flatten( $_POST, true, true );
+			for( $x = 0; $x < count( $_post_array ); $x++ ) {
+				$this_key = $this->decode_code( $_post_array[ $x ] );
+				if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
+					array_push( $dup_check, array_keys( $_post_array )[ $x ] );
+				}
+			}
+		}
+		
+		# if unique keys less than actual keys, there is a *small* chance this is an HPP Attack.
+		# Because of that, we redirect back to the page without any variables.
+		if ( ( count( $dup_check ) > count( array_unique( $dup_check ) ) ) && ( false === defined( 'WP_ADMIN' ) && ( false === function_exists( 'is_admin' ) || false === is_admin() ) ) ) {
+			header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
+			exit();
+		}
+		
 		# WP Author Discovery
 		$ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? strtolower( $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ) ) : NULL;
 		if ( false === is_null( $ref ) ) {
@@ -533,7 +566,8 @@ class ParetoSecurity {
 			$fpost = $this->array_flatten( $_POST, false, true );
 			$i     = 0;
 			while ( $i < count( $fpost, COUNT_RECURSIVE ) ) {
-				if ( ( is_string( $fpost[ $i ] ) ) && ( strlen( $fpost[ $i ] ) > 0 ) ) {
+				if ( false !== is_array( $fpost[ $i ] ) ) continue;
+				if ( false !== is_string( $fpost[ $i ] ) && ( strlen( $fpost[ $i ] ) > 0 ) ) {
 					if ( false !== $this->datalist( $this->decode_code( $fpost[ $i ] ), 2 ) ) {
 						# while some post content can be attacks, its best to 403.
 						$this->karo( false );
@@ -543,8 +577,7 @@ class ParetoSecurity {
 			}
 		} else
 		# more resource intensive, but thorough method
-		# tests POST vars as well as REQUEST_URI ( due to $_REQUEST merge )
-		  array_walk_recursive( $_REQUEST, array(
+		  array_walk_recursive( $_POST, array(
 			   $this,
 			  'post_filter' 
 		  ) );
@@ -628,7 +661,7 @@ class ParetoSecurity {
     */
    private static function checkfilename( $fname ) {
      if ( ( ! empty( $fname ) ) &&
-          ( ( substr_count( $fname, '.php' ) == 1 ) &&
+          ( ( $this->substri_count( $fname, '.php' ) == 1 ) &&
           ( '.php' == substr( $fname, - 4 ) ) ) ) {
                return true;
      } else return false;
@@ -641,7 +674,7 @@ class ParetoSecurity {
     */
    protected function get_filename() {
 		$filename = '';
-		$filename = ( ( ( strlen( ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( false === ( bool )ini_get( 'cgi.fix_pathinfo' ) ) ) || ( false === isset( $_SERVER[ 'SCRIPT_FILENAME' ] ) && false !== isset( $_SERVER[ 'PHP_SELF' ] ) && false !== $this->string_prop( basename( $_SERVER[ 'PHP_SELF' ] ), 1 ) ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( realpath( $_SERVER[ 'SCRIPT_FILENAME' ] ) );
+		$filename = ( ( ( strlen( @ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( false === ( bool ) @ini_get( 'cgi.fix_pathinfo' ) ) ) || ( false === isset( $_SERVER[ 'SCRIPT_FILENAME' ] ) && false !== isset( $_SERVER[ 'PHP_SELF' ] ) && false !== $this->string_prop( basename( $_SERVER[ 'PHP_SELF' ] ), 1 ) ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( realpath( $_SERVER[ 'SCRIPT_FILENAME' ] ) );
 		preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
 		if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->hCoreFileChk( $matches[ 0 ], true ) ) ) {
 			   $filename = $matches[ 0 ];
@@ -855,12 +888,12 @@ class ParetoSecurity {
 				$parts = explode( '.', $ip );
 				$x	 = 0;
 				while ( $x < count( $parts ) ) {
-					if ( false === $this->integ_prop( $parts[ $x ] ) || ( int ) $parts[ $x ] > 255 ) {
+					if ( false === $this->integ_prop( ( int ) $parts[ $x ] ) || ( int ) $parts[ $x ] > 255 ) {
 						$this->send403();
 					}
 					$x++;
 				}
-				if ( ( count( $parts ) <> 4 ) || ( $parts[ 0 ] < 1 ) ) $this->send403();
+				if ( ( count( $parts ) <> 4 ) || ( ( int ) $parts[ 0 ] < 1 ) ) $this->send403();
 				return true;
 			} else
 				$this->send403();
@@ -926,7 +959,7 @@ class ParetoSecurity {
 	protected function setOpenBaseDir() {
 		if ( false === ( bool ) $this->_open_basedir )
 			return;
-		if ( strlen( ini_get( 'open_basedir' ) == 0 ) ) {
+		if ( strlen( @ini_get( 'open_basedir' ) == 0 ) ) {
 			return @ini_set( 'open_basedir', $this->getDir() );
 		}
 	}
@@ -934,7 +967,7 @@ class ParetoSecurity {
 	 * x_secure_headers()
 	 */
 	protected function x_secure_headers() {
-		$errlevel = ini_get( 'error_reporting' );
+		$errlevel = @ini_get( 'error_reporting' );
 		error_reporting( 0 );
 		header( "strict-transport-security: max-age=31536000; includeSubDomains; preload" );
 		header( "access-control-allow-methods: GET, POST, HEAD" );
@@ -945,12 +978,15 @@ class ParetoSecurity {
 		header( "x-permitted-cross-domain-policies: master-only" );
 		header( "x-content-security-policy: default-src 'self'; script-src 'self';" );
 
-		if ( false !== ( bool ) ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
+		if ( false !== ( bool ) @ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
 			header( "x-powered-by: Pareto Security - http://hokioisec7agisc4.onion" );
 		}
 		error_reporting( $errlevel );
 		return;
 	}
+	/**
+	 * substri_count()
+	 */
 	function substri_count( $hs, $n )	{
 		return substr_count( strtoupper( $hs ), strtoupper( $n ) );
 	}
@@ -960,7 +996,7 @@ class ParetoSecurity {
 	 */
 	protected function decode_code( $code, $escapeshell=false ) {
 		$code = ( $this->substri_count( $code, '\u00' ) > 0 ) ? str_ireplace( '\u00', '%', $code ) : $code;
-		$code = ( $this->substri_count( $code, '&#x' ) > 0 && $this->substri_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
+		$code = ( $this->substri_count( $code, '&#x' ) > 0 && substr_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
 		if ( false !== $escapeshell ) {
 			return $this->url_decoder( escapeshellarg( $code ) );
 		} else
@@ -1006,7 +1042,7 @@ class ParetoSecurity {
 	 * string_prop()
 	 */
 	protected function string_prop( $str, $len = 0 ) {
-		# is not an array, is a string, is of at least a specified length ( default is greater than 0 )
+		# is not an array, is a string, is of at least a specified length ( default is 0 )
 		if ( false !== is_array( $str ) )
 			return false;
 		$x = ( is_string( $str ) ) ? ( ( strlen( $str ) >= ( int ) $len ) ? true : false ) : false;
@@ -1059,7 +1095,7 @@ if ( class_exists( 'ParetoSecurity' ) && !$ParetoSecurity ) {
 function load_pareto_first() {
 	$wp_path_to_this_file = preg_replace( '/(.*)plugins\/(.*)$/', WP_PLUGIN_DIR . "/$2", __FILE__ );
 	$this_plugin		  = plugin_basename( trim( $wp_path_to_this_file ) );
-	$active_plugins	   = get_option( 'active_plugins' );
+	$active_plugins		  = get_option( 'active_plugins' );
 	$this_plugin_key	  = array_search( $this_plugin, $active_plugins );
 	if ( $this_plugin_key ) {
 		array_splice( $active_plugins, $this_plugin_key, 1 );
