@@ -10,7 +10,7 @@ Requires at least: 3.0.1
 
 Tested up to: 4.5.3
 
-Stable tag: 1.2.5
+Stable tag: 1.2.7
 
 License: GPLv2 or later
 
@@ -49,7 +49,7 @@ Features:
 * Block known bad crawlers.
 * Checks against malicious Request Types
 * Pareto Security is multi-site ready
-* Options IP address banning 
+* Optional IP address banning 
 * Works silently in the background blocking attacks
 
 A Word on Security:
@@ -83,6 +83,12 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
+
+= 1.2.7 =
+* Now addresses HTTP Parameter pollution
+
+= 1.2.6 =
+* Updated _POST_SHIELD(), _REQUEST_SHIELD() and check_ip()
 
 = 1.2.5 =
 * Updated _REQUEST_SHIELD()
