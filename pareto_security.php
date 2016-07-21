@@ -46,7 +46,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.2.7' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1468988438' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1469080458' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
