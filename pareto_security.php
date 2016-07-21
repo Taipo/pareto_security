@@ -450,7 +450,7 @@ class ParetoSecurity {
 		# prevent attempts to esculate user privileges in WP
 		if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $_request_lc ) && 'administrator' == $_request_lc[ "'default_role'" ] ) ) $this->karo( false );
 
-		# Detect HTTP Parameter pollution
+		# Detect HTTP Parameter Pollution
 		$dup_check_get = array();
 		$dup_check_post = array();
 		$req_arr = explode( '&', $this->decode_code( substr( $req, strpos( $req, '?' ) + 1, ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
@@ -470,10 +470,9 @@ class ParetoSecurity {
 				}
 			}
 		}
-		# There are a number of functions in Wordpress admin section that unintentionally pollutes HTTP parameters.
-		# So if admin is logged in, prevent detection, and because many other apps are also crap at this,
-		# redirect rather than ban.
-		if ( ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) && ( false === defined( 'WP_ADMIN' ) && ( false === function_exists( 'is_admin' ) || false === is_admin() ) ) ) {
+		# There are a number of functions in CMS admin sections that unintentionally pollute HTTP parameters.
+		# Because many other apps are also crap at this, redirect rather than ban.
+		if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
 			header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
 			exit();
 		}
