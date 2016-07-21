@@ -431,14 +431,14 @@ class ParetoSecurity {
 
 		# lower case flattened _REQUEST()
 		$_request_lc = $this->array_flatten( $_REQUEST, true, true );
-		
+
 		# prevent arbitrary file includes/uploads
-		if ( false !== ( bool ) @ini_get( 'allow_url_fopen' ) || false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
-				$req_url = preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $req );
-				if (  false !== $req_url ) {
-					if ( false === stripos( $req, $this->get_http_host() ) && substr_count( $req, 'http://' ) == 1 ) {
+		if ( false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
+				if (  false !== $this->instr_url( $req ) ) {
+					preg_match( "/(?:http:|https:|ftp:|file:|php:)/i", $req, $matches );
+					if ( false === stripos( $req, $this->get_http_host() ) && count( $matches ) == 1 ) {
 						$this->karo( false );
-					} elseif ( false !== stripos( $req, $this->get_http_host() ) && substr_count( $req, 'http://' ) > 1 ) {
+					} elseif ( false !== stripos( $req, $this->get_http_host() ) && count( $matches ) > 1 ) {
 						$this->karo( false );
 					}
 				}
@@ -470,8 +470,9 @@ class ParetoSecurity {
 				}
 			}
 		}
-		# There are a number of functions in CMS admin sections that unintentionally pollute HTTP parameters.
-		# Because many other apps are also crap at this, redirect rather than ban.
+		# We only test for duplicate keys that appear in both GET and POST globals. This is because
+		# there are a number of functions in CMS's that unintentionally pollute HTTP query strings
+		# with duplicate parameters. And so, just to be safe, redirect, rather than ban.
 		if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
 			header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
 			exit();
@@ -1073,6 +1074,10 @@ class ParetoSecurity {
 			} else
 				return false;
 		}
+	}
+	
+	protected function instr_url( $string ) {
+		return preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $string );
 	}
 	
 	protected function advanced_mode() {
