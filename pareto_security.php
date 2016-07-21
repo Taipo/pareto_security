@@ -450,30 +450,30 @@ class ParetoSecurity {
 		# prevent attempts to esculate user privileges in WP
 		if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $_request_lc ) && 'administrator' == $_request_lc[ "'default_role'" ] ) ) $this->karo( false );
 
-		# Test for HTTP Parameter pollution
-		# Build an array of _GET and _POST keys
-		$dup_check = array();
+		# Detect HTTP Parameter pollution
+		$dup_check_get = array();
+		$dup_check_post = array();
 		$req_arr = explode( '&', $this->decode_code( substr( $req, strpos( $req, '?' ) + 1, ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
 		for( $x = 0; $x < count( $req_arr ); $x++ ) {
 			$this_key = $this->decode_code( substr( $req_arr[ $x ], 0, strpos( $req_arr[ $x ], '=' ) ) );
 			if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
 				$this_key = str_replace( "'", "", $this_key );
-				$dup_check[ $x ] = str_replace( "''", "'", ( "'" . $this_key . "'" ) );
+				$dup_check_get[ $x ] = str_replace( "''", "'", ( "'" . $this_key . "'" ) );
 			}
 		}
 		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
 			$_post_array = $this->array_flatten( $_POST, true, true );
 			for( $x = 0; $x < count( $_post_array ); $x++ ) {
-				$this_key = $this->decode_code( $_post_array[ $x ] );
+				$this_key = $this->decode_code( array_keys( $_post_array )[ $x ] );
 				if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
-					array_push( $dup_check, array_keys( $_post_array )[ $x ] );
+					$dup_check_post[ $x ] = $this_key;
 				}
 			}
 		}
-		
-		# if unique keys less than actual keys, there is a *small* chance this is an HPP Attack.
-		# Because of that, we redirect back to the page without any variables.
-		if ( ( count( $dup_check ) > count( array_unique( $dup_check ) ) ) && ( false === defined( 'WP_ADMIN' ) && ( false === function_exists( 'is_admin' ) || false === is_admin() ) ) ) {
+		# There are a number of functions in Wordpress admin section that unintentionally pollutes HTTP parameters.
+		# So if admin is logged in, prevent detection, and because many other apps are also crap at this,
+		# redirect rather than ban.
+		if ( ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) && ( false === defined( 'WP_ADMIN' ) && ( false === function_exists( 'is_admin' ) || false === is_admin() ) ) ) {
 			header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
 			exit();
 		}
@@ -659,10 +659,9 @@ class ParetoSecurity {
     * @param mixed $fname
     * @return
     */
-   private static function checkfilename( $fname ) {
-     if ( ( ! empty( $fname ) ) &&
-          ( ( $this->substri_count( $fname, '.php' ) == 1 ) &&
-          ( '.php' == substr( $fname, - 4 ) ) ) ) {
+   protected function checkfilename( $fname ) {
+     if ( false === empty( $fname ) &&
+          ( $this->substri_count( $fname, '.php' ) == 1 && ( '.php' == substr( $fname, - 4 ) ) ) ) {
                return true;
      } else return false;
    }
