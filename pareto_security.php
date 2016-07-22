@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.2.7
+Version: 1.2.8
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.2.7' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1469080458' ) );
+	define( 'PARETO_VERSION', '1.2.8' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1469163799' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -458,21 +458,19 @@ class ParetoSecurity {
 			$this_key = $this->decode_code( substr( $req_arr[ $x ], 0, strpos( $req_arr[ $x ], '=' ) ) );
 			if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
 				$this_key = str_replace( "'", "", $this_key );
-				$dup_check_get[ $x ] = str_replace( "''", "'", ( "'" . $this_key . "'" ) );
+				$dup_check_get[ $x ] = str_replace( "''", "", "'" . $this_key . "'" );
 			}
 		}
 		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
-			$_post_array = $this->array_flatten( $_POST, true, true );
-			for( $x = 0; $x < count( $_post_array ); $x++ ) {
-				$this_key = $this->decode_code( array_keys( $_post_array )[ $x ] );
+			$_post_array_keys = array_keys( $this->array_flatten( $_POST, true, true ) );
+			for( $x = 0; $x < count( $_post_array_keys ); $x++ ) {
+				$this_key = $this->decode_code( $_post_array_keys[ $x ] );
 				if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
 					$dup_check_post[ $x ] = $this_key;
 				}
 			}
 		}
-		# We only test for duplicate keys that appear in both GET and POST globals. This is because
-		# there are a number of functions in CMS's that unintentionally pollute HTTP query strings
-		# with duplicate parameters. And so, just to be safe, redirect, rather than ban.
+		# We only test for duplicate keys that appear in both QUERY_STRING and POST global.
 		if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
 			header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
 			exit();
