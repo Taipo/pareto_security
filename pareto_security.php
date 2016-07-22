@@ -453,14 +453,15 @@ class ParetoSecurity {
 		# Detect HTTP Parameter Pollution
 		$dup_check_get = array();
 		$dup_check_post = array();
-		$req_arr = explode( '&', $this->decode_code( substr( $req, strpos( $req, '?' ) + 1, ( strlen( $req ) - strpos( $req, '?' ) ) ) ) );
-		for( $x = 0; $x < count( $req_arr ); $x++ ) {
-			$this_key = $this->decode_code( substr( $req_arr[ $x ], 0, strpos( $req_arr[ $x ], '=' ) ) );
+		$qs_arr = explode( '&', $this->getQUERY_STRING() );
+		for( $x = 0; $x < count( $qs_arr ); $x++ ) {
+			$this_key = $this->decode_code( substr( $qs_arr[ $x ], 0, strpos( $qs_arr[ $x ], '=' ) ) );
 			if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
 				$this_key = str_replace( "'", "", $this_key );
 				$dup_check_get[ $x ] = str_replace( "''", "", "'" . $this_key . "'" );
 			}
 		}
+		$dup_check_get = array_unique( $dup_check_get );
 		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
 			$_post_array_keys = array_keys( $this->array_flatten( $_POST, true, true ) );
 			for( $x = 0; $x < count( $_post_array_keys ); $x++ ) {
@@ -470,6 +471,8 @@ class ParetoSecurity {
 				}
 			}
 		}
+		$dup_check_post = array_unique( $dup_check_post );
+		
 		# We only test for duplicate keys that appear in both QUERY_STRING and POST global.
 		if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
 			header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
@@ -1030,9 +1033,9 @@ class ParetoSecurity {
 	 */
 	protected function getQUERY_STRING() {
 		if ( false !== getenv( 'QUERY_STRING' ) ) {
-			return strtolower( $this->url_decoder( getenv( 'QUERY_STRING' ) ) );
+			return strtolower( $this->decode_code( getenv( 'QUERY_STRING' ) ) );
 		} else {
-			return strtolower( $this->url_decoder( $_SERVER[ 'QUERY_STRING' ] ) );
+			return strtolower( $this->decode_code( $_SERVER[ 'QUERY_STRING' ] ) );
 		}
 	}
 	/**
