@@ -4,11 +4,16 @@ Contributors: te_taipo
 
 Donate link: http://hokioisec7agisc4.onion 
 
-Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
+Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss.
+
 Requires at least: 3.0.1
+
 Tested up to: 4.5.3
+
 Stable tag: 1.2.8
+
 License: GPLv2 or later
+
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress core security class: A Web Application Firewall to protect your Wordpress web portal
@@ -90,23 +95,3 @@ Other contacts: https://github.com/Taipo/contact-details
 
 = 1.2.5 =
 * Updated _REQUEST_SHIELD()
-
-= 1.2.4 =
-* Streamlined _REQUEST_SHIELD()
-* Updated blacklists
-
-= 1.2.3 =
-* Prevent attempts to esculate user privileges in WP
-* Pareto settings now changed to standard and advanced mode aggregation
-
-= 1.2.2 =
-* Important update addressing arbitrary file includes/uploads
-* Updated functions: htaccessbanip(), datalist(), _REQUEST_SHIELD()
-
-= 1.2.1 =
-* Updated functions: __construct(), _REQUEST_SHIELD(), _QUERYSTRING_SHIELD(), x_secure_headers()
-* Fixed a bug in _SPIDER_SHIELD()
-
-= 1.2.0 =
-* Now allows users to enable/disable filtering of spiders/browser user-agents via Pareto Security Settings
-* _SPIDER_SHIELD() now tests for database injection attempts
