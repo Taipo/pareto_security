@@ -462,6 +462,7 @@ class ParetoSecurity {
 			}
 		}
 		$dup_check_get = array_unique( $dup_check_get );
+
 		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
 			$_post_array_keys = array_keys( $this->array_flatten( $_POST, true, true ) );
 			for( $x = 0; $x < count( $_post_array_keys ); $x++ ) {
