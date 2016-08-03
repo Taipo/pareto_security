@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.2.8
+Version: 1.2.9
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.2.8' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1469163799' ) );
+	define( 'PARETO_VERSION', '1.2.9' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1469433726' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -216,10 +216,10 @@ class ParetoSecurity {
 		$kickoff = false;
 		# these are the triggers to engage the rest of this function.
 		$vartrig = "\/\/|\.\.\/|%0d%0a|0x|a(?:ll|lert|scii\()|b(?:ase64|enchmark|y)|
-				   c(?:har|olumn|onvert|ookie|reate)|d(?:eclare|ata|ate|elete|rop)|concat|
+				   c(?:ase|har|olumn|onvert|ookie|reate)|d(?:eclare|ata|ate|elete|rop)|concat|
 				   e(?:rror|tc|val|xec)|f(?:rom|tp)|g(?:rant|roup)|having|i(?:f|nsert|snull|nto)|
 				   j(?:s|json)|l(?:ength\(|oad)|master|onmouse|null|php|s(?:chema|elect|et|hell|
-				   how|leep)|table|u(?:nion|pdate|ser|tf)|var|w(?:aitfor|here|hile)";
+				   how|leep)|table|u(?:nion|pdate|ser|tf)|var|w(?:aitfor|hen|here|hile)";
 		$vartrig = preg_replace( "/[\s]/i", "", $vartrig );
 		for ( $x = 1; $x <= 5; $x++ ) {
 			$string = $this->cleanString( $x, $string );
@@ -455,18 +455,17 @@ class ParetoSecurity {
 		$dup_check_post = array();
 		$qs_arr = explode( '&', $this->getQUERY_STRING() );
 		for( $x = 0; $x < count( $qs_arr ); $x++ ) {
-			$this_key = $this->decode_code( substr( $qs_arr[ $x ], 0, strpos( $qs_arr[ $x ], '=' ) ) );
-			if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
-				$this_key = str_replace( "'", "", $this_key );
-				$dup_check_get[ $x ] = str_replace( "''", "", "'" . $this_key . "'" );
+			$this_key = strtolower( $this->decode_code( substr( $qs_arr[ $x ], 0, strpos( $qs_arr[ $x ], '=' ) ), false, true ) );
+			if ( false !== $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
+				$dup_check_get[ $x ] = escapeshellarg( str_replace( "'", '', $this_key ) );
 			}
 		}
 		$dup_check_get = array_unique( $dup_check_get );
 
-		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
+		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false === empty( $_POST ) ) {
 			$_post_array_keys = array_keys( $this->array_flatten( $_POST, true, true ) );
 			for( $x = 0; $x < count( $_post_array_keys ); $x++ ) {
-				$this_key = $this->decode_code( $_post_array_keys[ $x ] );
+				$this_key = strtolower( $this->decode_code( $_post_array_keys[ $x ], false, true ) );
 				if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
 					$dup_check_post[ $x ] = $this_key;
 				}
@@ -800,7 +799,12 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function get_http_host( $encoding = 'UTF-8' ) {
-		return htmlspecialchars( preg_replace( "/^(?:([^\.]+)\.)?domain\.com$/", '\1', $_SERVER[ 'SERVER_NAME' ] ), ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
+		$servername = htmlspecialchars( preg_replace( "/^(?:([^\.]+)\.)?domain\.com$/", '\1', $_SERVER[ 'SERVER_NAME' ] ), ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
+		if ( false !== filter_has_var( INPUT_SERVER, $servername ) ) {
+			return filter_input( INPUT_SERVER, $servername, FILTER_UNSAFE_RAW, FILTER_NULL_ON_FAILURE );
+		} else {
+			return filter_var( $servername, FILTER_UNSAFE_RAW, FILTER_NULL_ON_FAILURE );
+		}
 	}
 	
 	/**
@@ -995,11 +999,13 @@ class ParetoSecurity {
 	 * decode_code()
 	 * @return
 	 */
-	protected function decode_code( $code, $escapeshell=false ) {
+	protected function decode_code( $code, $escapeshell=false, $filter=false ) {
 		$code = ( $this->substri_count( $code, '\u00' ) > 0 ) ? str_ireplace( '\u00', '%', $code ) : $code;
 		$code = ( $this->substri_count( $code, '&#x' ) > 0 && substr_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
 		if ( false !== $escapeshell ) {
 			return $this->url_decoder( escapeshellarg( $code ) );
+		} elseif ( false !== $filter ) {
+			return filter_var( $this->url_decoder( $code ), FILTER_UNSAFE_RAW, FILTER_SANITIZE_SPECIAL_CHARS );
 		} else
 			return $this->url_decoder( $code );
 	}
@@ -1054,7 +1060,8 @@ class ParetoSecurity {
 	 */
 	protected function integ_prop( $integ ) {
 		# is an integer, is not a float, is not negative
-		if ( false !== is_int( $integ ) && false !== preg_match( '/^\d+$/D', $integ ) && ( int ) $integ >= 0 ) {
+		;
+		if ( false !== is_int( $integ ) && false !== preg_match( '/^\d+$/D', $integ ) && ( int ) $integ >= 0 && false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
 			return true;
 		} else {
 			return false;
