@@ -1060,7 +1060,6 @@ class ParetoSecurity {
 	 */
 	protected function integ_prop( $integ ) {
 		# is an integer, is not a float, is not negative
-		;
 		if ( false !== is_int( $integ ) && false !== preg_match( '/^\d+$/D', $integ ) && ( int ) $integ >= 0 && false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
 			return true;
 		} else {
