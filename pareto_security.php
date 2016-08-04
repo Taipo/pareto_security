@@ -63,12 +63,14 @@ class ParetoSecurity {
 	# path to the root directory of the site, e.g /home/user/public_html
 	public $_doc_root = '';
 	# Correct Production Server Settings = 0, prevent any errors from displaying = 1, Show all errors = 2 ( depends on the php.ini settings )
-	protected $_quietscript = 0;
+	protected $_quietscript = 2;
 	# Custom set a number of above settings all at once
 	protected $_adv_mode = 0;
 	
 	# Other
 	protected $_bypassbanip = false;
+	public $_get_all = array();
+	public $_post_all = array();
 	
 	public function __construct() {
 		
@@ -100,9 +102,9 @@ class ParetoSecurity {
 		# Merge $_REQUEST with _GET and _POST excluding _COOKIE data
 		$_REQUEST = array_merge( $_GET, $_POST );
 		# Shields Up
-		$this->_REQUEST_SHIELD();
 		$this->_QUERYSTRING_SHIELD();
 		$this->_POST_SHIELD();
+		$this->_REQUEST_SHIELD();
 		$this->_COOKIE_SHIELD();
 		$this->_REQUESTTYPE_SHIELD();
 		$this->_SPIDER_SHIELD();
@@ -429,9 +431,6 @@ class ParetoSecurity {
 		# if empty then the rest of no interest to us
 		if ( false !== empty( $_REQUEST ) ) return;
 
-		# lower case flattened _REQUEST()
-		$_request_lc = $this->array_flatten( $_REQUEST, true, true );
-
 		# prevent arbitrary file includes/uploads
 		if ( false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
 				if (  false !== $this->instr_url( $req ) ) {
@@ -444,11 +443,11 @@ class ParetoSecurity {
 				}
 		}
 		# prevent command injection
-		if ( false !== array_key_exists( "'cmd'", $_request_lc ) || false !== array_key_exists( "'system'", $_request_lc ) )
-			$this->karo( true );
+		if ( false !== array_key_exists( "'cmd'", $this->_get_all ) || false !== array_key_exists( "'system'", $this->_get_all ) )
+			$this->karo( false );
 
 		# prevent attempts to esculate user privileges in WP
-		if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $_request_lc ) && 'administrator' == $_request_lc[ "'default_role'" ] ) ) $this->karo( false );
+		if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $this->_post_all ) && 'administrator' == $this->_post_all[ "'default_role'" ] ) ) $this->karo( false );
 
 		# Detect HTTP Parameter Pollution
 		$dup_check_get = array();
@@ -513,6 +512,8 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function get_filter( $val, $key ) {
+		
+		$this->_get_all[ strtolower( $this->decode_code( $key, true ) ) ] = strtolower( $this->decode_code( $val, true ) );
 		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
 			$val = strtolower( $this->decode_code( $val, true ) );
 			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 1 ) ) {
@@ -526,6 +527,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function _QUERYSTRING_SHIELD() {
+
 		if ( false !== empty( $_REQUEST ) || false === $this->cmpstr( 'GET', $_SERVER[ 'REQUEST_METHOD' ] ) || false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
 			return; // of no interest to us
 		} else {
@@ -545,6 +547,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function post_filter( $val, $key ) {
+		$this->_post_all[ strtolower( $this->decode_code( $key, true ) ) ] = strtolower( $this->decode_code( $val, true ) );
 		if ( false !== $this->datalist( $this->decode_code( $val ), 2 ) ) {
 			# while some post content can be attacks, its best to 403.
 			$this->karo( false );
@@ -1003,6 +1006,7 @@ class ParetoSecurity {
 		$code = ( $this->substri_count( $code, '\u00' ) > 0 ) ? str_ireplace( '\u00', '%', $code ) : $code;
 		$code = ( $this->substri_count( $code, '&#x' ) > 0 && substr_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
 		if ( false !== $escapeshell ) {
+			$code = str_replace( "'", "", $code );
 			return $this->url_decoder( escapeshellarg( $code ) );
 		} elseif ( false !== $filter ) {
 			return filter_var( $this->url_decoder( $code ), FILTER_UNSAFE_RAW, FILTER_SANITIZE_SPECIAL_CHARS );
