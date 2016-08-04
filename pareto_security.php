@@ -111,8 +111,8 @@ class ParetoSecurity {
 		$this->__destruct();
 	}
 	public function __destruct() {
-		unset( $this->_get_all );
-		unset( $this->_post_all );
+		if ( false === empty( $this->_get_all ) ) unset( $this->_get_all );
+		if ( false === empty( $this->_post_all ) ) unset( $this->_post_all );
 	}
 	
 	function network_propagate( $pfunction, $networkwide ) {
