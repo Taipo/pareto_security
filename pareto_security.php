@@ -109,7 +109,6 @@ class ParetoSecurity {
 		$this->_REQUESTTYPE_SHIELD();
 		$this->_SPIDER_SHIELD();
 		$this->__destruct();
-
 	}
 	public function __destruct() {
 		unset( $this->_get_all );
