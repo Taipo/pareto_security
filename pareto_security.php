@@ -236,40 +236,40 @@ class ParetoSecurity {
 			$j				= 1;
 			# toggle through 6 different filters
 			$sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
-							collation|concat|conv|convert|count|curdate|database|date|
-							decode|diff|distinct|else|elt|end||encode|encrypt|extract|field|
-							_file|floor|format|hex|if|inner|insert|instr|interval|join|lcase|
-							left|length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|
-							md5|mid|mod|name|now|null|ord|password|position|quote|rand|
-							repeat|replace|reverse|right|rlike|round|row_count|rpad|rtrim|
-							_set|schema|select|sha1|sha2|serverproperty|soundex|
-							space|strcmp|substr|substr_index|substring|sum|time|trim|
-							truncate|ucase|unhex|upper|_user|user|values|varchar|
-							version|while|ws|xor)\(|\(0x|@@|cast|integer";
+					collation|concat|conv|convert|count|curdate|database|date|
+					decode|diff|distinct|else|elt|end||encode|encrypt|extract|field|
+					_file|floor|format|hex|if|inner|insert|instr|interval|join|lcase|
+					left|length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|
+					md5|mid|mod|name|now|null|ord|password|position|quote|rand|
+					repeat|replace|reverse|right|rlike|round|row_count|rpad|rtrim|
+					_set|schema|select|sha1|sha2|serverproperty|soundex|
+					space|strcmp|substr|substr_index|substring|sum|time|trim|
+					truncate|ucase|unhex|upper|_user|user|values|varchar|
+					version|while|ws|xor)\(|\(0x|@@|cast|integer";
 			
 			$sqlupdatelist	= "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
-							\bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
-							\bval\b|0x|--";
+					\bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
+					\bval\b|0x|--";
 			
 			$sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|win.|
-							\bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
-							_log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
-							\bsql\b|tmp|tmp\/sess|\busr\b|\bvar\b|\/(?:uploa|passw)d';
+					\bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
+					_log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
+					\bsql\b|tmp|tmp\/sess|\busr\b|\bvar\b|\/(?:uploa|passw)d';
 			
 			$sqlmatchlist2	= '@@|_and|ascii|b(?:enchmark|etween|in|itlength|
-							ulk)|c(?:ast|har|ookie|ollate|olumn|oncat|urrent)|\bdate\b|
-							dump|e(?:lt|xport)|false|\bfield\b|fetch|format|function|
-							\bhaving\b|i(?:dentity|nforma|nstr)|\bif\b|\bin\b|inner|insert|
-							l(?:case|eft|ength|ike|imit|oad|ocate|ower|pad|trim)|join|
-							m(:?ade by|ake|atch|d5|id)|not_like|not_regexp|null|\bon\b|
-							order|outfile|p(?:ass|ost|osition|riv)|\bquote\b|\br(?:egexp\b|
-							ename\b|epeat\b|eplace\b|equest\b|everse\b|eturn\b|ight\b|
-							like\b|pad\b|trim\b)|\bs(?:ql\b|hell\b|leep\b|trcmp\b|ubstr\b)|
-							\bt(?:able\b|rim\b|rue\b|runcate\b)|u(?:case|nhex|pdate|
-							pper|ser)|values|varchar|\bwhen\b|where|with|\(0x|
-							_(?:decrypt|encrypt|get|post|server|cookie|global|or|
-							request|xor)|(?:column|db|load|not|octet|sql|table|xp)_|
-							version|auto_prepend_file|allow_url_include';
+					ulk)|c(?:ast|har|ookie|ollate|olumn|oncat|urrent)|\bdate\b|
+					dump|e(?:lt|xport)|false|\bfield\b|fetch|format|function|
+					\bhaving\b|i(?:dentity|nforma|nstr)|\bif\b|\bin\b|inner|insert|
+					l(?:case|eft|ength|ike|imit|oad|ocate|ower|pad|trim)|join|
+					m(:?ade by|ake|atch|d5|id)|not_like|not_regexp|null|\bon\b|
+					order|outfile|p(?:ass|ost|osition|riv)|\bquote\b|\br(?:egexp\b|
+					ename\b|epeat\b|eplace\b|equest\b|everse\b|eturn\b|ight\b|
+					like\b|pad\b|trim\b)|\bs(?:ql\b|hell\b|leep\b|trcmp\b|ubstr\b)|
+					\bt(?:able\b|rim\b|rue\b|runcate\b)|u(?:case|nhex|pdate|
+					pper|ser)|values|varchar|\bwhen\b|where|with|\(0x|
+					_(?:decrypt|encrypt|get|post|server|cookie|global|or|
+					request|xor)|(?:column|db|load|not|octet|sql|table|xp)_|
+					version|auto_prepend_file|allow_url_include';
 			
 			while ( $j <= 6 ) {
 				$string = $this->cleanString( $j, $string );
@@ -364,34 +364,34 @@ class ParetoSecurity {
 		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val ) ) );
 		# _REQUEST[]
 		$_datalist[ 1 ] = array( "php/login","eval(gz","eval(base64","@eval","extractvalue(",
-			"}catch(e","allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
-			"shell_exec(","open_basedir","auto_prepend_file","php://input",")limit","rush=",
-			"string.fromcharcode",";base64","base64,","prompt(","onerror=alert(","/var/lib/php",
-			"get[\'cmd","><script","\$_request[\'cmd","wget+http",".passwd","usr/bin/perl",
-			"javascript:alert(","pwtoken_get","php_uname","passthru(","sha1(","sha2(","}if(!",
-			"<?php","/iframe","\$_get","@@version","ob_starting","../cmd","document.cookie",
-			"document.write","onload=","mysql_query","document.location","window.location","]);}",
-			"location.replace(","()}","@@datadir","/frameset","0x3c62723e","utl_http.request",
-			"[link=http://","[/link]","ywxlcnqo","_start_","php_self","shell_exec","%c2%bf",
-			"\$_server",";!--=","substr(","\$_post","\$_session","\$_request","\$_env","globals[",
-			".php/admin","mosconfig_","<@replace(","hex_ent","inurl:","replace(","/iframe>",
-			"php/password_for","unhex(","error_reporting(","http_cmd","=alert(","localhost",
-			"set-cookie","{\${","http/1.","{\$_","print@@variable","xp_cmdshell","127.0.0.1:",
-			"xp_availablemedia","sp_password","/etc/","/var/htpasswd","file_get_contents(",
-			"*(|(objectclass=|||","../wp-",".htaccess",".htpasswd",";echo","system(","<base",
-			"zxzhbcg=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==","ki9xsevsrs8q",
-			"expect://[cmd]",":;};","wget","script>" );
+				"}catch(e","allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
+				"shell_exec(","open_basedir","auto_prepend_file","php://input",")limit","rush=",
+				"string.fromcharcode",";base64","base64,","prompt(","onerror=alert(","/var/lib/php",
+				"get[\'cmd","><script","\$_request[\'cmd","wget+http",".passwd","usr/bin/perl",
+				"javascript:alert(","pwtoken_get","php_uname","passthru(","sha1(","sha2(","}if(!",
+				"<?php","/iframe","\$_get","@@version","ob_starting","../cmd","document.cookie",
+				"document.write","onload=","mysql_query","document.location","window.location","]);}",
+				"location.replace(","()}","@@datadir","/frameset","0x3c62723e","utl_http.request",
+				"[link=http://","[/link]","ywxlcnqo","_start_","php_self","shell_exec","%c2%bf",
+				"\$_server",";!--=","substr(","\$_post","\$_session","\$_request","\$_env","globals[",
+				".php/admin","mosconfig_","<@replace(","hex_ent","inurl:","replace(","/iframe>",
+				"php/password_for","unhex(","error_reporting(","http_cmd","=alert(","localhost",
+				"set-cookie","{\${","http/1.","{\$_","print@@variable","xp_cmdshell","127.0.0.1:",
+				"xp_availablemedia","sp_password","/etc/","/var/htpasswd","file_get_contents(",
+				"*(|(objectclass=|||","../wp-",".htaccess",".htpasswd",";echo","system(","<base",
+				"zxzhbcg=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==","ki9xsevsrs8q",
+				"expect://[cmd]",":;};","wget","script>" );
 		
 		# _POST[]
 		$_datalist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
-			"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(","/bin/cat",
-			"/etc/passwd","file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
-			"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
+				"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(","/bin/cat",
+				"/etc/passwd","file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
+				"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
 		
 		# 'User-Agent'
 		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
-			"wget","eval(","getconfig(",".chr(","passthru","shell_exec","popen(","exec(", "onerror",
-			"document.location" );
+				"wget","eval(","getconfig(",".chr(","passthru","shell_exec","popen(","exec(", "onerror",
+				"document.location" );
 		
 		$_datalist[ 4 ] = array( "mozilla","android","windows","chrome","safari","opera","apple","google" );
 
