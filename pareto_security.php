@@ -63,14 +63,14 @@ class ParetoSecurity {
 	# path to the root directory of the site, e.g /home/user/public_html
 	public $_doc_root = '';
 	# Correct Production Server Settings = 0, prevent any errors from displaying = 1, Show all errors = 2 ( depends on the php.ini settings )
-	protected $_quietscript = 2;
+	protected $_quietscript = 0;
 	# Custom set a number of above settings all at once
 	protected $_adv_mode = 0;
 	
 	# Other
 	protected $_bypassbanip = false;
-	public $_get_all = array();
-	public $_post_all = array();
+	protected $_get_all = array();
+	protected $_post_all = array();
 	
 	public function __construct() {
 		
@@ -108,7 +108,13 @@ class ParetoSecurity {
 		$this->_COOKIE_SHIELD();
 		$this->_REQUESTTYPE_SHIELD();
 		$this->_SPIDER_SHIELD();
-	} // end of __construct()
+		$this->__destruct();
+
+	}
+	public function __destruct() {
+		unset( $this->_get_all );
+		unset( $this->_post_all );
+	}
 	
 	function network_propagate( $pfunction, $networkwide ) {
 		global $wpdb;
