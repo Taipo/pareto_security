@@ -158,17 +158,16 @@ class ParetoSecurity {
 	
 	protected function _set_error_level() {
 		$val = ( false !== $this->integ_prop( $this->_quietscript ) || false !== ctype_digit( $this->_quietscript ) ) ? ( int ) $this->_quietscript : 0;
+		@ini_set( 'display_errors', 0 );
 		switch ( ( int ) $val ) {
 			case ( 0 ):
 				error_reporting( 6135 );
 				break;
 			case ( 1 ):
 				error_reporting( 0 );
-				@ini_set( 'display_errors', 0 );
 				break;
 			case ( 2 ):
 				error_reporting( 32767 );
-				ini_set( 'display_errors', 1 );
 				break;
 			default:
 				error_reporting( 6135 );
@@ -202,12 +201,7 @@ class ParetoSecurity {
 		if ( false === ( bool ) $this->_banip || false !== $this->is_server( $this->getREMOTE_ADDR() ) )
 			$this->send403();
 
-		# set strict conditions for htaccess banning an IP address
-		# - htaccess file exists and is writeable
-		# - request is for an IP ban
-		# - no bypass request triggered
-		# - script manually set to ban IPs to htaccess
-		if ( ( false !== $this->hCoreFileChk( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
+		if ( ( false !== $this->get_file_perms( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
 			$this->htaccessbanip( $this->getRealIP() );
 		}
 		$this->send403();
@@ -390,8 +384,8 @@ class ParetoSecurity {
 		# _POST[]
 		$_datalist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
 				"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(","/bin/cat",
-				"/etc/passwd","file_get_contents(","prompt(","script>alert(","fopen(","get[\'cmd","><script",
-				"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd", "system(" );
+				"string.fromcharcode","/etc/passwd","file_get_contents(","fopen(","get[\'cmd","><script",
+				"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd","system(" );
 		
 		# 'User-Agent'
 		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
@@ -536,9 +530,8 @@ class ParetoSecurity {
 		if ( false !== empty( $_REQUEST ) || false === $this->cmpstr( 'GET', $_SERVER[ 'REQUEST_METHOD' ] ) || false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
 			return; // of no interest to us
 		} else {
-			# run $_REQUEST through filters
-			# $_REQUEST *here* is basically $_GET...
-			array_walk_recursive( $_REQUEST, array(
+			# run $_GET through filters
+			array_walk_recursive( $_GET, array(
 				 $this,
 				'get_filter' 
 			) );
@@ -684,7 +677,7 @@ class ParetoSecurity {
 		$filename = '';
 		$filename = ( ( ( strlen( @ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( false === ( bool ) @ini_get( 'cgi.fix_pathinfo' ) ) ) || ( false === isset( $_SERVER[ 'SCRIPT_FILENAME' ] ) && false !== isset( $_SERVER[ 'PHP_SELF' ] ) && false !== $this->string_prop( basename( $_SERVER[ 'PHP_SELF' ] ), 1 ) ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( realpath( $_SERVER[ 'SCRIPT_FILENAME' ] ) );
 		preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
-		if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->hCoreFileChk( $matches[ 0 ], true ) ) ) {
+		if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->get_file_perms( $matches[ 0 ], true ) ) ) {
 			   $filename = $matches[ 0 ];
 		}
 		return $filename;
@@ -754,7 +747,7 @@ class ParetoSecurity {
 	 */
 	function htaccessbanip( $banip ) {
 		# if IP is empty or too short, or .htaccess is not read/write
-		if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->hCoreFileChk( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', true, true ) ) ) {
+		if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->get_file_perms( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', true, true ) ) ) {
 			return $this->send403();
 		} else {
 			$limitend = "# End of " . $this->get_http_host() . " Pareto Security Ban\n";
@@ -782,11 +775,11 @@ class ParetoSecurity {
 		}
 	}
 	/**
-	 * hCoreFileChk()
+	 * get_file_perms()
 	 * 
 	 * @return boolean
 	 */
-	protected function hCoreFileChk( $f = NULL, $r = false, $w = false ) {
+	protected function get_file_perms( $f = NULL, $r = false, $w = false ) {
 		# if file exists return bool
 		# if file exists & readable return bool
 		# if file exists, readable & writable return bool
