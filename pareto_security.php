@@ -360,13 +360,13 @@ class ParetoSecurity {
 		# cannot be avoided. however I will attempt to keep this list short.
 
 		$_datalist	  = array();
-		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val ) ) );
+		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val, true ) ) );
 		# _REQUEST[]
 		$_datalist[ 1 ] = array( "php/login","eval(gz","eval(base64","@eval","extractvalue(",
 				"}catch(e","allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
 				"shell_exec(","open_basedir","auto_prepend_file","php://input",")limit","rush=",
 				"string.fromcharcode",";base64","base64,","prompt(","onerror=alert(","/var/lib/php",
-				"get[\'cmd","><script","\$_request[\'cmd","wget+http",".passwd","usr/bin/perl",
+				"get[cmd","><script","\$_request[cmd","wget+http",".passwd","usr/bin/perl",
 				"javascript:alert(","pwtoken_get","php_uname","passthru(","sha1(","sha2(","}if(!",
 				"<?php","/iframe","\$_get","@@version","ob_starting","../cmd","document.cookie",
 				"document.write","onload=","mysql_query","document.location","window.location","]);}",
@@ -384,8 +384,8 @@ class ParetoSecurity {
 		# _POST[]
 		$_datalist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
 				"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(","/bin/cat",
-				"string.fromcharcode","/etc/passwd","file_get_contents(","fopen(","get[\'cmd","><script",
-				"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[\'cmd","system(" );
+				"string.fromcharcode","/etc/passwd","file_get_contents(","fopen(","get[cmd","><script",
+				"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[cmd","system(" );
 		
 		# 'User-Agent'
 		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
@@ -393,7 +393,7 @@ class ParetoSecurity {
 				"document.location" );
 		
 		$_datalist[ 4 ] = array( "mozilla","android","windows","chrome","safari","opera","apple","google" );
-
+		
 		for( $x=0; $x < count( $_datalist[ ( int ) $list ] ); $x++ ) {
 			if ( false !== strpos( $val, $this->decode_code( $_datalist[ ( int ) $list ][ $x ] ) ) ) {
 				return true;
@@ -441,16 +441,17 @@ class ParetoSecurity {
 					}
 				}
 		}
+
 		# prevent command injection
 		if ( false !== array_key_exists( "'cmd'", $this->_get_all ) || false !== array_key_exists( "'system'", $this->_get_all ) )
 			$this->karo( false );
 
 		# prevent attempts to esculate user privileges in WP
-		if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $this->_post_all ) && 'administrator' == $this->_post_all[ "'default_role'" ] ) ) $this->karo( false );
+		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $this->_post_all ) && 'administrator' == $this->_post_all[ "'default_role'" ] ) ) $this->karo( false );
 
 		# Detect HTTP Parameter Pollution
+		# i.e when devs mistakenly use $_REQUEST to return values
 		$dup_check_get = array();
-		$dup_check_post = array();
 		$qs_arr = explode( '&', $this->getQUERY_STRING() );
 		for( $x = 0; $x < count( $qs_arr ); $x++ ) {
 			$this_key = strtolower( $this->decode_code( substr( $qs_arr[ $x ], 0, strpos( $qs_arr[ $x ], '=' ) ), false, true ) );
@@ -459,8 +460,9 @@ class ParetoSecurity {
 			}
 		}
 		$dup_check_get = array_unique( $dup_check_get );
-
+		
 		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false === empty( $_POST ) ) {
+			$dup_check_post = array();
 			$_post_array_keys = array_keys( $this->array_flatten( $_POST, true, true ) );
 			for( $x = 0; $x < count( $_post_array_keys ); $x++ ) {
 				$this_key = strtolower( $this->decode_code( $_post_array_keys[ $x ], false, true ) );
@@ -468,13 +470,13 @@ class ParetoSecurity {
 					$dup_check_post[ $x ] = $this_key;
 				}
 			}
-		}
-		$dup_check_post = array_unique( $dup_check_post );
-		
-		# We only test for duplicate keys that appear in both QUERY_STRING and POST global.
-		if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
-			header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
-			exit();
+			if ( false === empty( $dup_check_post ) ) $dup_check_post = array_unique( $dup_check_post );
+			
+			# We only test for duplicate keys that appear in both QUERY_STRING and POST global.
+			if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
+				header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
+				exit();
+			}
 		}
 		
 		# WP Author Discovery
@@ -511,10 +513,9 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function get_filter( $val, $key ) {
-		
 		$this->_get_all[ strtolower( $this->decode_code( $key, true ) ) ] = strtolower( $this->decode_code( $val, true ) );
 		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
-			$val = strtolower( $this->decode_code( $val, true ) );
+			$val = strtolower( $this->decode_code( $val ) );
 			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 1 ) ) {
 				$this->karo( true );
 			}
@@ -569,7 +570,7 @@ class ParetoSecurity {
 			$i     = 0;
 			while ( $i < count( $fpost, COUNT_RECURSIVE ) ) {
 				if ( false !== is_array( $fpost[ $i ] ) ) continue;
-				if ( false !== is_string( $fpost[ $i ] ) && ( strlen( $fpost[ $i ] ) > 0 ) ) {
+				if ( strlen( $fpost[ $i ] ) > 0 ) {
 					if ( false !== $this->datalist( $this->decode_code( $fpost[ $i ] ), 2 ) ) {
 						# while some post content can be attacks, its best to 403.
 						$this->karo( false );
