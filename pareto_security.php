@@ -268,7 +268,7 @@ class ParetoSecurity {
 					pper|ser)|values|varchar|\bwhen\b|where|with|\(0x|
 					_(?:decrypt|encrypt|get|post|server|cookie|global|or|
 					request|xor)|(?:column|db|load|not|octet|sql|table|xp)_|
-					version|auto_prepend_file|allow_url_include';
+					version|auto_prepend_file|allow_url_include|0x3c62723e';
 			
 			while ( $j <= 6 ) {
 				$string = $this->cleanString( $j, $string );
@@ -333,7 +333,7 @@ class ParetoSecurity {
 					return true;
 				} elseif ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && ( false !== ( bool ) preg_match( "/\buser\b/i", $string ) ) ) {
 					return true;
-				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist2/i", $string ) ) || ( 2 <= substr_count( $string, ',' ) ) ) ) {
+				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist2/i", $string ) ) ) ) {
 					return true;
 				} elseif ( ( false !== strpos( $string, 'union' ) ) && ( false !== strpos( $string, 'select' ) ) && ( false !== strpos( $string, 'from' ) ) ) {
 					return true;
@@ -360,32 +360,33 @@ class ParetoSecurity {
 		# cannot be avoided. however I will attempt to keep this list short.
 
 		$_datalist	  = array();
-		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( $val, true ) ) );
+		$val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( str_replace( "'", '', ( $val ) ) ) ) );
 		# _REQUEST[]
-		$_datalist[ 1 ] = array( "php/login","eval(gz","eval(base64","@eval","extractvalue(",
-				"}catch(e","allow_url_include","safe_mode","disable_functions","phpinfo(","4294967296",
-				"shell_exec(","open_basedir","auto_prepend_file","php://input",")limit","rush=",
-				"string.fromcharcode",";base64","base64,","prompt(","onerror=alert(","/var/lib/php",
-				"get[cmd","><script","\$_request[cmd","wget+http",".passwd","usr/bin/perl",
-				"javascript:alert(","pwtoken_get","php_uname","passthru(","sha1(","sha2(","}if(!",
-				"<?php","/iframe","\$_get","@@version","ob_starting","../cmd","document.cookie",
-				"document.write","onload=","mysql_query","document.location","window.location","]);}",
-				"location.replace(","()}","@@datadir","/frameset","0x3c62723e","utl_http.request",
-				"[link=http://","[/link]","ywxlcnqo","_start_","php_self","shell_exec","%c2%bf",
-				"\$_server",";!--=","substr(","\$_post","\$_session","\$_request","\$_env","globals[",
-				".php/admin","mosconfig_","<@replace(","hex_ent","inurl:","replace(","/iframe>",
-				"php/password_for","unhex(","error_reporting(","http_cmd","=alert(","localhost",
-				"set-cookie","{\${","http/1.","{\$_","print@@variable","xp_cmdshell","127.0.0.1:",
-				"xp_availablemedia","sp_password","/etc/","/var/htpasswd","file_get_contents(",
-				"*(|(objectclass=|||","../wp-",".htaccess",".htpasswd",";echo","system(","<base",
-				"zxzhbcg=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==","ki9xsevsrs8q",
+		$_datalist[ 1 ] = array( "php/login","eval(","base64_","@eval","extractvalue(",
+				"}catch(e","allow_url_include","safe_mode","disable_functions","phpinfo(",
+				"shell_exec(","open_basedir","auto_prepend_file","php://input",")limit",
+				"string.fromcharcode","prompt(","onerror=alert(","/var/lib/php","4294967296",
+				"get[cmd","><script","\$_request[cmd","usr/bin/perl",
+				"javascript:alert(","pwtoken_get","php_uname","passthru(","sha1(","sha2(",
+				"<?php","/iframe","\$_get","@@version","ob_starting","../cmd","document.",
+				"onload=","mysql_query","window.location","/frameset","utl_http.request",
+				"location.replace(","()}","@@datadir","_start_","php_self","%c2%bf","}if(",
+				"[link=http://","[/link]","ywxlcnqo","\$_session","\$_request","\$_env",
+				"\$_server",";!--=","substr(","\$_post","hex_ent","inurl:","replace(",
+				".php/admin","mosconfig_","<@replace(","/iframe>","=alert(","localhost",
+				"php/password_for","unhex(","error_reporting(","http_cmd","127.0.0.1:",
+				"set-cookie","{\$","http/1.","print@@variable","xp_cmdshell","globals[",
+				"xp_availablemedia","sp_password","/etc/","file_get_contents(","<base",
+				"*(|(objectclass=|||","../wp-",".htaccess",";echo","system(","zxzhbcg=",
+				"rush=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==","ki9xsevsrs8q",
 				"expect://[cmd]",":;};","wget","script>" );
 		
 		# _POST[]
-		$_datalist[ 2 ] = array( "zxzhbcg","eval(gz", "eval(base64","fromcharcode","allow_url_include",
-				"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(","/bin/cat",
+		$_datalist[ 2 ] = array( "zxzhbcg","eval(", "base64_","fromcharcode","allow_url_include",
+				"@eval","php://input","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(",
 				"string.fromcharcode","/etc/passwd","file_get_contents(","fopen(","get[cmd","><script",
-				"passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[cmd","system(" );
+				"/bin/cat","passthru(","><javas","ywxlcnqo","znjvbunoyxjdb2rl", "\$_request[cmd",
+				"system(" );
 		
 		# 'User-Agent'
 		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
@@ -420,7 +421,7 @@ class ParetoSecurity {
 			$this->karo( false );
 			
 		# Reflected File Download Attack
-		if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd|ini)/i", $req ) )
+		if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd|ini|htac|htpa|passwd)/i", $req ) )
 			$this->karo( true );
 
 		# osCommerce specific exploit
