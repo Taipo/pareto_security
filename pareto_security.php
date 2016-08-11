@@ -69,6 +69,7 @@ class ParetoSecurity {
 	
 	# Other
 	protected $_bypassbanip = false;
+	protected $_ip = '';
 	protected $_get_all = array();
 	protected $_post_all = array();
 	
@@ -89,16 +90,14 @@ class ParetoSecurity {
 			
 			$this->_adv_mode = isset( $ParetoSettings->advmode ) ? $ParetoSettings->advmode : $this->_adv_mode;
 		}
-		
-		$this->_bypassbanip = false;
-		
 		$this->advanced_mode();
 		$this->_set_error_level();
-		
 		# if open_basedir is not set in php.ini then set it in the local scope
 		$this->setOpenBaseDir();
 		# Send secure headers
 		$this->x_secure_headers();
+		# Set IP
+		$this->_ip = $this->getRealIP();
 		# Merge $_REQUEST with _GET and _POST excluding _COOKIE data
 		$_REQUEST = array_merge( $_GET, $_POST );
 		# Shields Up
@@ -198,11 +197,11 @@ class ParetoSecurity {
 	 */
 	
 	function karo( $t = false ) {
-		if ( false === ( bool ) $this->_banip || false !== $this->is_server( $this->getREMOTE_ADDR() ) )
+		if ( false === ( bool ) $this->_banip || false !== $this->_bypassbanip )
 			$this->send403();
 
 		if ( ( false !== $this->get_file_perms( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
-			$this->htaccessbanip( $this->getRealIP() );
+			$this->htaccessbanip( $this->_ip );
 		}
 		$this->send403();
 	}
@@ -464,7 +463,7 @@ class ParetoSecurity {
 		
 		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false === empty( $_POST ) ) {
 			$dup_check_post = array();
-			$_post_array_keys = array_keys( $this->array_flatten( $_POST, true, true ) );
+			$_post_array_keys = array_keys( $this->_post_all );
 			for( $x = 0; $x < count( $_post_array_keys ); $x++ ) {
 				$this_key = strtolower( $this->decode_code( $_post_array_keys[ $x ], false, true ) );
 				if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
@@ -513,7 +512,7 @@ class ParetoSecurity {
 	 * 
 	 * @return
 	 */
-	protected function get_filter( $val, $key ) {
+	protected function querystring_filter( $val, $key ) {
 		$this->_get_all[ strtolower( $this->decode_code( $key, true ) ) ] = strtolower( $this->decode_code( $val, true ) );
 		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
 			$val = strtolower( $this->decode_code( $val ) );
@@ -533,10 +532,7 @@ class ParetoSecurity {
 			return; // of no interest to us
 		} else {
 			# run $_GET through filters
-			array_walk_recursive( $_GET, array(
-				 $this,
-				'get_filter' 
-			) );
+			array_walk_recursive( $_GET, array( $this, 'querystring_filter' ) );
 		}
 		return;
 	}
@@ -560,31 +556,10 @@ class ParetoSecurity {
 	protected function _POST_SHIELD() {
 		if ( false === $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) )
 			 return; // of no interest to us
-		$total_input_vars = count( $_POST, COUNT_RECURSIVE );
-		if ( $total_input_vars >= 10000 )
+		if ( count( $_POST, COUNT_RECURSIVE ) >= 10000 )
 			 $this->karo( true ); // very likely a denial of service attack
-		if ( $total_input_vars >= 1000 ) {
-			# efficient method but not as thorough as
-			# array_walk_recursive, to avoid DoS conditions
-			# with large array flood attacks
-			$fpost = $this->array_flatten( $_POST, false, true );
-			$i     = 0;
-			while ( $i < count( $fpost, COUNT_RECURSIVE ) ) {
-				if ( false !== is_array( $fpost[ $i ] ) ) continue;
-				if ( strlen( $fpost[ $i ] ) > 0 ) {
-					if ( false !== $this->datalist( $this->decode_code( $fpost[ $i ] ), 2 ) ) {
-						# while some post content can be attacks, its best to 403.
-						$this->karo( false );
-					}
-				}
-				$i++;
-			}
-		} else
-		# more resource intensive, but thorough method
-		  array_walk_recursive( $_POST, array(
-			   $this,
-			  'post_filter' 
-		  ) );
+
+		     array_walk_recursive( $_POST, array( $this, 'post_filter' ) );
 	}
 	/**
 	 * cookie_filter()
@@ -608,12 +583,8 @@ class ParetoSecurity {
 	protected function _COOKIE_SHIELD() {
 		if ( false !== empty( $_COOKIE ) )
 			return; // of no interest to us
-		# run through blacklist and injection filter
-		# regardless of _GET or _POST
-		array_walk_recursive( $_COOKIE, array(
-			 $this,
-			'cookie_filter' 
-		) );
+
+		array_walk_recursive( $_COOKIE, array( $this, 'cookie_filter' ) );
 	}
 	/**
 	 * _REQUESTTYPE_SHIELD()
@@ -684,37 +655,6 @@ class ParetoSecurity {
 		}
 		return $filename;
    }
-   
-	/**
-	 * array_flatten()
-	 * 
-	 * @param mixed $array
-	 * @param bool $preserve_keys
-	 * @return
-	 */
-	protected function array_flatten( $array, $preserve_keys = false, $lowercase = false ) {
-		if ( false !== empty( $array ) ) return array();
-		if ( false === $preserve_keys ) {
-			$array = array_values( $array );
-		}
-		$flattened_array = array();
-		foreach ( $array as $k => $v ) {
-			if ( is_array( $v ) ) {
-				$flattened_array = array_merge( $flattened_array, $this->array_flatten( $v, $preserve_keys, $lowercase ) );
-			} elseif ( false !== $preserve_keys ) {
-				$flattened_array[ $this->decode_code( $k, true ) ] = $this->decode_code( $v, false );
-			} else {
-				$flattened_array[] = $this->decode_code( $v, false );
-			}
-		}
-		if ( false !== $lowercase ) {
-			foreach ( $flattened_array as $k => $v ) {
-				$flattened_array_lc[ strtolower( $k ) ] = strtolower( $v );
-			}
-			return $flattened_array_lc;
-		} else
-			return $flattened_array;
-	}
 	
 	protected function cleanString( $b, $s ) {
 		$s = strtolower( $this->url_decoder( $s ) );
@@ -867,7 +807,6 @@ class ParetoSecurity {
 		# or is 127.0.0.1 ( i.e onion visitors )
 		if ( false === isset( $ip ) ) $ip = $this->getREMOTE_ADDR();
 		if ( ( $_SERVER[ 'SERVER_ADDR' ] == $ip ) || ( $ip == '127.0.0.1' ) ) {
-			$this->_bypassbanip = true;
 			return true;
 		}
 		return false;
@@ -880,16 +819,16 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function check_ip( $ip ) {
-		# if ip is the server or localhost
-		if ( false !== $this->is_server( $ip ) )
-			return true;
-		
+
 		$check = false;
 		if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_IP' ) && defined( 'FILTER_FLAG_IPV4' ) && defined( 'FILTER_FLAG_IPV6' ) ) {
 			if ( false === filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 || FILTER_FLAG_IPV6 ) ) {
 				$this->send403();
-			} else
-				return true; //passed the test
+			}
+			if ( false !== $this->is_server( $ip ) ) {
+				$this->_bypassbanip = true;
+			}
+			return true;
 		} else {
 			# this section should not be necessary in later versions of PHP
 			if ( false !== preg_match( "/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/i", $ip ) ) {
@@ -901,7 +840,11 @@ class ParetoSecurity {
 					}
 					$x++;
 				}
-				if ( ( count( $parts ) <> 4 ) || ( ( int ) $parts[ 0 ] < 1 ) ) $this->send403();
+				if ( ( count( $parts ) <> 4 ) || ( ( int ) $parts[ 0 ] < 1 ) )
+						$this->send403();
+				if ( false !== $this->is_server( $ip ) ) {
+						$this->_bypassbanip = true;
+				}
 				return true;
 			} else
 				$this->send403();
@@ -914,26 +857,7 @@ class ParetoSecurity {
 	 */
 	protected function getRealIP() {
 		global $_SERVER;
-		$iplist = array();
-		# check for IPs passing through proxies
-		# start with the HTTP_X_FORWARDED_FOR
-		if ( false === empty( $_SERVER[ 'HTTP_X_FORWARDED_FOR' ] ) ) {
-			# check if multiple ips exist in var
-			$x_ff = $_SERVER[ 'HTTP_X_FORWARDED_FOR' ];
-			$x_ff = strpos( $x_ff, ',' ) ? str_replace( ' ', '', $x_ff ) : str_replace( ' ', ',', $x_ff );
-			if ( false !== strpos( $x_ff, ',' ) ) {
-				$iplist = explode( ',', $x_ff );
-				# Check the validity of each ip
-				foreach ( $iplist as $ip ) {
-					if ( false !== $this->check_ip( $ip ) ) {
-						# if a valid IP then prevent htaccess ban but still allow exit()
-						# because X_FORWARDED_FOR is spoofable
-						$this->_bypassbanip = true;
-					}
-				}
-			}
-		}
-		
+
 		$svars = array(
 			'HTTP_FORWARDED_FOR',
 			'HTTP_CLIENT_IP',
@@ -941,18 +865,30 @@ class ParetoSecurity {
 			'HTTP_X_ORIGINATING_IP',
 			'HTTP_X_REMOTE_IP',
 			'HTTP_FORWARDED',
-			'HTTP_CF_CONNECTING_IP' 
+			'HTTP_CF_CONNECTING_IP',
+			'HTTP_X_Forwarded_For'
 		);
 		
 		# the point here is to not accidentally ban an ip address that could
 		# be an upline proxy, instead just allow an exit() action if
-		# request is malicious
+		# it turns out the request is malicious
 		$x = 0;
 		while ( $x < count( $svars ) ) {
-			if ( array_key_exists( $svars[ $x ], $_SERVER ) && false === empty( $_SERVER[ $svars[ $x ] ] ) && false !== $this->check_ip( $_SERVER[ $svars[ $x ] ] ) ) {
-				# if a valid IP then prevent htaccess ban but still allow exit()
-				# because all of the above are spoofable
-				$this->_bypassbanip = true;
+			$iplist = array();
+			if ( array_key_exists( $svars[ $x ], $_SERVER ) ) {
+				$the_header = $_SERVER[ $svars[ $x ] ];
+				$the_header = strpos( $the_header, ',' ) ? str_replace( ' ', '', $the_header ) : str_replace( ' ', ',', $the_header );
+				if ( false !== strpos( $the_header, ',' ) ) {
+					$iplist = explode( ',', $the_header );
+					# Check the validity of each ip
+					foreach ( $iplist as $ip ) {
+						if ( false !== $this->check_ip( $ip ) ) {
+							$this->_bypassbanip = true;
+						}
+					}
+				} elseif ( false === empty( $_SERVER[ $svars[ $x ] ] ) && false !== $this->check_ip( $_SERVER[ $svars[ $x ] ] ) ) {
+					$this->_bypassbanip = true;
+				}
 			}
 			$x++;
 		}
@@ -1064,7 +1000,8 @@ class ParetoSecurity {
 	 */
 	protected function integ_prop( $integ ) {
 		# is an integer, is not a float, is not negative
-		if ( false !== is_int( $integ ) && false !== preg_match( '/^\d+$/D', $integ ) && ( int ) $integ >= 0 && false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
+		# PHP_INT_MAX
+		if ( $integ <= PHP_INT_MAX && false !== is_int( $integ ) && false !== preg_match( '/^\d+$/D', $integ ) && ( int ) $integ >= 0 && false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
 			return true;
 		} else {
 			return false;
