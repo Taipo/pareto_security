@@ -4,7 +4,7 @@ Contributors: te_taipo
 
 Donate link: http://hokioisec7agisc4.onion 
 
-Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss.
+Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
 
 Requires at least: 3.0.1
 
@@ -83,6 +83,10 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
+
+= 1.2.9 =
+* Improved code for HTTP Parameter pollution
+* Updated _set_error_level()
 
 = 1.2.8 =
 * Fixed a Function Array Dereferencing bug in previous release.
