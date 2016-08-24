@@ -8,9 +8,9 @@ Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting
 
 Requires at least: 3.0.1
 
-Tested up to: 4.5.3
+Tested up to: 4.6
 
-Stable tag: 1.2.8
+Stable tag: 1.2.9
 
 License: GPLv2 or later
 
