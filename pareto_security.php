@@ -46,7 +46,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.3.1' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1473239854' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1473448984' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -514,7 +514,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function querystring_filter( $val, $key ) {
-		$this->_get_all[] =  strtolower( $this->decode_code( $key, true ) );
+		$this->_get_all[] = strtolower( $this->decode_code( $key, true ) );
 		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
 			$val = strtolower( $this->decode_code( $val ) );
 			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 1 ) ) {
