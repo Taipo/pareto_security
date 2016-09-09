@@ -10,7 +10,7 @@ Requires at least: 3.0.1
 
 Tested up to: 4.6
 
-Stable tag: 1.2.9
+Stable tag: 1.3.1
 
 License: GPLv2 or later
 
@@ -83,6 +83,12 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
+
+= 1.3.1 =
+* Added Tor2Web block for advanced mode
+
+= 1.3.0 =
+* Fixed potential bug where large post data could result in 500 error
 
 = 1.2.9 =
 * Improved code for HTTP Parameter pollution
