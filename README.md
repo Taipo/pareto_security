@@ -85,7 +85,7 @@ Other contacts: https://github.com/Taipo/contact-details
 == Changelog ==
 
 = 1.3.1 =
-* Added Tor2Web block for advanced mode
+* Added optional Tor2Web block for advanced mode
 
 = 1.3.0 =
 * Fixed potential bug where large post data could result in 500 error
