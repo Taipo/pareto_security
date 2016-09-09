@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.2.9
+Version: 1.3.1
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.2.9' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1470900168' ) );
+	define( 'PARETO_VERSION', '1.3.1' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1473239854' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -408,8 +408,10 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function _REQUEST_SHIELD() {
-
-		# regardless of _GET or _POST
+		
+		$_get_server = $_SERVER;
+		$_get_post = $_POST;
+		
 		# specific attacks that do not necessarily
 		# involve query_string manipulation
 		$req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
@@ -443,11 +445,8 @@ class ParetoSecurity {
 		}
 
 		# prevent command injection
-		if ( false !== array_key_exists( "'cmd'", $this->_get_all ) || false !== array_key_exists( "'system'", $this->_get_all ) )
+		if ( false !== in_array( "'cmd'", $this->_get_all ) || false !== in_array( "'system'", $this->_get_all ) )
 			$this->karo( false );
-
-		# prevent attempts to esculate user privileges in WP
-		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== array_key_exists( "'default_role'" , $this->_post_all ) && 'administrator' == $this->_post_all[ "'default_role'" ] ) ) $this->karo( false );
 
 		# Detect HTTP Parameter Pollution
 		# i.e when devs mistakenly use $_REQUEST to return values
@@ -461,17 +460,19 @@ class ParetoSecurity {
 		}
 		$dup_check_get = array_unique( $dup_check_get );
 		
-		if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) && false === empty( $_POST ) ) {
+		if ( false !== $this->cmpstr( 'POST', $_get_server[ 'REQUEST_METHOD' ] ) && false === empty( $_get_post ) ) {
+			# while we're checking _POST, prevent attempts to esculate user privileges in WP
+			if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== in_array( 'default_role' , $_get_post ) && false !== $this->cmpstr( 'administrator', $_get_post[ 'default_role' ] ) ) ) $this->karo( false );
+
 			$dup_check_post = array();
-			$_post_array_keys = array_keys( $this->_post_all );
-			for( $x = 0; $x < count( $_post_array_keys ); $x++ ) {
-				$this_key = strtolower( $this->decode_code( $_post_array_keys[ $x ], false, true ) );
+			for( $x = 0; $x < count( $this->_post_all ); $x++ ) {
+				$this_key = strtolower( $this->decode_code( $this->_post_all[ $x ], false, true ) );
 				if ( $this->string_prop( $this_key, 1 ) && false === $this->cmpstr( '[]', substr( $this_key, -2 ) ) ) {
 					$dup_check_post[ $x ] = $this_key;
 				}
 			}
 			if ( false === empty( $dup_check_post ) ) $dup_check_post = array_unique( $dup_check_post );
-			
+
 			# We only test for duplicate keys that appear in both QUERY_STRING and POST global.
 			if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
 				header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
@@ -480,7 +481,7 @@ class ParetoSecurity {
 		}
 		
 		# WP Author Discovery
-		$ref = isset( $_SERVER[ 'HTTP_REFERER' ] ) ? strtolower( $this->url_decoder( $_SERVER[ 'HTTP_REFERER' ] ) ) : NULL;
+		$ref = isset( $_get_server[ 'HTTP_REFERER' ] ) ? strtolower( $this->url_decoder( $_get_server[ 'HTTP_REFERER' ] ) ) : NULL;
 		if ( false === is_null( $ref ) ) {
 			if ( false !== strpos( $req, '?author=' ) ) {
 				$this->karo( false );
@@ -513,7 +514,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function querystring_filter( $val, $key ) {
-		$this->_get_all[ strtolower( $this->decode_code( $key, true ) ) ] = strtolower( $this->decode_code( $val, true ) );
+		$this->_get_all[] =  strtolower( $this->decode_code( $key, true ) );
 		if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
 			$val = strtolower( $this->decode_code( $val ) );
 			if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 1 ) ) {
@@ -527,7 +528,6 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function _QUERYSTRING_SHIELD() {
-
 		if ( false !== empty( $_REQUEST ) || false === $this->cmpstr( 'GET', $_SERVER[ 'REQUEST_METHOD' ] ) || false === ( bool ) $this->string_prop( $this->getQUERY_STRING(), 1 ) ) {
 			return; // of no interest to us
 		} else {
@@ -543,7 +543,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function post_filter( $val, $key ) {
-		$this->_post_all[ strtolower( $this->decode_code( $key, true ) ) ] = strtolower( $this->decode_code( $val, true ) );
+		$this->_post_all[] = strtolower( $this->decode_code( $key, true ) );
 		if ( false !== $this->datalist( $this->decode_code( $val ), 2 ) ) {
 			# while some post content can be attacks, its best to 403.
 			$this->karo( false );
@@ -559,7 +559,7 @@ class ParetoSecurity {
 		if ( count( $_POST, COUNT_RECURSIVE ) >= 10000 )
 			 $this->karo( true ); // very likely a denial of service attack
 
-		     array_walk_recursive( $_POST, array( $this, 'post_filter' ) );
+		array_walk_recursive( $_POST, array( $this, 'post_filter' ) );
 	}
 	/**
 	 * cookie_filter()
@@ -635,8 +635,7 @@ class ParetoSecurity {
     * @return
     */
    protected function checkfilename( $fname ) {
-     if ( false === empty( $fname ) &&
-          ( $this->substri_count( $fname, '.php' ) == 1 && ( '.php' == substr( $fname, - 4 ) ) ) ) {
+     if ( false === empty( $fname ) && ( $this->substri_count( $fname, '.php' ) == 1 && false !== $this->cmpstr( '.php', substr( $fname, - 4 ) ) ) ) {
                return true;
      } else return false;
    }
@@ -648,9 +647,10 @@ class ParetoSecurity {
     */
    protected function get_filename() {
 		$filename = '';
-		$filename = ( ( ( strlen( @ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( false === ( bool ) @ini_get( 'cgi.fix_pathinfo' ) ) ) || ( false === isset( $_SERVER[ 'SCRIPT_FILENAME' ] ) && false !== isset( $_SERVER[ 'PHP_SELF' ] ) && false !== $this->string_prop( basename( $_SERVER[ 'PHP_SELF' ] ), 1 ) ) ) ? basename( $_SERVER[ 'PHP_SELF' ] ) : basename( realpath( $_SERVER[ 'SCRIPT_FILENAME' ] ) );
+		$_get_server = $_SERVER;
+		$filename = ( ( ( strlen( @ini_get( 'cgi.fix_pathinfo' ) ) > 0 ) && ( false === ( bool ) @ini_get( 'cgi.fix_pathinfo' ) ) ) || ( false === isset( $_get_server[ 'SCRIPT_FILENAME' ] ) && false !== isset( $_get_server[ 'PHP_SELF' ] ) && false !== $this->string_prop( basename( $_get_server[ 'PHP_SELF' ] ), 1 ) ) ) ? basename( $_get_server[ 'PHP_SELF' ] ) : basename( realpath( $_get_server[ 'SCRIPT_FILENAME' ] ) );
 		preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
-		if ( is_array( $matches ) && array_key_exists( 0, $matches ) && ( '.php' == substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->get_file_perms( $matches[ 0 ], true ) ) ) {
+		if ( is_array( $matches ) && array_key_exists( 0, $matches ) && false !== $this->cmpstr( '.php', substr( $matches[ 0 ], -4, 4 ) ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->get_file_perms( $matches[ 0 ], true ) ) ) {
 			   $filename = $matches[ 0 ];
 		}
 		return $filename;
@@ -757,16 +757,17 @@ class ParetoSecurity {
 	 */
 	function getDir() {
 		$get_root = '';
+		$_get_server = $_SERVER;
 		$subdir  = $this->getREQUEST_URI();
 		if ( false !== strpos( $subdir, DIRECTORY_SEPARATOR ) ) {
 			# first we need to find if webroot is a sub directory
 			# this can screw things up, if so manually set $_doc_root
-			if ( false !== ( bool ) $this->string_prop( $subdir, 2 ) && ( $subdir[ 0 ] == DIRECTORY_SEPARATOR ) ) {
+			if ( false !== ( bool ) $this->string_prop( $subdir, 2 ) && false !== $this->cmpstr( $subdir[ 0 ], DIRECTORY_SEPARATOR ) ) {
 				$subdir = ( ( substr_count( $subdir, DIRECTORY_SEPARATOR ) > 1 ) ) ? substr( $subdir, 1 ) : substr( $subdir, 0 );
 				$pos	 = strpos( strtolower( $subdir ), DIRECTORY_SEPARATOR );
 				$pos += strlen( '.' ) - 1;
 				$subdir = substr( $subdir, 0, $pos );
-				if ( strpos( $subdir, '.php' ) || ( strlen( $subdir ) == 1 ) && ( $subdir == DIRECTORY_SEPARATOR ) || false !== empty( $subdir ) )
+				if ( strpos( $subdir, '.php' ) || ( strlen( $subdir ) == 1 ) && false !== $this->cmpstr( $subdir, DIRECTORY_SEPARATOR ) || false !== empty( $subdir ) )
 					$subdir = '';
 				if ( false !== ( bool ) $this->string_prop( $subdir, 2 ) ) {
 					if ( ( substr_count( $subdir, DIRECTORY_SEPARATOR ) == 0 ) ) {
@@ -780,20 +781,20 @@ class ParetoSecurity {
 			$get_root = $this->_doc_root;
 		} elseif ( false !== defined( 'ABSPATH' ) ) {
 			$get_root = ABSPATH;
-		} elseif ( false !== strpos( $_SERVER[ 'DOCUMENT_ROOT' ], 'usr/local' ) || empty( $_SERVER[ 'DOCUMENT_ROOT' ] ) || strlen( $_SERVER[ 'DOCUMENT_ROOT' ] ) < 4 ) {
+		} elseif ( false !== strpos( $_get_server[ 'DOCUMENT_ROOT' ], 'usr/local' ) || empty( $_get_server[ 'DOCUMENT_ROOT' ] ) || strlen( $_get_server[ 'DOCUMENT_ROOT' ] ) < 4 ) {
 			# if for some reason there is a problem with DOCUMENT_ROOT, then do this the bad way
 			$f	 = dirname( __FILE__ );
-			$sf	= realpath( $_SERVER[ 'SCRIPT_FILENAME' ] );
+			$sf	= realpath( $_get_server[ 'SCRIPT_FILENAME' ] );
 			$fbits = explode( DIRECTORY_SEPARATOR, $f );
 			foreach ( $fbits as $a => $b ) {
-				if ( false == empty( $b ) && ( false === strpos( $sf, $b ) ) ) {
+				if ( false === empty( $b ) && ( false === strpos( $sf, $b ) ) ) {
 					$f = str_replace( $b, '', $f );
 					$f = str_replace( '//', '', $f );
 				}
 			}
 			$get_root = realpath( $f );
 		} else {
-			$get_root = ( false === empty( $subdir ) ) ? realpath( $_SERVER[ 'DOCUMENT_ROOT' ] ) . $subdir : realpath( $_SERVER[ 'DOCUMENT_ROOT' ] );
+			$get_root = ( false === empty( $subdir ) ) ? realpath( $_get_server[ 'DOCUMENT_ROOT' ] ) . $subdir : realpath( $_get_server[ 'DOCUMENT_ROOT' ] );
 		}
 		return preg_replace( "/wp-admin\/|wp-content\/|wp-include\//i", '', $get_root );
 	}
@@ -805,8 +806,9 @@ class ParetoSecurity {
 		# tests if ip address accessing webserver
 		# is either server ip ( localhost access )
 		# or is 127.0.0.1 ( i.e onion visitors )
+		
 		if ( false === isset( $ip ) ) $ip = $this->getREMOTE_ADDR();
-		if ( ( $_SERVER[ 'SERVER_ADDR' ] == $ip ) || ( $ip == '127.0.0.1' ) ) {
+		if ( false !== $this->cmpstr( $ip, $_SERVER[ 'SERVER_ADDR' ] ) || false !== $this->cmpstr( $ip, '127.0.0.1' ) ) {
 			return true;
 		}
 		return false;
@@ -856,8 +858,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function getRealIP() {
-		global $_SERVER;
-
+		$_get_server = $_SERVER;
 		$svars = array(
 			'HTTP_FORWARDED_FOR',
 			'HTTP_CLIENT_IP',
@@ -875,8 +876,8 @@ class ParetoSecurity {
 		$x = 0;
 		while ( $x < count( $svars ) ) {
 			$iplist = array();
-			if ( array_key_exists( $svars[ $x ], $_SERVER ) ) {
-				$the_header = $_SERVER[ $svars[ $x ] ];
+			if ( array_key_exists( $svars[ $x ], $_get_server ) ) {
+				$the_header = $_get_server[ $svars[ $x ] ];
 				$the_header = strpos( $the_header, ',' ) ? str_replace( ' ', '', $the_header ) : str_replace( ' ', ',', $the_header );
 				if ( false !== strpos( $the_header, ',' ) ) {
 					$iplist = explode( ',', $the_header );
@@ -886,7 +887,7 @@ class ParetoSecurity {
 							$this->_bypassbanip = true;
 						}
 					}
-				} elseif ( false === empty( $_SERVER[ $svars[ $x ] ] ) && false !== $this->check_ip( $_SERVER[ $svars[ $x ] ] ) ) {
+				} elseif ( false === empty( $_get_server[ $svars[ $x ] ] ) && false !== $this->check_ip( $_get_server[ $svars[ $x ] ] ) ) {
 					$this->_bypassbanip = true;
 				}
 			}
@@ -922,11 +923,15 @@ class ParetoSecurity {
 		header( "x-permitted-cross-domain-policies: master-only" );
 		header( "x-content-security-policy: default-src 'self'; script-src 'self';" );
 
-		if ( false !== ( bool ) @ini_get( 'expose_php' ) || 'on' == strtolower( @ini_get( 'expose_php' ) ) ) {
+		if ( false !== ( bool ) @ini_get( 'expose_php' ) || false !== $this->cmpstr( 'on', @ini_get( 'expose_php' ), true ) ) {
 			header( "x-powered-by: Pareto Security - http://hokioisec7agisc4.onion" );
 		}
+		
 		error_reporting( $errlevel );
 		return;
+	}
+    protected function tor2web_block() {
+		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) && array_key_exists( "HTTP_X_TOR2WEB", $_SERVER ) ) $this->karo( false );
 	}
 	/**
 	 * substri_count()
@@ -1034,6 +1039,7 @@ class ParetoSecurity {
 			$this->_banip = 1;
 			$this->_nonGETPOSTReqs = 1;
 			$this->_spider_block = 1;
+			$this->tor2web_block();
 		}
 	}
 } // end of class
