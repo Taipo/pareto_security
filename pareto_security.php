@@ -931,7 +931,8 @@ class ParetoSecurity {
 		return;
 	}
     protected function tor2web_block() {
-		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) && array_key_exists( "HTTP_X_TOR2WEB", $_SERVER ) ) $this->karo( false );
+		$_get_server = $_SERVER;
+		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) && ( array_key_exists( "HTTP_X_TOR2WEB", $_get_server ) || in_array( 'Mozilla/5.0 (Windows NT 6.1; rv:24.0) Gecko/20100101 Firefox/24.0', $_get_server ) ) ) $this->karo( false );
 	}
 	/**
 	 * substri_count()
