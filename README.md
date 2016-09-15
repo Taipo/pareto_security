@@ -8,9 +8,9 @@ Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting
 
 Requires at least: 3.0.1
 
-Tested up to: 4.6
+Tested up to: 4.6.1
 
-Stable tag: 1.3.1
+Stable tag: 1.3.3
 
 License: GPLv2 or later
 
@@ -84,24 +84,14 @@ Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
 
+= 1.3.3 =
+* Added 444 No Response header for bots
+
+= 1.3.2 =
+* Update to Tor2Web block for advanced mode fixing possible false positives.
+
 = 1.3.1 =
 * Added optional Tor2Web block for advanced mode
 
 = 1.3.0 =
 * Fixed potential bug where large post data could result in 500 error
-
-= 1.2.9 =
-* Improved code for HTTP Parameter pollution
-* Updated _set_error_level()
-
-= 1.2.8 =
-* Fixed a Function Array Dereferencing bug in previous release.
-
-= 1.2.7 =
-* Now addresses HTTP Parameter pollution
-
-= 1.2.6 =
-* Updated _POST_SHIELD(), _REQUEST_SHIELD() and check_ip()
-
-= 1.2.5 =
-* Updated _REQUEST_SHIELD()
