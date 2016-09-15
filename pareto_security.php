@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.3.1
+Version: 1.3.3
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.3.1' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1473448984' ) );
+	define( 'PARETO_VERSION', '1.3.3' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1473933031' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -90,6 +90,7 @@ class ParetoSecurity {
 			
 			$this->_adv_mode = isset( $ParetoSettings->advmode ) ? $ParetoSettings->advmode : $this->_adv_mode;
 		}
+
 		$this->advanced_mode();
 		$this->_set_error_level();
 		# if open_basedir is not set in php.ini then set it in the local scope
@@ -167,21 +168,23 @@ class ParetoSecurity {
 				break;
 			case ( 2 ):
 				error_reporting( 32767 );
+				@ini_set( 'display_errors', 1 );
 				break;
 			default:
 				error_reporting( 6135 );
 		}
 	}
+	
 	/**
 	 * send403()
 	 * 
-	 * @return
 	 */
 	function send403() {
 		$status = '403 Access Denied';
+		$protocol = ( isset( $_SERVER[ 'SERVER_PROTOCOL' ] ) ? substr( $_SERVER[ 'SERVER_PROTOCOL' ], 0, 8 ) : 'HTTP/1.1' ) . ' ';
 		$header = array(
-			'HTTP/1.1 ' . $status,
-			'Status:  ' . $status,
+			$protocol . $status,
+			'Status: ' . $status,
 			'Content-Length: 0' 
 		);
 		foreach ( $header as $sent ) {
@@ -189,6 +192,29 @@ class ParetoSecurity {
 		}
 		exit();
 	}
+	/**
+	 * send444()
+	 * 
+	 */
+	function send444() {
+		$errlevel = @ini_get( 'error_reporting' );
+		error_reporting( 0 );
+		
+		$status = '444 No Response';
+		$protocol = ( isset( $_SERVER[ 'SERVER_PROTOCOL' ] ) ? substr( $_SERVER[ 'SERVER_PROTOCOL' ], 0, 8 ) : 'HTTP/1.1' ) . ' ';
+		$header = array(
+			$protocol . $status,
+			'Status: ' . $status
+		);
+		
+		foreach ( $header as $sent ) {
+			header( $sent );
+		}
+		
+		error_reporting( $errlevel );		
+		exit();
+	}
+	
 	
 	/**
 	 * karo()
@@ -196,14 +222,16 @@ class ParetoSecurity {
 	 * @return
 	 */
 	
-	function karo( $t = false ) {
-		if ( false === ( bool ) $this->_banip || false !== $this->_bypassbanip )
-			$this->send403();
+	function karo( $t = false, $header_type = 403 ) {
+		if ( false === ( bool ) $this->_banip || false !== $this->_bypassbanip ) $this->send403();
 
 		if ( ( false !== $this->get_file_perms( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
 			$this->htaccessbanip( $this->_ip );
 		}
-		$this->send403();
+		if ( 503 == ( int )$header_type ) {
+			$this->send444();
+		} else
+			$this->send403();
 	}
 	/**
 	 * injectMatch()
@@ -408,7 +436,7 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function _REQUEST_SHIELD() {
-		
+
 		$_get_server = $_SERVER;
 		$_get_post = $_POST;
 		
@@ -623,7 +651,7 @@ class ParetoSecurity {
 				$this->karo( true );
 			}
 			if ( false !== ( bool ) $this->_spider_block && false === ( bool ) $this->datalist( $val, 4 ) ) {
-				$this->karo( false );
+				$this->karo( false, 503 );
 			}
 		} else $this->karo( false );
 	}
@@ -914,25 +942,30 @@ class ParetoSecurity {
 	protected function x_secure_headers() {
 		$errlevel = @ini_get( 'error_reporting' );
 		error_reporting( 0 );
-		header( "strict-transport-security: max-age=31536000; includeSubDomains; preload" );
-		header( "access-control-allow-methods: GET, POST, HEAD" );
-		header( "x-frame-options: SAMEORIGIN" );
-		header( "x-content-type-options: nosniff" );
-		header( "x-xss-protection: 1; mode=block" );
-		header( "x-download-options: noopen" );
-		header( "x-permitted-cross-domain-policies: master-only" );
-		header( "x-content-security-policy: default-src 'self'; script-src 'self';" );
-
+		
+		$header = array(
+			"Strict-Transport-Security: max-age=31536000; includeSubDomains; preload",
+			"access-control-allow-methods: GET, POST, HEAD",
+			"X-Frame-Options: SAMEORIGIN",
+			"X-Content-Type-Options: nosniff",
+			"X-Xss-Protection: 1; mode=block",
+			"x-download-options: noopen",
+			"X-Permitted-Cross-Domain-Policies: master-only",
+			"X-Content-Security-Policy: default-src 'self'; script-src 'self';",
+			"X-Powered-By: Pareto Security - http://hokioisec7agisc4.onion"
+		);
+		foreach ( $header as $sent ) {
+			header( $sent );
+		}
 		if ( false !== ( bool ) @ini_get( 'expose_php' ) || false !== $this->cmpstr( 'on', @ini_get( 'expose_php' ), true ) ) {
 			header( "x-powered-by: Pareto Security - http://hokioisec7agisc4.onion" );
 		}
-		
 		error_reporting( $errlevel );
 		return;
 	}
     protected function tor2web_block() {
 		$_get_server = $_SERVER;
-		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) && ( array_key_exists( "HTTP_X_TOR2WEB", $_get_server ) || in_array( 'Mozilla/5.0 (Windows NT 6.1; rv:24.0) Gecko/20100101 Firefox/24.0', $_get_server ) ) ) $this->karo( false );
+		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) && array_key_exists( "HTTP_X_TOR2WEB", $_get_server ) ) $this->karo( false, 503 );
 	}
 	/**
 	 * substri_count()
