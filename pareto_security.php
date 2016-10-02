@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.3.3
+Version: 1.3.4
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.3.3' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1473933031' ) );
+	define( 'PARETO_VERSION', '1.3.4' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1474684549' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -90,7 +90,7 @@ class ParetoSecurity {
 			
 			$this->_adv_mode = isset( $ParetoSettings->advmode ) ? $ParetoSettings->advmode : $this->_adv_mode;
 		}
-
+		
 		$this->advanced_mode();
 		$this->_set_error_level();
 		# if open_basedir is not set in php.ini then set it in the local scope
@@ -197,9 +197,7 @@ class ParetoSecurity {
 	 * 
 	 */
 	function send444() {
-		$errlevel = @ini_get( 'error_reporting' );
 		error_reporting( 0 );
-		
 		$status = '444 No Response';
 		$protocol = ( isset( $_SERVER[ 'SERVER_PROTOCOL' ] ) ? substr( $_SERVER[ 'SERVER_PROTOCOL' ], 0, 8 ) : 'HTTP/1.1' ) . ' ';
 		$header = array(
@@ -209,12 +207,9 @@ class ParetoSecurity {
 		
 		foreach ( $header as $sent ) {
 			header( $sent );
-		}
-		
-		error_reporting( $errlevel );		
+		}		
 		exit();
 	}
-	
 	
 	/**
 	 * karo()
@@ -242,16 +237,18 @@ class ParetoSecurity {
 	protected function injectMatch( $string ) {
 		$string  = $this->url_decoder( strtolower( $string ) );
 		$kickoff = false;
+
 		# these are the triggers to engage the rest of this function.
-		$vartrig = "\/\/|\.\.\/|%0d%0a|0x|a(?:ll|lert|scii\()|b(?:ase64|enchmark|y)|
-				   c(?:ase|har|olumn|onvert|ookie|reate)|d(?:eclare|ata|ate|elete|rop)|concat|
-				   e(?:rror|tc|val|xec)|f(?:rom|tp)|g(?:rant|roup)|having|i(?:f|nsert|snull|nto)|
-				   j(?:s|json)|l(?:ength\(|oad)|master|onmouse|null|php|s(?:chema|elect|et|hell|
-				   how|leep)|table|u(?:nion|pdate|ser|tf)|var|w(?:aitfor|hen|here|hile)";
+		$vartrig = "\/\/|\.\.\/|%0d%0a|0x|\ba(?:ll\b|lert\b|scii\()\b|\bb(?:ase64\b|enchmark\b|y\b)|
+				   \bc(?:ase\b|har\b|olumn\b|onvert\b|ookie\b|reate\b)|\bd(?:eclare\b|ata\b|ate\b|
+				   elete\b|rop\b)|concat|e(?:rror|tc|val|xec|xtractvalue)|f(?:rom|tp)|g(?:rant|roup)|
+				   having|\bi(?:f\b|nsert\b|snull\b|nto\b)|j(?:s|json)|l(?:ength\(|oad)|master|onmouse|
+				   null|php|\bs(?:chema\b|elect\b|et\b|hell\b|how\b|leep\b)|\btable\b|u(?:nion|pdate|ser|
+				   tf)|var|w(?:aitfor|hen|here|hile)";
 		$vartrig = preg_replace( "/[\s]/i", "", $vartrig );
 		for ( $x = 1; $x <= 5; $x++ ) {
 			$string = $this->cleanString( $x, $string );
-			if ( false !== ( bool ) preg_match( "/$vartrig/i", $string ) ) {
+			if ( false !== ( bool ) preg_match( "/$vartrig/i", $string, $matches ) ) {
 				$kickoff = true;
 				break;
 			}
@@ -259,19 +256,44 @@ class ParetoSecurity {
 		if ( false === $kickoff ) {
 			return false; // if false then we are not interested in this query.
 		} else { // else we are very interested in this query.
+
 			$j				= 1;
 			# toggle through 6 different filters
-			$sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|
-					collation|concat|conv|convert|count|curdate|database|date|
-					decode|diff|distinct|else|elt|end||encode|encrypt|extract|field|
-					_file|floor|format|hex|if|inner|insert|instr|interval|join|lcase|
-					left|length|like|load_file|locate|lock|log|lower|lpad|ltrim|max|
-					md5|mid|mod|name|now|null|ord|password|position|quote|rand|
-					repeat|replace|reverse|right|rlike|round|row_count|rpad|rtrim|
-					_set|schema|select|sha1|sha2|serverproperty|soundex|
-					space|strcmp|substr|substr_index|substring|sum|time|trim|
-					truncate|ucase|unhex|upper|_user|user|values|varchar|
-					version|while|ws|xor)\(|\(0x|@@|cast|integer";
+			$sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|collation|concat|
+							conv|convert|count|curdate|database|date|decode|diff|distinct|else|
+							elt|end|encode|encrypt|extract|field|_file|floor|format|hex|if|
+							inner|insert|instr|interval|join|lcase|left|length|like|load_file|
+							locate|lock|log|lower|lpad|ltrim|max|md5|mid|mod|name|now|null|ord|
+							password|position|quote|rand|repeat|replace|reverse|right|rlike|round|
+							row_count|rpad|rtrim|_set|schema|select|sha1|sha2|sha3|serverproperty|
+							soundex|space|strcmp|substr|substr_index|substring|sum|time|trim|truncate|
+							ucase|unhex|upper|_user|user|values|varchar|version|while|ws|xor)\(|
+							_(?:decrypt|encrypt|get|post|server|cookie|global|or|request|xor)|
+							(?:column|db|load|not|octet|sql|table|xp)_|@@|_and|absolute|\baction\b|
+							\badd\b|\ball\b|allocate|\balter\b|\basc\b|assertion|authorization|avg|base64|
+							\bbegin\b|benchmark|between|\bbit\b|bitlength|bit_length|both|bulk|\bcall\b|cascade|
+							cascaded|\bcase\b|catalog|char_length|\bcheck\b|\bclose\b|coalesce|collate|commit|
+							condition|\bconnect\b|connection|constraint|constraints|contains|continue|
+							\bcount\b|corresponding|\bcross\b|\bcurrent\b|current_date|\bdate\b|current_path|
+							current_time|current_timestamp|current_user|deallocate|decimal|default|
+							deferrable|deferred|\bdesc\b|describe|descriptor|deterministic|diagnostics|
+							decode|disconnect|distinct|domain|double|\bdrop\b|dump|elseif|encode|escape|
+							except|execute|exists|exit|export|external|exception|false|fetch|first|
+							float|\bfor\b|foreign|found|full|function|\bgo\b|goto|grant|handler|having|
+							identity|immediate|\bin\b|indicator|informa|initially|inout|input|insensitive|
+							int\(|integer|intersect|interval|into|\bis\b|isolation|\bkey\b|language|\blast\b|
+							leading|leave|level|limit|local|loop|made by|\bmake\b|match|\bmin\b|minute|
+							module|month|nchar|next|not_like|not_regexp|nullif|numeric|octet_length|only|
+							\bopen\b|option|\border\b|\bout\b|outfile|outer|output|overlaps|\bpad\b|parameter|
+							partial|\bpass\b|path|post|precision|prepare|preserve|primary|prior|\bpriv\b|
+							privileges|procedure|read|real|references|regexp|relative|rename|resignal|
+							restrict|return|revoke|rollback|routine|rows|server|scroll|second|section|
+							session|session_user|\bset\b|\bshell\b|sleep|signal|size|smallint|\bsome\b|
+							specific|sqlcode|sqlerror|sqlexception|sqlstate|sqlwarning|system_user|temporary|
+							\bto\b|trailing|transaction|translate|translation|timestamp|timezone_hour|
+							timezone_minute|true|\bundo\b|unique|unknown|until|update|usage|using|varying|
+							view|when|whenever|where|\bwith\b|work|write|\(0x|@@|cast|integer|auto_prepend_file|
+							allow_url_include|0x3c62723e";
 			
 			$sqlupdatelist	= "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
 					\bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
@@ -282,28 +304,12 @@ class ParetoSecurity {
 					_log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
 					\bsql\b|tmp|tmp\/sess|\busr\b|\bvar\b|\/(?:uploa|passw)d';
 			
-			$sqlmatchlist2	= '@@|_and|ascii|b(?:enchmark|etween|in|itlength|
-					ulk)|c(?:ast|har|ookie|ollate|olumn|oncat|urrent)|\bdate\b|
-					dump|e(?:lt|xport)|false|\bfield\b|fetch|format|function|
-					\bhaving\b|i(?:dentity|nforma|nstr)|\bif\b|\bin\b|inner|insert|
-					l(?:case|eft|ength|ike|imit|oad|ocate|ower|pad|trim)|join|
-					m(:?ade by|ake|atch|d5|id)|not_like|not_regexp|null|\bon\b|
-					order|outfile|p(?:ass|ost|osition|riv)|\bquote\b|\br(?:egexp\b|
-					ename\b|epeat\b|eplace\b|equest\b|everse\b|eturn\b|ight\b|
-					like\b|pad\b|trim\b)|\bs(?:ql\b|hell\b|leep\b|trcmp\b|ubstr\b)|
-					\bt(?:able\b|rim\b|rue\b|runcate\b)|u(?:case|nhex|pdate|
-					pper|ser)|values|varchar|\bwhen\b|where|with|\(0x|
-					_(?:decrypt|encrypt|get|post|server|cookie|global|or|
-					request|xor)|(?:column|db|load|not|octet|sql|table|xp)_|
-					version|auto_prepend_file|allow_url_include|0x3c62723e';
-			
 			while ( $j <= 6 ) {
 				$string = $this->cleanString( $j, $string );
 				
 				$sqlmatchlist	 = preg_replace( "/[\s]/i", '', $sqlmatchlist );
 				$sqlupdatelist	= preg_replace( "/[\s]/i", '', $sqlupdatelist );
 				$sqlfilematchlist = preg_replace( "/[\s]/i", '', $sqlfilematchlist );
-				$sqlmatchlist2	= preg_replace( "/[\s]/i", '', $sqlmatchlist2 );
 				
 				if ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b/i", $string ) && false !== ( bool ) preg_match( "/--|and|\//i", $string ) ) {
 					return true;
@@ -311,11 +317,9 @@ class ParetoSecurity {
 					return true;
 				} elseif ( false !== ( bool ) preg_match( "/(?:(sleep\((\s*)(\d*)(\s*)\)|benchmark\((.*)\,(.*)\)))/i", $string ) ) {
 					return true;
-				} elseif ( false !== preg_match_all( "/\bload\b|\bdata\b|\binfile\b|\btable\b|\bterminated\b/i", $string, $matches ) > 3 ) {
+				} elseif ( preg_match_all( "/\bload\b|\bdata\b|\binfile\b|\btable\b|\bterminated\b/i", $string, $matches ) > 3 ) {
 					return true;
 				} elseif ( ( ( false !== ( bool ) preg_match( "/select|sleep|isnull|declare|ascii\(substring|length\(/i", $string ) ) && ( false !== ( bool ) preg_match( "/\band\b|\bif\b|group_|_ws|load_|exec|when|then|concat\(|\bfrom\b/i", $string ) ) && ( false !== ( bool ) preg_match( "/$sqlmatchlist/i", $string ) ) ) ) {
-					return true;
-				} elseif ( false !== preg_match_all( "/$sqlmatchlist/i", $string, $matches ) > 2 ) {
 					return true;
 				} elseif ( false !== strpos( $string, 'update' ) && false !== ( bool ) preg_match( "/\bset\b/i", $string ) && false !== ( bool ) preg_match( "/$sqlupdatelist/i", $string ) ) {
 					return true;
@@ -327,10 +331,12 @@ class ParetoSecurity {
 					# reflected download attack
 				} elseif ( ( substr_count( $string, '|' ) > 2 ) && false !== ( bool ) preg_match( "/json/i", $string ) ) {
 					return true;
+				} elseif ( preg_match_all( "/$sqlmatchlist/i", $string, $matches, PREG_SET_ORDER ) ) {
+					if ( count( array_filter( $matches ) ) > 3 ) return true;
 				}
 				# run through a set of filters to find specific attack vectors
 				$thenode = $this->cleanString( $j, $this->getREQUEST_URI() );
-				
+
 				if ( ( false !== ( bool ) preg_match( "/onmouse(?:down|over)/i", $string ) ) && ( 2 < ( int ) preg_match_all( "/c(?:path|tthis|t\(this)|http:|(?:forgotte|admi)n|sqlpatch|,,|ftp:|(?:aler|promp)t/i", $thenode, $matches ) ) ) {
 					return true;
 				} elseif ( ( ( false !== strpos( $thenode, 'ftp:' ) ) && ( $this->substri_count( $thenode, 'ftp' ) > 1 ) ) && ( 2 < ( int ) preg_match_all( "/@|\/\/|:/i", $thenode, $matches ) ) ) {
@@ -360,12 +366,15 @@ class ParetoSecurity {
 					return true;
 				} elseif ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && ( false !== ( bool ) preg_match( "/\buser\b/i", $string ) ) ) {
 					return true;
-				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist2/i", $string ) ) ) ) {
+				} elseif ( ( ( false !== strpos( $string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $string ) ) || ( false !== strpos( $string, 'delete' ) && false !== strpos( $string, 'from' ) ) || ( false !== strpos( $string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $string ) ) ) || ( false !== strpos( $string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist/i", $string ) ) ) ) {
 					return true;
 				} elseif ( ( false !== strpos( $string, 'union' ) ) && ( false !== strpos( $string, 'select' ) ) && ( false !== strpos( $string, 'from' ) ) ) {
 					return true;
 				} elseif ( false !== strpos( $string, 'etc/passwd' ) ) {
 					return true;
+				} elseif ( ( false !== strpos( $string, 'procedure' ) ) && ( false !== strpos( $string, 'analyse' ) ) && ( false !== strpos( $string, 'extractvalue' ) ) ) {
+					return true;
+				# CREATE PROCEDURE new_xp_cmdshell(@cmd varchar(255)) AS DECLARE @ID int EXEC sp_OACreate ''WScript.Shell'',@ID OUT EXEC sp_OAMethod @ID,''Run'',Null,@cmd,0,1 EXEC sp_OADestroy @ID
 				} elseif ( false !== strpos( $string, 'null' ) ) {
 					$nstring = preg_replace( "/[^a-z]/i", '', $this->url_decoder( $string ) );
 					if ( false !== ( bool ) preg_match( "/(null){3,}/i", $nstring ) ) {
@@ -653,7 +662,7 @@ class ParetoSecurity {
 			if ( false !== ( bool ) $this->_spider_block && false === ( bool ) $this->datalist( $val, 4 ) ) {
 				$this->karo( false, 503 );
 			}
-		} else $this->karo( false );
+		} // else UA is empty
 	}
 
    /**
