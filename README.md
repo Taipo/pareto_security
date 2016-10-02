@@ -10,7 +10,7 @@ Requires at least: 3.0.1
 
 Tested up to: 4.6.1
 
-Stable tag: 1.3.3
+Stable tag: 1.3.4
 
 License: GPLv2 or later
 
@@ -84,8 +84,13 @@ Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
 
+= 1.3.4 =
+* Fixed a bug in updated injection filters
+
 = 1.3.3 =
 * Added 444 No Response header for bots
+* No longer exit when UA is empty
+* Major update to database injection filters
 
 = 1.3.2 =
 * Update to Tor2Web block for advanced mode fixing possible false positives.
