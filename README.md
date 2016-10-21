@@ -10,7 +10,7 @@ Requires at least: 3.0.1
 
 Tested up to: 4.6.1
 
-Stable tag: 1.3.4
+Stable tag: 1.3.5
 
 License: GPLv2 or later
 
@@ -83,6 +83,9 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
+
+= 1.3.5 =
+* Updated blacklists
 
 = 1.3.4 =
 * Fixed a bug in updated injection filters
