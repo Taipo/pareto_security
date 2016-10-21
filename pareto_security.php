@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.3.4
+Version: 1.3.5
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,7 +45,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.3.4' );
+	define( 'PARETO_VERSION', '1.3.5' );
 	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1474684549' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -427,7 +427,7 @@ class ParetoSecurity {
 		# 'User-Agent'
 		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","curl","python","base64_","phpinfo",
 				"wget","eval(","getconfig(",".chr(","passthru","shell_exec","popen(","exec(", "onerror",
-				"document.location" );
+				"document.location", "JDatabaseDriverMysql" );
 		
 		$_datalist[ 4 ] = array( "mozilla","android","windows","chrome","safari","opera","apple","google" );
 		
@@ -462,7 +462,7 @@ class ParetoSecurity {
 		if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd|ini|htac|htpa|passwd)/i", $req ) )
 			$this->karo( true );
 
-		# osCommerce specific exploit
+		# osCommerce / Magento specific exploit
 		if ( false !== strpos( $req, '.php/admin' ) )
 			$this->karo( true );
 		
@@ -585,6 +585,8 @@ class ParetoSecurity {
 			# while some post content can be attacks, its best to 403.
 			$this->karo( false );
 		}
+		# catch attempts to insert malware
+		if ( false !== strpos( $val, "array_diff_ukey" ) && ( false !== strpos( $val, "system" ) || false !== strpos( $val, "cmd" ) ) && $this->substri_count( $val, "array(" ) > 1 ) $this->karo( false );
 	}
 	
 	/**
@@ -593,7 +595,7 @@ class ParetoSecurity {
 	protected function _POST_SHIELD() {
 		if ( false === $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) )
 			 return; // of no interest to us
-		if ( count( $_POST, COUNT_RECURSIVE ) >= 10000 )
+		if ( count( $_POST, COUNT_RECURSIVE ) >= 10000 ) 
 			 $this->karo( true ); // very likely a denial of service attack
 
 		array_walk_recursive( $_POST, array( $this, 'post_filter' ) );
@@ -1049,11 +1051,14 @@ class ParetoSecurity {
 	protected function integ_prop( $integ ) {
 		# is an integer, is not a float, is not negative
 		# PHP_INT_MAX
-		if ( $integ <= PHP_INT_MAX && false !== is_int( $integ ) && false !== preg_match( '/^\d+$/D', $integ ) && ( int ) $integ >= 0 && false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
-			return true;
-		} else {
-			return false;
+		if ( $integ <= PHP_INT_MAX &&
+			 false !== is_int( $integ ) &&
+			 false !== preg_match( '/^\d+$/D', $integ ) &&
+			 ( int ) $integ >= 0 &&
+			 false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
+			 return true;
 		}
+		return false;
 	}
 	/**
 	 * cmpstr()
