@@ -1,16 +1,47 @@
 <?php
 
-if ( !defined( 'WP_UNINSTALL_PLUGIN' ) ) {
-    header( 'Status: 403 Forbidden' );
-    header( 'HTTP/1.1 403 Forbidden' );
-    exit();
-}
+	if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) || ! WP_UNINSTALL_PLUGIN ||
+	       dirname( WP_UNINSTALL_PLUGIN ) != dirname( plugin_basename( __FILE__ ) ) ) {
+		   header( 'Status: 403 Forbidden' );
+		   header( 'HTTP/1.1 403 Forbidden' );
+		   exit();
+	}
 
+	require_once( 'pareto_security.php' );
+	
+	$fpath =  str_replace( "wp-content/", "", $ParetoSecurity->getDir() . DIRECTORY_SEPARATOR . '.htaccess' );
+	
+	if ( false === $ParetoSecurity->get_file_perms( $fpath, true, true ) ) exit(); // htaccess must be writeable
+	
+	remove_htaccess_bans( $fpath );
 
-if ( !is_user_logged_in() )
-	wp_die( 'You must be logged in to run this script.' );
+	function remove_htaccess_bans( $fpath ) {
+		$mybans = file( $fpath );
+		
+		while( strpos( implode( $mybans, '' ), 'Pareto Security Ban' ) ) {
+			foreach( $mybans as $key => $val ) {
+				if ( false !== strpos( $val, "Pareto Security Ban" ) && false !== strpos( $val, "# " ) && ( false === strpos( $val, " End of" ) ) ) {
+					$srem = $key;
+				}
+				if ( false !== strpos( $val, " End of" ) && false !== strpos( $val, "Pareto Security Ban" ) ) {
+					$erem = $key;
+				}
+			};
+			foreach( $mybans as $key => $val ) {
+				if ( ( $key >= $srem ) && ( $key <= $erem ) ) {
+					if ( false !== strpos( $val, "Pareto Security Ban" ) ||
+						 false !== strpos( $val, "order allow,deny" ) ||
+						 false !== strpos( $val, "deny from " ) ||
+						 false !== strpos( $val, "allow from all" ) ) {
+						 unset( $mybans[ $key ] );
+					}
+				} else continue;
+			}
+		}
+		$mybans = array_values( $mybans );
 
-if ( !current_user_can( 'install_plugins' ) )
-	wp_die( 'You do not have permission to run this script.' );
-
+		$myfile = fopen( $fpath, 'w' );
+		fwrite( $myfile, implode( $mybans, '' ) );
+		fclose( $myfile );
+	}
 ?>
