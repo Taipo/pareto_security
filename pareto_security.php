@@ -46,7 +46,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	add_action( "activated_plugin", "load_pareto_first" );
 	
 	define( 'PARETO_VERSION', '1.3.5' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1474684549' ) );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1477193227' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -760,7 +760,7 @@ class ParetoSecurity {
 	 * 
 	 * @return boolean
 	 */
-	protected function get_file_perms( $f = NULL, $r = false, $w = false ) {
+	function get_file_perms( $f = NULL, $r = false, $w = false ) {
 		# if file exists return bool
 		# if file exists & readable return bool
 		# if file exists, readable & writable return bool
