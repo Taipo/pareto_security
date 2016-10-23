@@ -86,6 +86,7 @@ Other contacts: https://github.com/Taipo/contact-details
 
 = 1.3.5 =
 * Updated blacklists
+* When deleting Pareto Security, any blacklists in .htaccess are now removed
 
 = 1.3.4 =
 * Fixed a bug in updated injection filters
