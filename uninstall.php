@@ -2,14 +2,23 @@
 
 	if ( ! defined( 'WP_UNINSTALL_PLUGIN' ) || ! WP_UNINSTALL_PLUGIN ||
 	       dirname( WP_UNINSTALL_PLUGIN ) != dirname( plugin_basename( __FILE__ ) ) ) {
-		   header( 'Status: 403 Forbidden' );
-		   header( 'HTTP/1.1 403 Forbidden' );
+		   
+		   error_reporting( 0 );
+		   $status = '444 No Response';
+		   $protocol = ( isset( $_SERVER[ 'SERVER_PROTOCOL' ] ) ? substr( $_SERVER[ 'SERVER_PROTOCOL' ], 0, 8 ) : 'HTTP/1.1' ) . ' ';
+		   $header = array(
+			   $protocol . $status,
+			   'Status: ' . $status
+		   );
+		   foreach ( $header as $sent ) {
+		        header( $sent );
+		   }		
 		   exit();
 	}
 
 	require_once( 'pareto_security.php' );
-	
-	$fpath =  str_replace( "wp-content/", "", $ParetoSecurity->getDir() . DIRECTORY_SEPARATOR . '.htaccess' );
+
+	$fpath =  preg_replace( "/wp-admin\/|wp-content\/|plugins\//i", '', $ParetoSecurity->getDir() . DIRECTORY_SEPARATOR . '.htaccess' );
 	
 	if ( false !== $ParetoSecurity->get_file_perms( $fpath, true, true ) ) remove_htaccess_bans( $fpath );
 
