@@ -11,9 +11,7 @@
 	
 	$fpath =  str_replace( "wp-content/", "", $ParetoSecurity->getDir() . DIRECTORY_SEPARATOR . '.htaccess' );
 	
-	if ( false === $ParetoSecurity->get_file_perms( $fpath, true, true ) ) exit(); // htaccess must be writeable
-	
-	remove_htaccess_bans( $fpath );
+	if ( false !== $ParetoSecurity->get_file_perms( $fpath, true, true ) ) remove_htaccess_bans( $fpath );
 
 	function remove_htaccess_bans( $fpath ) {
 		$mybans = file( $fpath );
