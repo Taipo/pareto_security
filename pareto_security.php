@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.3.5
+Version: 1.3.6
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.3.5' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1477193227' ) );
+	define( 'PARETO_VERSION', '1.3.6' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1477793860' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -223,7 +223,7 @@ class ParetoSecurity {
 		if ( ( false !== $this->get_file_perms( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
 			$this->htaccessbanip( $this->_ip );
 		}
-		if ( 503 == ( int )$header_type ) {
+		if ( 444 == ( int )$header_type ) {
 			$this->send444();
 		} else
 			$this->send403();
@@ -662,7 +662,7 @@ class ParetoSecurity {
 				$this->karo( true );
 			}
 			if ( false !== ( bool ) $this->_spider_block && false === ( bool ) $this->datalist( $val, 4 ) ) {
-				$this->karo( false, 503 );
+				$this->karo( false, 444 );
 			}
 		} // else UA is empty
 	}
@@ -961,10 +961,8 @@ class ParetoSecurity {
 			"X-Content-Type-Options: nosniff",
 			"X-Xss-Protection: 1; mode=block",
 			"x-download-options: noopen",
-			"X-Permitted-Cross-Domain-Policies: master-only",
-			"X-Content-Security-Policy: default-src 'self'; script-src 'self';",
-			"X-Powered-By: Pareto Security - http://hokioisec7agisc4.onion"
-		);
+			"X-Permitted-Cross-Domain-Policies: master-only"
+	    );
 		foreach ( $header as $sent ) {
 			header( $sent );
 		}
@@ -976,7 +974,7 @@ class ParetoSecurity {
 	}
     protected function tor2web_block() {
 		$_get_server = $_SERVER;
-		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) && array_key_exists( "HTTP_X_TOR2WEB", $_get_server ) ) $this->karo( false, 503 );
+		if ( false !== $this->is_server( $this->getREMOTE_ADDR() ) && array_key_exists( "HTTP_X_TOR2WEB", $_get_server ) ) $this->karo( false, 444 );
 	}
 	/**
 	 * substri_count()
