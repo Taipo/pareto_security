@@ -10,7 +10,7 @@ Requires at least: 3.0.1
 
 Tested up to: 4.6.1
 
-Stable tag: 1.3.5
+Stable tag: 1.3.6
 
 License: GPLv2 or later
 
@@ -57,7 +57,8 @@ Keeping a Wordpress CMS secure is not easy. The very best thing you can do to pr
 
 What Pareto Security cannot do ( as with any Web Application Firewall ) is save your website from really really badly written site, theme and/or plugin code, or save your site from attacks that result from when WP administrators do not follow basic security measures.
 
-Footnote: Wordfence file scanner will flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
+Footnote 1: Wordfence file scanner will flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
+Footnote 2: I recommend that you also install a plugin that sets the Content Security Policy header
 
 == Installation ==
 
@@ -84,9 +85,13 @@ Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
 
+= 1.3.6 =
+* Bugfix: removed conflicting security headers affecting the Safari browser
+
 = 1.3.5 =
 * Updated blacklists
 * When deleting Pareto Security, any blacklists in .htaccess are now removed
+* Update to secure headers
 
 = 1.3.4 =
 * Fixed a bug in updated injection filters
