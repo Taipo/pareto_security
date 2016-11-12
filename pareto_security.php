@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.3.6
+Version: 1.3.7
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.3.6' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1477793860' ) );
+	define( 'PARETO_VERSION', '1.3.7' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1478931709' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -331,8 +331,6 @@ class ParetoSecurity {
 					# reflected download attack
 				} elseif ( ( substr_count( $string, '|' ) > 2 ) && false !== ( bool ) preg_match( "/json/i", $string ) ) {
 					return true;
-				} elseif ( preg_match_all( "/$sqlmatchlist/i", $string, $matches, PREG_SET_ORDER ) ) {
-					if ( count( array_filter( $matches ) ) > 3 ) return true;
 				}
 				# run through a set of filters to find specific attack vectors
 				$thenode = $this->cleanString( $j, $this->getREQUEST_URI() );
@@ -374,7 +372,6 @@ class ParetoSecurity {
 					return true;
 				} elseif ( ( false !== strpos( $string, 'procedure' ) ) && ( false !== strpos( $string, 'analyse' ) ) && ( false !== strpos( $string, 'extractvalue' ) ) ) {
 					return true;
-				# CREATE PROCEDURE new_xp_cmdshell(@cmd varchar(255)) AS DECLARE @ID int EXEC sp_OACreate ''WScript.Shell'',@ID OUT EXEC sp_OAMethod @ID,''Run'',Null,@cmd,0,1 EXEC sp_OADestroy @ID
 				} elseif ( false !== strpos( $string, 'null' ) ) {
 					$nstring = preg_replace( "/[^a-z]/i", '', $this->url_decoder( $string ) );
 					if ( false !== ( bool ) preg_match( "/(null){3,}/i", $nstring ) ) {
