@@ -8,9 +8,9 @@ Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting
 
 Requires at least: 3.0.1
 
-Tested up to: 4.6.1
+Tested up to: 4.7
 
-Stable tag: 1.3.6
+Stable tag: 1.3.7
 
 License: GPLv2 or later
 
@@ -22,7 +22,11 @@ WordPress core security class: A Web Application Firewall to protect your Wordpr
 
 = Pareto Security Features =
 
-Wordpress has been plagued by plugins that bring with them security vulnerabilities. Users depend on the security skills of 3rd party developers to check all user inputs and to escape all outputs from their plugin code.
+Firstly Wordpress and most other CMS's are built using PHP. PHP is a very insecure programming language, even worse in the hands of amateurs.
+
+Wordpress has been plagued by plugins authored by amateurs that bring with them security vulnerabilities.
+
+Wordpress users depend on the security skills of these 3rd party developers to check all user inputs and to escape all outputs from their plugin code.
 
 However in many many cases this is not done correctly leading to vulnerabilities and often websites being attacked, malware code installed, and in worst cases, entire servers taken over.
 
@@ -53,11 +57,14 @@ Features:
 * Works silently in the background blocking attacks
 
 A Word on Security:
-Keeping a Wordpress CMS secure is not easy. The very best thing you can do to prevent attacks is to always keep your website code, themes and plugins up to date, and remove any plugins and themes you are not using.
+Keeping any CMS as secure as possible is not easy. The very best thing you can do to prevent attacks is to always keep your website code, themes and plugins up to date, and remove any plugins and themes you are not using.
 
-What Pareto Security cannot do ( as with any Web Application Firewall ) is save your website from really really badly written site, theme and/or plugin code, or save your site from attacks that result from when WP administrators do not follow basic security measures.
+What Pareto Security cannot do ( as with any Web Application Firewall ) is save your website from really really badly written site, theme and/or plugin code, or save your site from attacks that result from when administrators do not follow basic security practices.
+
+Pareto Security does not claim to prevent all PHP related attack vectors either. It does however attempt to do it better than most addons/plugins that do claim to be the end all of PHP security.
 
 Footnote 1: Wordfence file scanner will flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
+
 Footnote 2: I recommend that you also install a plugin that sets the Content Security Policy header
 
 == Installation ==
@@ -84,6 +91,9 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
+
+= 1.3.7 =
+* Bugfix: removed false positive for cookie filtering
 
 = 1.3.6 =
 * Bugfix: removed conflicting security headers affecting the Safari browser
