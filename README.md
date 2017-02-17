@@ -5,15 +5,10 @@ Contributors: te_taipo
 Donate link: http://hokioisec7agisc4.onion 
 
 Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
-
 Requires at least: 3.0.1
-
-Tested up to: 4.7
-
-Stable tag: 1.3.7
-
+Tested up to: 4.7.2
+Stable tag: 1.3.9
 License: GPLv2 or later
-
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress core security class: A Web Application Firewall to protect your Wordpress web portal
@@ -91,6 +86,13 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
+
+= 1.3.9 =
+* Prevent Wordpress REST API exploit
+
+= 1.3.8 =
+* Redirect to URL if POST content-length = 0
+* Improved finding .htaccess file
 
 = 1.3.7 =
 * Bugfix: removed false positive for cookie filtering
