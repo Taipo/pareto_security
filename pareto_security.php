@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: http://hokioisec7agisc4.onion/?p=25
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.3.7
+Version: 1.3.9
 Requirements: Requires at least PHP version 5.2.0
 Author URI: http://hokioisec7agisc4.onion
 BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
@@ -45,8 +45,8 @@ if ( defined( 'WP_PLUGIN_DIR' ) ) {
 	# Set Pareto Security as the first plugin loaded
 	add_action( "activated_plugin", "load_pareto_first" );
 	
-	define( 'PARETO_VERSION', '1.3.7' );
-	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1478931709' ) );
+	define( 'PARETO_VERSION', '1.3.9' );
+	define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1487318692' ) );
 	define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 	define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 }
@@ -99,6 +99,7 @@ class ParetoSecurity {
 		$this->x_secure_headers();
 		# Set IP
 		$this->_ip = $this->getRealIP();
+		
 		# Merge $_REQUEST with _GET and _POST excluding _COOKIE data
 		$_REQUEST = array_merge( $_GET, $_POST );
 		# Shields Up
@@ -192,6 +193,7 @@ class ParetoSecurity {
 		}
 		exit();
 	}
+	
 	/**
 	 * send444()
 	 * 
@@ -218,16 +220,17 @@ class ParetoSecurity {
 	 */
 	
 	function karo( $t = false, $header_type = 403 ) {
-		if ( false === ( bool ) $this->_banip || false !== $this->_bypassbanip ) $this->send403();
 
-		if ( ( false !== $this->get_file_perms( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', TRUE, TRUE ) ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) {
-			$this->htaccessbanip( $this->_ip );
-		}
+		if ( false === ( bool ) $this->_banip || false !== $this->_bypassbanip ) $this->send403();
+		
+		if ( ( false !== $this->htapath() ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) $this->htaccessbanip( $this->_ip );
+
 		if ( 444 == ( int )$header_type ) {
 			$this->send444();
 		} else
 			$this->send403();
 	}
+
 	/**
 	 * injectMatch()
 	 * 
@@ -479,8 +482,7 @@ class ParetoSecurity {
 		}
 
 		# prevent command injection
-		if ( false !== in_array( "'cmd'", $this->_get_all ) || false !== in_array( "'system'", $this->_get_all ) )
-			$this->karo( false );
+		if ( false !== in_array( "'cmd'", $this->_get_all ) || false !== in_array( "'system'", $this->_get_all ) ) $this->karo( false );
 
 		# Detect HTTP Parameter Pollution
 		# i.e when devs mistakenly use $_REQUEST to return values
@@ -492,12 +494,18 @@ class ParetoSecurity {
 				$dup_check_get[ $x ] = escapeshellarg( str_replace( "'", '', $this_key ) );
 			}
 		}
-		$dup_check_get = array_unique( $dup_check_get );
 		
+		$dup_check_get = array_unique( $dup_check_get );
+
 		if ( false !== $this->cmpstr( 'POST', $_get_server[ 'REQUEST_METHOD' ] ) && false === empty( $_get_post ) ) {
 			# while we're checking _POST, prevent attempts to esculate user privileges in WP
 			if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== in_array( 'default_role' , $_get_post ) && false !== $this->cmpstr( 'administrator', $_get_post[ 'default_role' ] ) ) ) $this->karo( false );
-
+			# And lets take care of the WP REST API exploit too
+			if ( false !== strpos( $req, '/wp-json/wp/v2/posts/' ) && isset( $_GET[ 'id' ] ) ) {
+				 $id = $_GET[ 'id' ];
+				 if ( 0 != strlen( preg_replace("/[0-9,.]/", "", $id ) ) || false === $this->integ_prop( ( int ) $id ) || empty( $id ) ) $this->karo( false, 444 );
+			}
+			# Start HTTP Parameter Pollution
 			$dup_check_post = array();
 			for( $x = 0; $x < count( $this->_post_all ); $x++ ) {
 				$this_key = strtolower( $this->decode_code( $this->_post_all[ $x ], false, true ) );
@@ -506,10 +514,10 @@ class ParetoSecurity {
 				}
 			}
 			if ( false === empty( $dup_check_post ) ) $dup_check_post = array_unique( $dup_check_post );
-
+				
 			# We only test for duplicate keys that appear in both QUERY_STRING and POST global.
 			if ( count( array_intersect( $dup_check_get, $dup_check_post ) ) > 0 ) {
-				header( "Location: " . ( getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $this->decode_code( substr( $req, 0, strpos( $req, '?' ) ) ) );
+				header( "Location: " . $this->getURL() );
 				exit();
 			}
 		}
@@ -592,6 +600,17 @@ class ParetoSecurity {
 	protected function _POST_SHIELD() {
 		if ( false === $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) )
 			 return; // of no interest to us
+			
+		# _POST content-length should be longer than 0
+		if ( isset( $_SERVER[ 'CONTENT_LENGTH' ] ) && $_SERVER[ 'CONTENT_LENGTH' ] < 1 ) {
+			if ( false !== ( bool ) $this->_adv_mode ) {
+				$this->karo( true );
+			} else {
+				header( "Location: " . $this->getURL() );
+				exit();
+			}
+		}
+		
 		if ( count( $_POST, COUNT_RECURSIVE ) >= 10000 ) 
 			 $this->karo( true ); // very likely a denial of service attack
 
@@ -724,13 +743,14 @@ class ParetoSecurity {
 	 * @return
 	 */
 	function htaccessbanip( $banip ) {
+
 		# if IP is empty or too short, or .htaccess is not read/write
-		if ( false !== empty( $banip ) || ( $banip < 7 ) || ( false === $this->get_file_perms( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', true, true ) ) ) {
+		if ( false !== empty( $banip ) || ( strlen( $banip ) < 7 ) || ( false === $this->htapath() ) ) {
 			return $this->send403();
 		} else {
 			$limitend = "# End of " . $this->get_http_host() . " Pareto Security Ban\n";
 			$newline  = "deny from $banip\n";
-			$mybans   = file( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess' );
+			$mybans   = file( $this->htapath() );
 			$lastline = "";
 			if ( in_array( $newline, $mybans ) )
 				exit();
@@ -747,7 +767,7 @@ class ParetoSecurity {
 				array_push( $mybans, "\r\n# " . $this->get_http_host() . " Pareto Security Ban\n", "order allow,deny\n", $newline, "allow from all\n", $limitend );
 			}
 			
-			$myfile = fopen( $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess', 'w' );
+			$myfile = fopen( $this->htapath(), 'w' );
 			fwrite( $myfile, implode( $mybans, '' ) );
 			fclose( $myfile );
 		}
@@ -1046,8 +1066,8 @@ class ParetoSecurity {
 	protected function integ_prop( $integ ) {
 		# is an integer, is not a float, is not negative
 		# PHP_INT_MAX
-		if ( $integ <= PHP_INT_MAX &&
-			 false !== is_int( $integ ) &&
+		if ( false !== is_int( $integ ) &&
+			 $integ <= PHP_INT_MAX &&
 			 false !== preg_match( '/^\d+$/D', $integ ) &&
 			 ( int ) $integ >= 0 &&
 			 false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
@@ -1075,6 +1095,32 @@ class ParetoSecurity {
 	
 	protected function instr_url( $string ) {
 		return preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $string );
+	}
+
+	protected function htapath() {
+		$rpath_arr = explode( DIRECTORY_SEPARATOR, $this->getDir() );
+		# we don't want to test back too far.
+		$x = 0;
+		$root_path = NULL;
+		While( false === $this->cmpstr( get_current_user(), $rpath_arr[ count( $rpath_arr ) - 1 ] ) ) {
+			$root_path = implode( DIRECTORY_SEPARATOR, $rpath_arr ) . DIRECTORY_SEPARATOR . '.htaccess';
+			if ( false !== $this->get_file_perms( $root_path, TRUE, TRUE ) ) break;
+			if ( false !== $this->cmpstr( $this->get_http_host(), $rpath_arr[ count( $rpath_arr ) - $x ] ) ) break;
+			if ( $x > 20 ) break; // were likely looping :-/
+			array_pop( $rpath_arr );
+		$x++;
+		}
+		$dir_path = $this->getDir() . DIRECTORY_SEPARATOR . '.htaccess';
+		if ( false === is_null( $root_path ) ) {
+			return $root_path;
+		} elseif ( false !== $this->get_file_perms( $dir_path, TRUE, TRUE ) ) {
+			return $dir_path;
+		} else return false;
+	}
+	protected function getURL() {
+		$pre_req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
+		$req = ( false !== strlen( $pre_req, "?" ) ) ? $this->decode_code( substr( $pre_req, 0, strpos( $pre_req, '?' ) ) ) : $pre_req;
+		return ( "on" == @$_SERVER[ "HTTPS" ] || "on" == getenv( "HTTPS" ) ? 'https://' : 'http://' ) . $this->get_http_host() . $req;
 	}
 	
 	protected function advanced_mode() {
