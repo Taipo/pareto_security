@@ -90,7 +90,6 @@ class ParetoSecurity {
 			
 			$this->_adv_mode = isset( $ParetoSettings->advmode ) ? $ParetoSettings->advmode : $this->_adv_mode;
 		}
-		
 		$this->advanced_mode();
 		$this->_set_error_level();
 		# if open_basedir is not set in php.ini then set it in the local scope
@@ -99,7 +98,6 @@ class ParetoSecurity {
 		$this->x_secure_headers();
 		# Set IP
 		$this->_ip = $this->getRealIP();
-		
 		# Merge $_REQUEST with _GET and _POST excluding _COOKIE data
 		$_REQUEST = array_merge( $_GET, $_POST );
 		# Shields Up
@@ -220,12 +218,9 @@ class ParetoSecurity {
 	 */
 	
 	function karo( $t = false, $header_type = 403 ) {
-
 		if ( false === ( bool ) $this->_banip || false !== $this->_bypassbanip ) $this->send403();
-		
 		if ( ( false !== $this->htapath() ) && ( false !== ( bool ) $t ) && ( false === ( bool ) $this->_bypassbanip ) ) $this->htaccessbanip( $this->_ip );
-
-		if ( 444 == ( int )$header_type ) {
+		if ( 444 == ( int ) $header_type ) {
 			$this->send444();
 		} else
 			$this->send403();
@@ -501,9 +496,9 @@ class ParetoSecurity {
 			# while we're checking _POST, prevent attempts to esculate user privileges in WP
 			if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== in_array( 'default_role' , $_get_post ) && false !== $this->cmpstr( 'administrator', $_get_post[ 'default_role' ] ) ) ) $this->karo( false );
 			# And lets take care of the WP REST API exploit too
-			if ( false !== strpos( $req, '/wp-json/wp/v2/posts/' ) && isset( $_GET[ 'id' ] ) ) {
-				 $id = $_GET[ 'id' ];
-				 if ( 0 != strlen( preg_replace("/[0-9,.]/", "", $id ) ) || false === $this->integ_prop( ( int ) $id ) || empty( $id ) ) $this->karo( false, 444 );
+			if ( false !== strpos( $req, '/wp-json/wp/v2/posts/' ) ) {
+				 $id = isset( $_GET[ 'id' ] ) ? $_GET[ 'id' ] : NULL;
+				 if ( false === is_null( $id ) && false === $this->integ_prop( ( int ) $id ) ) $this->karo( false, 444 );
 			}
 			# Start HTTP Parameter Pollution
 			$dup_check_post = array();
@@ -604,7 +599,7 @@ class ParetoSecurity {
 		# _POST content-length should be longer than 0
 		if ( isset( $_SERVER[ 'CONTENT_LENGTH' ] ) && $_SERVER[ 'CONTENT_LENGTH' ] < 1 ) {
 			if ( false !== ( bool ) $this->_adv_mode ) {
-				$this->karo( true );
+				$this->karo( false, 444 );
 			} else {
 				header( "Location: " . $this->getURL() );
 				exit();
@@ -724,7 +719,7 @@ class ParetoSecurity {
 				return preg_replace( "/[^\s=a-z0-9]/i", '', $s );
 				break;
 			case ( 4 ): // fwr_security pro
-				return preg_replace( "/[^\s{}a-z0-9_\.\-]/i", "", $s );
+				return preg_replace( "/[^\s{}a-z0-9_\.\-]/i", '', $s );
 				break;
 			case ( 5 ):
 				return str_replace( '//', '/', $s );
@@ -877,7 +872,6 @@ class ParetoSecurity {
 	 * @return
 	 */
 	protected function check_ip( $ip ) {
-
 		$check = false;
 		if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_IP' ) && defined( 'FILTER_FLAG_IPV4' ) && defined( 'FILTER_FLAG_IPV6' ) ) {
 			if ( false === filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 || FILTER_FLAG_IPV6 ) ) {
@@ -893,7 +887,8 @@ class ParetoSecurity {
 				$parts = explode( '.', $ip );
 				$x	 = 0;
 				while ( $x < count( $parts ) ) {
-					if ( false === $this->integ_prop( ( int ) $parts[ $x ] ) || ( int ) $parts[ $x ] > 255 ) {
+					$this_int = ( int ) $parts[ $x ];
+					if ( false === $this->integ_prop( $this_int ) || $this_int > 255 ) {
 						$this->send403();
 					}
 					$x++;
@@ -1064,16 +1059,14 @@ class ParetoSecurity {
 	 * integ_prop()
 	 */
 	protected function integ_prop( $integ ) {
-		# is an integer, is not a float, is not negative
-		# PHP_INT_MAX
-		if ( false !== is_int( $integ ) &&
-			 $integ <= PHP_INT_MAX &&
-			 false !== preg_match( '/^\d+$/D', $integ ) &&
-			 ( int ) $integ >= 0 &&
-			 false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) {
-			 return true;
-		}
-		return false;
+		if ( ( $integ == 0 || false === empty( $integ ) ) &&
+			 false !== empty( preg_replace( '/\d+/u', '', $integ ) ) &&
+			 false !== is_int( $integ ) &&
+			 false === is_float( $integ ) ) {
+			 if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_INT' ) ) {
+				return ( ( filter_var( $integ, FILTER_VALIDATE_INT ) === 0 || false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) ? true : false );
+			 } else	return true;
+		} else return false;
 	}
 	/**
 	 * cmpstr()
