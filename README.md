@@ -6,9 +6,13 @@ Donate link: http://hokioisec7agisc4.onion
 
 Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
 Requires at least: 3.0.1
-Tested up to: 4.7.2
+
+Tested up to: 4.7.3
+
 Stable tag: 1.3.9
+
 License: GPLv2 or later
+
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress core security class: A Web Application Firewall to protect your Wordpress web portal
@@ -16,6 +20,8 @@ WordPress core security class: A Web Application Firewall to protect your Wordpr
 == Description ==
 
 = Pareto Security Features =
+
+Had enough of the security theatre presented by the raft of Wordpress security plugins? Time to put a stop to the attacks!
 
 Firstly Wordpress and most other CMS's are built using PHP. PHP is a very insecure programming language, even worse in the hands of amateurs.
 
@@ -58,9 +64,9 @@ What Pareto Security cannot do ( as with any Web Application Firewall ) is save 
 
 Pareto Security does not claim to prevent all PHP related attack vectors either. It does however attempt to do it better than most addons/plugins that do claim to be the end all of PHP security.
 
-Footnote 1: Wordfence file scanner will flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
+Pareto Security is written by an ex-attacker who intimately knows the mindset of attackers and therefore how to prevent them launching most attacks on Wordpress code.
 
-Footnote 2: I recommend that you also install a plugin that sets the Content Security Policy header
+Footnote 1: Wordfence file scanner may flag pareto_security.php as possibly malicious. You can safely add pareto_security.php to the Wordfence ignore list to prevent future messages.
 
 == Installation ==
 
@@ -89,6 +95,7 @@ Other contacts: https://github.com/Taipo/contact-details
 
 = 1.3.9 =
 * Prevent Wordpress REST API exploit
+* Update to testing for integers
 
 = 1.3.8 =
 * Redirect to URL if POST content-length = 0
