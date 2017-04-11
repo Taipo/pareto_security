@@ -2,14 +2,15 @@
 
 Contributors: te_taipo
 
-Donate link: http://hokioisec7agisc4.onion 
+Donate link: https://hokioisecurity.com
 
 Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
+
 Requires at least: 3.0.1
 
 Tested up to: 4.7.3
 
-Stable tag: 1.3.9
+Stable tag: 1.4.0
 
 License: GPLv2 or later
 
@@ -79,7 +80,7 @@ Footnote 1: Wordfence file scanner may flag pareto_security.php as possibly mali
 
 = Where can I get more information? =
 
-Using the Tor Browser, visit http://hokioisec7agisc4.onion/?p=25 for more information, including support requests
+Visit https://hokioisecurity.com/?p=17 or using the Tor Browser, visit http://hokioisec7agisc4.onion/?p=17 for more information, including support requests
 
 = How can I contribute to the cause =
 
@@ -92,6 +93,10 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://github.com/Taipo/contact-details
 
 == Changelog ==
+
+= 1.4.0 =
+* Author discovery requests now IP banned in Advanced Mode
+* When changing from Advanced Mode to Standard Mode, ban IP addresses will be removed from .htaccess file
 
 = 1.3.9 =
 * Prevent Wordpress REST API exploit
@@ -111,20 +116,3 @@ Other contacts: https://github.com/Taipo/contact-details
 * Updated blacklists
 * When deleting Pareto Security, any blacklists in .htaccess are now removed
 * Update to secure headers
-
-= 1.3.4 =
-* Fixed a bug in updated injection filters
-
-= 1.3.3 =
-* Added 444 No Response header for bots
-* No longer exit when UA is empty
-* Major update to database injection filters
-
-= 1.3.2 =
-* Update to Tor2Web block for advanced mode fixing possible false positives.
-
-= 1.3.1 =
-* Added optional Tor2Web block for advanced mode
-
-= 1.3.0 =
-* Fixed potential bug where large post data could result in 500 error
