@@ -4,10 +4,13 @@ if ( false === function_exists( 'is_admin' ) ) {
 	header( 'HTTP/1.1 403 Forbidden' );
 	exit();
 }
+define( 'PARETO_VERSION', '1.4.0' );
+define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', '1491793015' ) );
+define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
+define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
+if ( !class_exists( "pareto_settings" ) ) :
 
-if ( !class_exists( "Pareto_Security_Settings" ) ) :
-
-class Pareto_Security_Settings {
+class pareto_settings {
 
 public static $default_settings = array( 'advanced_mode' => 0 );
 var $pagehook, $page_id, $settings_field, $options, $advmode;
@@ -28,7 +31,7 @@ function __construct() {
 			}
 		}
 	}
-
+	
 	$this->advmode = ( false !== is_array( $this->options ) && array_key_exists( 'advanced_mode', $this->options ) ) ? 1 : 0;
 
 	if ( ( false !== ( bool )defined( 'WP_ADMIN' ) && false !== WP_ADMIN ) && false !== ( bool)is_admin() ) {
@@ -38,7 +41,7 @@ function __construct() {
 }
 function admin_init() {
 	register_setting( $this->settings_field, $this->settings_field, array( $this, 'sanitize_theme_options' ) );
-	add_option( $this->settings_field, Pareto_Security_Settings::$default_settings );
+	add_option( $this->settings_field, pareto_settings::$default_settings );
 }
 
 function admin_menu() {
@@ -59,7 +62,7 @@ function admin_menu() {
 
 function admin_head() { ?>
 	<style>
-	.settings_page_pareto_security_settings label { display:inline-block; width: 150px; }
+	.settings_page_pareto_security_settings label { display:inline-block; width: 400px; }
 	</style>
 
 <?php }
@@ -176,12 +179,13 @@ function condition_box() {
 		<b>Status:</b> Currently Pareto Security is running in <i><?php echo $mode; ?> mode</i>.<br /><br />
 		<b>Set Advanced Mode:</b><br />
 		<ul>
-			<li>Permanently ban IP addresses ( if .htaccess is configured correctly )</li>
-			<li>Filter out non-standard browser user-agents</li>
-			<li>Only allow GET | POST | HEAD requests</li>
+			<li>• Permanently ban IP addresses ( if .htaccess is configured correctly )</li>
+			<li>• Filter out non-standard browser user-agents</li>
+			<li>• Only allow GET | POST | HEAD requests</li>
+			<li>• Advanced _POST filtering</li>
 		</ul>
 		<input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="<?php echo isset( $this->options['advanced_mode'] ) ? 1 : 0; ?>" <?php echo isset( $this->options['advanced_mode'] ) ? 'checked' : ''; ?> />
-		<label for="<?php echo $this->get_field_id( 'advanced_mode' ); ?>"><?php _e( 'Set Advanced Mode', 'pareto_security_settings' ); ?></label>
+		<label for="<?php echo $this->get_field_id( 'advanced_mode' ); ?>"><?php _e( '<b>Set Advanced Mode</b> (Warning: Only use if you know the risks)', 'pareto_security_settings' ); ?></label>
 		<br /><br />
 		<input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options' ); ?>" />
 		<br />
