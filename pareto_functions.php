@@ -662,21 +662,21 @@ class pareto_functions {
 					$req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
 					if ( false !== $this->cmpstr( $this->get_filename(), 'wp-login.php' ) && false !== strpos( $req, 'action=lostpassword' ) ) {
 						# create a unique file
-						$file_str = ABSPATH . 'pareto-security-' . substr( hash( 'sha256', $this->get_uuid( true ), false ), 0, 15 ) . '.tmp';
-						if ( !file_exists( $file_str ) ) {
+						$file_str = 'pareto-security-' . substr( hash( 'sha256', $this->get_uuid( true ), false ), 0, 15 ) . '.tmp';
+						if ( !file_exists( ABSPATH . $file_str ) ) {
 							$fp = fopen( $file_str, 'w' );
 							fwrite( $fp, "" );
 							fclose( $fp );
 						}
-						if ( file_exists( $file_str ) ) {
-							$get_url = $this->get_http_host() . $file_str;
+						if ( file_exists( ABSPATH . $file_str ) ) {
+							$get_url = $this->get_http_host() . '/' . $file_str;
 							$header_array = @get_headers( $get_url );
 							$response = $header_array[ 0 ];
 							if ( false !== strpos( $response, "404" ) ) {
-								@unlink( $file_str );
+								@unlink( ABSPATH . $file_str );
 								$this->karo( "HTTP-HOST Attack (CVE-2017-8295): " . $_SERVER[ 'HTTP_HOST' ], false );
 							}
-							@unlink( $file_str );
+							@unlink( ABSPATH . $file_str );
 						}
 					}	
 				}
