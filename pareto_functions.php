@@ -109,9 +109,9 @@ class pareto_functions {
     if ( false === ( bool ) $t || false !== $this->_bypassbanip ) $this->send403();
 	if ( ( ( false !== $this->_adv_mode || false !== ( bool ) $this->_banip ) || false !== $t ) && ( false === ( bool ) $this->_bypassbanip ) ) $this->htaccessbanip( $this->get_ip() );
     if ( 444 == ( int ) $header_type ) {
-      $this->send444();
+	$this->send444();
     } else
-      $this->send403();
+	$this->send403();
   }
   function write_log( $req = "", $htpath ) {
 	$logfile = PARETO_LOGS . $this->_log_file;
@@ -167,8 +167,8 @@ class pareto_functions {
 		}
   }
   function dirfile_perms( $path ) {
-       $length = strlen( decoct( fileperms( $path ) ) ) - 3;
-       return substr( decoct( fileperms( $path ) ), $length );
+	$length = strlen( decoct( fileperms( $path ) ) ) - 3;
+	return substr( decoct( fileperms( $path ) ), $length );
   }
   function do_bcrypt( $string, $cost = 5 ) {
         $salt = ( function_exists( 'openssl_random_pseudo_bytes' ) ) ? substr( base64_encode( openssl_random_pseudo_bytes( 17 ) ), 0, 22 ) : substr( strtr( base64_encode( mcrypt_create_iv( 16, MCRYPT_DEV_URANDOM ) ), '+', '.' ), 0, 22 );
@@ -347,7 +347,7 @@ class pareto_functions {
 		   return true;
 		}
 
-		$sqlmatchlist	 = preg_replace( "/[\s]/i", '', $sqlmatchlist );
+	$sqlmatchlist	 = preg_replace( "/[\s]/i", '', $sqlmatchlist );
         $sqlupdatelist	= preg_replace( "/[\s]/i", '', $sqlupdatelist );
         $sqlfilematchlist = preg_replace( "/[\s]/i", '', $sqlfilematchlist );
 
@@ -507,8 +507,8 @@ class pareto_functions {
 		}
 		$this->karo( "Apache Struts2 RCE: " . $results, true );
     }	
-	# Check for database injections, even malformed ones
-	if ( false !== $this->injectMatch( $req ) ) $this->karo( "Request Injection: " . $req, true );
+    # Check for database injections, even malformed ones
+    if ( false !== $this->injectMatch( $req ) ) $this->karo( "Request Injection: " . $req, true );
 	
     # Reflected File Download Attack
     if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd|ini|htac|htpa|passwd)/i", $req ) )
@@ -518,8 +518,8 @@ class pareto_functions {
     if ( false !== strpos( $req, '.php/admin' ) )
       $this->karo( "osCommerce / Magento Exploit attempt: " . $req, true );
     
-	# Null byte
-	if ( false !== strpos( $req, '\0' ) ) $this->karo( $req, ( bool ) $this->_banip );
+    # Null byte
+    if ( false !== strpos( $req, '\0' ) ) $this->karo( $req, ( bool ) $this->_banip );
 
     # prevent arbitrary file includes/uploads
     if ( false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
@@ -573,9 +573,9 @@ class pareto_functions {
       }
 	}
     # WP Author Discovery
-	if ( false !== strpos( $req, '?author=' ) || false !== strpos( $req, 'wp-json/wp/v2/users' ) ) {
-	  $this->karo( "WP Author Discovery: " . $req, true );
-	}
+    if ( false !== strpos( $req, '?author=' ) || false !== strpos( $req, 'wp-json/wp/v2/users' ) ) {
+	$this->karo( "WP Author Discovery: " . $req, true );
+    }
 	
     if ( false !== strpos( $req, '?' ) ) {
       $v = $this->decode_code( substr( $req, strpos( $req, '?' ), ( strlen( $req ) - strpos( $req, '?' ) ) ) );
@@ -586,7 +586,7 @@ class pareto_functions {
     # this occurence of these many slashes etc are always an attack attempt
     if ( ( substr_count( $req, '/' ) > 20 ) || ( substr_count( $req, '\\' ) > 20 ) || ( substr_count( $req, '|' ) > 20 ) ) {
       $this->karo( $req, true );
-	}
+    }
   }
 
   /**
