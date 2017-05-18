@@ -1,5 +1,4 @@
 <?php
-
 class pareto_functions {
 	# if open_basedir is not set in php.ini. Leave disabled unless you are sure about using this.
 	protected $_open_basedir = 0;
@@ -28,7 +27,6 @@ class pareto_functions {
 		define( 'PARETO_LOGS', __DIR__ . "/logs/" );
 		$this->_log_file_key = $this->crypto_key_file();
 		if ( !file_exists( PARETO_LOGS . ".htaccess" ) || !file_exists( PARETO_LOGS . $this->_log_file_key ) ) $this->create_fileset();
-
 		$this->_set_error_level();
 		# if open_basedir is not set in php.ini then set it in the local scope
 		$this->setOpenBaseDir();
@@ -37,7 +35,6 @@ class pareto_functions {
 		# Merge $_REQUEST with _GET and _POST excluding _COOKIE data
 		$_REQUEST = array_merge( $_GET, $_POST );
 	}
-
   function _set_error_level() {
     $val = ( false !== $this->integ_prop( $this->_quietscript ) || false !== ctype_digit( $this->_quietscript ) ) ? ( int ) $this->_quietscript : 0;
     @ini_set( 'display_errors', 0 );
@@ -172,9 +169,7 @@ class pareto_functions {
   }
   function do_bcrypt( $string, $cost = 5 ) {
         $salt = ( function_exists( 'openssl_random_pseudo_bytes' ) ) ? substr( base64_encode( openssl_random_pseudo_bytes( 17 ) ), 0, 22 ) : substr( strtr( base64_encode( mcrypt_create_iv( 16, MCRYPT_DEV_URANDOM ) ), '+', '.' ), 0, 22 );
-
         $salt = str_replace( "+", ".", $salt);
-
 		$param='$'. implode('$',array(
                 "2y",
                 $cost,
@@ -182,11 +177,9 @@ class pareto_functions {
         ));
 		
 		$output = crypt( $string, $param );
-
 		return $output;
   }
   function create_fileset() {
-
 	  $htlog_content = 'Options -Indexes' . "\n" .
 	  'Options +SymLinksIfOwnerMatch' . "\n" .
 	  'ServerSignature off' . "\n" .
@@ -208,7 +201,6 @@ class pareto_functions {
 	   
 	   $this->_log_file = $this->logfile_name();
 	   $logfile = PARETO_LOGS . $this->_log_file;
-
 	   # Create logfile
 	   $fp = fopen( $logfile, 'c' );
 	   fwrite( $fp, "" );
@@ -261,7 +253,6 @@ class pareto_functions {
 		  }
 		  return $_server_vars;
   }
-
   /**
    * injectMatch()
    * 
@@ -271,7 +262,6 @@ class pareto_functions {
   function injectMatch( $string ) {
     $string  = $this->url_decoder( strtolower( $string ) );
     $kickoff = false;
-
     # these are the triggers to engage the rest of this function.
     $vartrig = "\/\/|\.\.\/|%0d%0a|0x|\ba(?:ll\b|lert\b|scii\()\b|\bb(?:ase64\b|enchmark\b|y\b)|
            \bc(?:ase\b|har\b|olumn\b|onvert\b|ookie\b|reate\b)|\bd(?:eclare\b|ata\b|ate\b|
@@ -290,7 +280,6 @@ class pareto_functions {
     if ( false === $kickoff ) {
       return false; // if false then we are not interested in this query.
     } else { // else we are very interested in this query.
-
       $j				= 0;
       # toggle through 6 different filters
       $sqlmatchlist = "(?:abs|ascii|base64|bin|cast|chr|char|charset|collation|concat|
@@ -332,7 +321,6 @@ class pareto_functions {
       $sqlupdatelist	= "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
           \bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
           \bval\b|0x|--";
-
       $sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|win.|
           \bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
           _log|\.(?:js|txt|exe|ht|ini|bat|log)|\blib\b|\bproc\b|
@@ -346,11 +334,9 @@ class pareto_functions {
 		if ( false !== ( bool ) preg_match( "/(?:(?:(?:\b|[^a-z])union[^a-z]|\()[\w\W]*(?:\b|[^a-z])select[^a-z]|(?:updatexml|extractvalue)(?:\b|[^a-z])[\w\W]*\()[\w\W]+(?:(?:0x|x')[0-9a-f]{16}|(?:0b|b')[01]{64}|\(|\|\||\+)/i", $string ) ) {
 		   return true;
 		}
-
 	$sqlmatchlist	 = preg_replace( "/[\s]/i", '', $sqlmatchlist );
         $sqlupdatelist	= preg_replace( "/[\s]/i", '', $sqlupdatelist );
         $sqlfilematchlist = preg_replace( "/[\s]/i", '', $sqlfilematchlist );
-
 		if ( false !== ( bool ) preg_match( "/\bdrop\b/i", $string ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b/i", $string ) && false !== ( bool ) preg_match( "/--|and|\//i", $string ) ) {
           return true;
         } elseif ( ( false !== strpos( $string, 'grant' ) ) && ( false !== strpos( $string, 'all' ) ) && ( false !== strpos( $string, 'privileges' ) ) ) {
@@ -373,7 +359,6 @@ class pareto_functions {
         } elseif ( ( substr_count( $string, '|' ) > 2 ) && false !== ( bool ) preg_match( "/json/i", $string ) ) {
           return true;
         }
-
         # run through a set of filters to find specific attack vectors on the request string
         $thenode = $this->cleanString( $j, $this->getREQUEST_URI() );
 		
@@ -436,7 +421,6 @@ class pareto_functions {
   function datalist( $val, $list = 0 ) {
     # although we try not to do this, arbitrary blacklisting of certain request variables
     # cannot be avoided. however I will attempt to keep this list short.
-
     $_datalist	  = array();
     $val = preg_replace( "/[\s]/i", '', strtolower( $this->decode_code( str_replace( "'", '', ( $val ) ) ) ) );
     # _REQUEST[]
@@ -472,7 +456,6 @@ class pareto_functions {
     $_datalist[ 4 ] = array( "mozilla","android","windows","chrome","safari","opera","apple","google",
 							 "facebookexternalhit", "wordpress", "twitter", "msn.com", "wp.com",
 							 "pinterest", "netcraft ssl" );
-
     for( $x=0; $x < count( $_datalist[ ( int ) $list ] ); $x++ ) {
       if ( false !== strpos( $val, $this->decode_code( $_datalist[ ( int ) $list ][ $x ] ) ) ) {
         return true;
@@ -487,7 +470,6 @@ class pareto_functions {
    * @return
    */
   function _REQUEST_SHIELD() {
-
     # if empty then the rest of no interest to us
     if ( false !== empty( $_REQUEST ) ) return;
 	
@@ -497,7 +479,6 @@ class pareto_functions {
     # specific attacks that do not necessarily
     # involve query_string manipulation
     $req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
-
     # Apache Struts2 Remote Code Execution
     preg_match_all( "/redirect|context|opensymphony|dispatcher|HttpServletResponse|flush\(|getWriter/i", $req, $matches );
     if ( is_array( $matches[ 0 ] ) && ( count( $matches[ 0 ] ) > 4 ) ) {
@@ -513,14 +494,12 @@ class pareto_functions {
     # Reflected File Download Attack
     if ( false !== ( bool ) preg_match( "/\.(?:bat|cmd|ini|htac|htpa|passwd)/i", $req ) )
       $this->karo( "Reflected File Download: " . $req, true );
-
     # osCommerce / Magento specific exploit
     if ( false !== strpos( $req, '.php/admin' ) )
       $this->karo( "osCommerce / Magento Exploit attempt: " . $req, true );
     
     # Null byte
     if ( false !== strpos( $req, '\0' ) ) $this->karo( $req, ( bool ) $this->_banip );
-
     # prevent arbitrary file includes/uploads
     if ( false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
         if ( false !== $this->instr_url( $req ) ) {
@@ -534,7 +513,6 @@ class pareto_functions {
     }
     # prevent command injection
     if ( false !== in_array( "'cmd'", $this->_get_all ) || false !== in_array( "'system'", $this->_get_all ) ) $this->karo( "CMD Injection: " . $req, true );
-
     # Detect HTTP Parameter Pollution
     # i.e when devs mistakenly use $_REQUEST to return values
     $dup_check_get = array();
@@ -547,7 +525,6 @@ class pareto_functions {
     }
     
     $dup_check_get = array_unique( $dup_check_get );
-
     if ( false !== $this->cmpstr( 'POST', $_get_server[ 'REQUEST_METHOD' ] ) && false === empty( $_get_post ) ) {
       # while we're checking _POST, prevent attempts to esculate user privileges in WP
       if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) && false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) && ( false !== in_array( 'default_role' , $_get_post ) && false !== $this->cmpstr( 'administrator', $_get_post[ 'default_role' ] ) ) ) $this->karo( $req, true );
@@ -588,7 +565,6 @@ class pareto_functions {
       $this->karo( $req, true );
     }
   }
-
   /**
    * get_filter()
    * 
@@ -616,7 +592,6 @@ class pareto_functions {
     }
     return;
   }
-
   /**
    * post_filter()
    * 
@@ -630,7 +605,6 @@ class pareto_functions {
     }
     # catch attempts to insert malware
     if ( false !== strpos( $val, "array_diff_ukey" ) && ( false !== strpos( $val, "system" ) || false !== strpos( $val, "cmd" ) ) && $this->substri_count( $val, "array(" ) > 1 ) $this->karo( $val, ( bool ) $this->_banip );
-
 	# Attempts to pop a shell
 	preg_match_all( "/php|system\(|import|python|connect|\?\>/i", $val, $matches );
 	if ( is_array( $matches[ 0 ] ) ) {
@@ -668,46 +642,44 @@ class pareto_functions {
    * 
    */
   function _HTTPHOST_SHIELD() {
-
 	# short $_SERVER[ 'SERVER_NAME' ] can indicate server hack
 	# see http://bit.ly/1UeGu0W
 	if ( false === $this->string_prop( $this->get_http_host(), 3 ) ) $this->karo( "HOST ERROR: " . $this->get_http_host(), false, 444 );
 	
 	if ( isset( $_SERVER[ 'HTTP_HOST' ] ) ) {
 		$http_host = strtolower( $_SERVER[ 'HTTP_HOST' ] );
-
 		if ( false !== $this->injectMatch( $http_host ) ) $this->karo( "HTTP-HOST Injection: " . $http_host, ( bool ) $this->_banip );
 		if ( false !== ( bool ) $this->datalist( $http_host, 1 ) ) $this->karo( "HTTP-HOST Attack: " . $http_host, ( bool ) $this->_banip );
 		if ( false !== $this->is_wp( false ) ) {
 			if ( false !== ( bool ) $this->_adv_mode ) {
-			preg_match_all( "/xenial|directory|usr|spool|run/i", $http_host, $matches );
-			if ( is_array( $matches[ 0 ] ) ) {
-				$match_list = array_unique( $matches[ 0 ] );
-				if ( count( $match_list ) > 3 ) $this->karo( "WP RCE HOST Attack: " . $http_host, ( bool ) $this->_banip );
-			}
-			# Patch for CVE-2017-8295
-			if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
-				$req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
-				if ( false !== $this->cmpstr( $this->get_filename(), 'wp-login.php' ) && false !== strpos( $req, 'action=lostpassword' ) ) {
-					# create a unique file
-					$file_str = ABSPATH . 'pareto-security-' . substr( hash( 'sha256', $this->get_uuid( true ), false ), 0, 15 ) . '.tmp';
-					if ( !file_exists( $file_str ) ) {
-						$fp = fopen( $file_str, 'w' );
-						fwrite( $fp, "" );
-						fclose( $fp );
-					}
-					if ( file_exists( $file_str ) ) {
-						$get_url = $this->get_http_host() . $file_str;
-						$header_array = @get_headers( $get_url );
-						$response = $header_array[ 0 ];
-						if ( false !== strpos( $response, "404" ) ) {
-							@unlink( $file_str );
-							$this->karo( "HTTP-HOST Attack (CVE-2017-8295): " . $_SERVER[ 'HTTP_HOST' ], false );
+				preg_match_all( "/xenial|directory|usr|spool|run/i", $http_host, $matches );
+				if ( is_array( $matches[ 0 ] ) ) {
+					$match_list = array_unique( $matches[ 0 ] );
+					if ( count( $match_list ) > 3 ) $this->karo( "WP RCE HOST Attack: " . $http_host, ( bool ) $this->_banip );
+				}
+				# Patch for CVE-2017-8295
+				if ( false !== $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) ) {
+					$req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
+					if ( false !== $this->cmpstr( $this->get_filename(), 'wp-login.php' ) && false !== strpos( $req, 'action=lostpassword' ) ) {
+						# create a unique file
+						$file_str = ABSPATH . 'pareto-security-' . substr( hash( 'sha256', $this->get_uuid( true ), false ), 0, 15 ) . '.tmp';
+						if ( !file_exists( $file_str ) ) {
+							$fp = fopen( $file_str, 'w' );
+							fwrite( $fp, "" );
+							fclose( $fp );
 						}
-						@unlink( $file_str );
-					}
-				}	
-			}
+						if ( file_exists( $file_str ) ) {
+							$get_url = $this->get_http_host() . $file_str;
+							$header_array = @get_headers( $get_url );
+							$response = $header_array[ 0 ];
+							if ( false !== strpos( $response, "404" ) ) {
+								@unlink( $file_str );
+								$this->karo( "HTTP-HOST Attack (CVE-2017-8295): " . $_SERVER[ 'HTTP_HOST' ], false );
+							}
+							@unlink( $file_str );
+						}
+					}	
+				}
 			}
 		}
 	}
@@ -734,10 +706,8 @@ class pareto_functions {
   function _COOKIE_SHIELD() {
     if ( false !== empty( $_COOKIE ) )
       return; // of no interest to us
-
     array_walk_recursive( $_COOKIE, array( $this, 'cookie_filter' ) );
   }
-
   /**
    * _SPIDER_SHIELD()
    * Basic whitelist
@@ -751,14 +721,12 @@ class pareto_functions {
       if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 3 ) ) {
         $this->karo( "USER-AGENT: " . $val, ( bool ) $this->_banip );
       }
-
 	  # disable this in wp-admin (disable advanced mode) if you want bots to crawl your website
       if ( false !== ( bool ) $this->_adv_mode && false === $this->cmpstr( $val, "''") && false === ( bool ) $this->datalist( $val, 4 ) ) {
         if ( false === $this->is_server() && ( bool ) false !== $this->_banip ) $this->karo( "USER_AGENT: ". $val, ( ( ( bool ) $this->_spider_mode ) ? ( bool ) $this->_banip : false ), 444 );
       }
     } // else UA is basically empty
   }
-
    /**
     * checkfilename()
     * 
@@ -845,7 +813,6 @@ class pareto_functions {
       } else {
         array_push( $mybans, "\r\n# " . $thisdomain . " Pareto Security Ban\n", "order allow,deny\n", $newline, "allow from all\n", $limitend );
       }
-
 	  $orig_octal = $this->dirfile_perms( $this->htapath() );
       if ( false === $this->get_file_perms( $this->htapath(), true, true ) ) {
 		chmod( $this->htapath(), 0666 );
@@ -867,7 +834,6 @@ class pareto_functions {
       $limitstart = "# " . $thisdomain . " Pareto Security Ban\n";
       $limitend = "# End of " . $thisdomain . " Pareto Security Ban\n";
       $mybans   = file( $this->htapath() );
-
       if ( in_array( $limitend, $mybans ) ) {
         $i = count( $mybans ) - 1;
         while ( $mybans[ $i ] >= 0 ) {
