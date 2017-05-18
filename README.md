@@ -3,14 +3,13 @@
 Contributors: te_taipo
 
 Donate link: https://hokioisecurity.com
+Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 
-Tags: authentication bypass, CRLF, CSRF, command injection, cross-site scripting, database security, exploit, firewall security, hack, hacked, hacker, injection, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, wordpress security, xss
+Requires at least: 4.0.1
 
-Requires at least: 3.0.1
+Tested up to: 4.7.5
 
-Tested up to: 4.7.3
-
-Stable tag: 1.4.0
+Stable tag: 1.6.1
 
 License: GPLv2 or later
 
@@ -90,29 +89,23 @@ Donations via Bitcoin to 1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
 
 Email me at hokioi-security@protonmail.ch
 
-Other contacts: https://github.com/Taipo/contact-details
+Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 1.4.0 =
-* Author discovery requests now IP banned in Advanced Mode
-* When changing from Advanced Mode to Standard Mode, ban IP addresses will be removed from .htaccess file
+= 1.6.1 =
+* Reduce instances of false positives
 
-= 1.3.9 =
-* Prevent Wordpress REST API exploit
-* Update to testing for integers
+= 1.6.0 =
+* Block Apache Struts2 Remote Code Execution requests
+* Updated WP Author Discovery
+* Further adjustment to the block strategy
 
-= 1.3.8 =
-* Redirect to URL if POST content-length = 0
-* Improved finding .htaccess file
+= 1.5.9 =
+* Adjusted the strategy to always ban attacks no matter which mode is set
 
-= 1.3.7 =
-* Bugfix: removed false positive for cookie filtering
+= 1.5.8 =
+* Improved Database Injection Detection
 
-= 1.3.6 =
-* Bugfix: removed conflicting security headers affecting the Safari browser
-
-= 1.3.5 =
-* Updated blacklists
-* When deleting Pareto Security, any blacklists in .htaccess are now removed
-* Update to secure headers
+= 1.5.7 =
+* Fixed issues related to PHP 5.3
