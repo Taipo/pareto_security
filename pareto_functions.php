@@ -99,7 +99,7 @@ class pareto_functions {
   
   function karo( $req = '', $t = false, $header_type = 403 ) {
 	$this->_log_file = $this->logfile_name();
-	$ban_type = ( ( false !== $this->_adv_mode || false !== ( bool ) $this->_banip ) || false !== $t ) ? 'Hard-Ban' : 'Soft-Ban';
+	$ban_type = ( ( false !== $this->_adv_mode || false !== ( bool ) $this->_banip ) || false !== $t ) ? 'Ban' : 'Block';
 	$req = ( substr( $req, 0, 2 ) == "/?" ) ? substr( $req, 2 ) : $req;
 	$req = ( substr( $req, 0, 1 ) == "/" ) ? substr( $req, 1 ) : $req;
 	$this->log_request( $req, $ban_type );
@@ -136,7 +136,7 @@ class pareto_functions {
 			   $this->get_ip() . " " .
 			   $ban_type . " " .
 			   $_SERVER[ 'REQUEST_METHOD' ] . " " .
-			   str_replace( " ", "%20", htmlentities( $req, ENT_HTML5,'UTF-8', true ) ) . "\n";
+			   str_replace( " ", "%20", htmlentities( $req, ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ),'UTF-8', true ) ) . "\n";
 		$this->write_log( $req, $this->_log_file );
   }
   function crypto_key_file() {

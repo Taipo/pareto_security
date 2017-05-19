@@ -6,7 +6,7 @@ Donate link: https://hokioisecurity.com
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Requires at least: 4.0.1
 Tested up to: 4.7.5
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -90,6 +90,8 @@ Other contacts: https://taipo.github.io/contact/
 
 = 1.6.2 =
 * Fix HTTPHOST_SHIELD issues
+* Add IP lookup
+* Fixed bug affecting log display on PHP 5.3
 
 = 1.6.1 =
 * Reduce instances of false positives

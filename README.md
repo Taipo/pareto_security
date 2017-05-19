@@ -9,7 +9,7 @@ Requires at least: 4.0.1
 
 Tested up to: 4.7.5
 
-Stable tag: 1.6.1
+Stable tag: 1.6.2
 
 License: GPLv2 or later
 
@@ -93,6 +93,11 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
+= 1.6.2 =
+* Fix HTTPHOST_SHIELD issues
+* Add IP lookup
+* Fixed bug affecting log display on PHP 5.3
+
 = 1.6.1 =
 * Reduce instances of false positives
 
@@ -100,12 +105,3 @@ Other contacts: https://taipo.github.io/contact/
 * Block Apache Struts2 Remote Code Execution requests
 * Updated WP Author Discovery
 * Further adjustment to the block strategy
-
-= 1.5.9 =
-* Adjusted the strategy to always ban attacks no matter which mode is set
-
-= 1.5.8 =
-* Improved Database Injection Detection
-
-= 1.5.7 =
-* Fixed issues related to PHP 5.3
