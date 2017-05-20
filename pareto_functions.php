@@ -132,11 +132,13 @@ class pareto_functions {
   function log_request( $req, $ban_type ) {
 		if ( false === $this->is_wp( false ) ) date_default_timezone_set( 'NZ' );
 		$timestamp = ( false !== $this->is_wp( false ) ) ? date_i18n( 'd-m-y,G:i', ( time() + 43200 ) ) : date( "d.m.y-G:i" );
+		$req = htmlentities( $req, ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 | ENT_QUOTES : ENT_COMPAT | ENT_HTML401 ), 'UTF-8' );
+		$req = str_replace( "\\", "&bsol;", $req );
 		$req = $timestamp . " " .
 			   $this->get_ip() . " " .
 			   $ban_type . " " .
 			   $_SERVER[ 'REQUEST_METHOD' ] . " " .
-			   str_replace( " ", "%20", htmlentities( $req, ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ),'UTF-8', true ) ) . "\n";
+			   str_replace( " ", "%20", $req ) . "\n";
 		$this->write_log( $req, $this->_log_file );
   }
   function crypto_key_file() {
@@ -499,7 +501,7 @@ class pareto_functions {
       $this->karo( "osCommerce / Magento Exploit attempt: " . $req, true );
     
     # Null byte
-    if ( false !== strpos( $req, '\0' ) ) $this->karo( $req, ( bool ) $this->_banip );
+    if ( false !== strpos( $req, '\0' ) ) $this->karo( "Null byte: " . $req, ( bool ) $this->_banip );
     # prevent arbitrary file includes/uploads
     if ( false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
         if ( false !== $this->instr_url( $req ) ) {
