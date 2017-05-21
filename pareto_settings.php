@@ -1,6 +1,5 @@
 <?php
 if ( class_exists( "pareto_functions" ) ) :
-
 class pareto_settings extends pareto_functions {
 	public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'spider_mode' => 0 );
 	var $pagehook, $page_id, $settings_field, $options;
@@ -13,7 +12,7 @@ class pareto_settings extends pareto_functions {
 			exit();
 		}
 		$unix_time = 1495233625 + 43200;
-		define( 'PARETO_VERSION', '1.6.2' );
+		define( 'PARETO_VERSION', '1.6.3' );
 		define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
 		define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 		define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -40,13 +39,11 @@ class pareto_settings extends pareto_functions {
 				}
 			}
 		}
-
-		$this->_adv_mode = ( false !== is_array( $this->options ) && array_key_exists( 'advanced_mode', $this->options ) ) ? 1 : 0;
-		$this->_ban_mode = ( false !== is_array( $this->options ) && array_key_exists( 'ban_mode', $this->options ) ) ? 1 : 0;
-		$this->_spider_mode = ( false !== ( bool ) $this->_adv_mode && false !== is_array( $this->options ) && array_key_exists( 'spider_mode', $this->options ) ) ? 1 : 0;
-
-		$this->advanced_mode( $this->_adv_mode );
-
+		if ( false !== is_array( $this->options ) ) {
+			$this->_adv_mode =  ( array_key_exists( 'advanced_mode', $this->options ) ) ? 1 : 0;
+			$this->_ban_mode = ( array_key_exists( 'ban_mode', $this->options ) ) ? 1 : 0;
+			$this->_spider_mode = ( false !== ( bool ) $this->_adv_mode && array_key_exists( 'spider_mode', $this->options ) ) ? 1 : 0;
+		}
 		if ( false !== $this->is_wp( true ) ) {
 			$this->_log_file = $this->logfile_name();
 			add_action( 'admin_init', array( $this,'admin_init' ), 20 );
@@ -58,48 +55,36 @@ class pareto_settings extends pareto_functions {
 		register_setting( $this->settings_field, $this->settings_field, array( $this, 'sanitize_theme_options' ) );
 		add_option( $this->settings_field, pareto_settings::$default_settings );
 	}
-	
 	function admin_menu() {
 		if ( ! current_user_can( 'update_plugins' ) )
 			return;
-	
 		// Add a new submenu to the standard Settings panel
 		$this->pagehook = $page =  add_options_page( __( 'Pareto Security Settings', 'pareto_security_settings' ), __( 'Pareto Security Dashboard', 'pareto_security_settings' ), 'administrator', $this->page_id, array( $this,'render' ) );
-	
 		add_action( 'load-' . $this->pagehook, array( $this, 'metaboxes' ) );
-	
 		add_action( "admin_print_scripts-$page", array( $this, 'js_includes' ) );
-
 		add_action( "admin_head-$page", array( $this, 'admin_head' ) );
 	}
-
 	function admin_head() { ?>
 		<style>
 		.settings_page_pareto_security_settings label { display:inline-block; width: 400px; }
 		</style>
-	
 <?php }
-	
 	function js_includes() {
 		// Needed to allow metabox layout and close functionality.
 		wp_enqueue_script( 'postbox' );
-	}
-	
-	
+	}	
 	/*
 		Sanitize our plugin settings array as needed.
 	*/
 	function sanitize_theme_options( $options ) {
 		if ( is_array( $options ) ) {
 			if ( array_key_exists( 'pareto_security_settings_text', $options ) ) $options[ 'pareto_security_settings_text' ] = stripcslashes( $options[ 'pareto_security_settings_text' ] );
-			if ( array_key_exists( 'advanced_mode', $options ) ) $options[ 'advanced_mode' ] = ( int ) $options[ 'advanced_mode' ];
-			if ( array_key_exists( 'ban_mode', $options ) ) $options[ 'ban_mode' ] = ( int ) $options[ 'ban_mode' ];
-			if ( array_key_exists( 'spider_mode', $options ) ) $options[ 'spider_mode' ] = ( int ) $options[ 'spider_mode' ];
+			if ( array_key_exists( 'advanced_mode', $options ) ) $options[ 'advanced_mode' ] = 1;
+			if ( array_key_exists( 'ban_mode', $options ) ) $options[ 'ban_mode' ] = 1;
+			if ( array_key_exists( 'spider_mode', $options ) ) $options[ 'spider_mode' ] = 1;
 			return $options;
 		}
 	}
-	
-	
 	/*
 		Settings access functions.
 	
@@ -107,15 +92,12 @@ class pareto_settings extends pareto_functions {
 	protected function get_field_name( $name ) {
 		return sprintf( '%s[%s]', $this->settings_field, $name );
 	}
-	
 	protected function get_field_id( $id ) {
 		return sprintf( '%s[%s]', $this->settings_field, $id );
 	}
-	
 	protected function get_field_value( $key ) {
 		return $this->options[ $key ];
 	}
-	
 	function cleanRequestInput( $input ) {
 	  if ( function_exists( 'filter_var' ) && defined( 'FILTER_SANITIZE_STRING' ) ) {
 			if ( false !== ( bool )filter_var( $input, FILTER_SANITIZE_STRING ) ) {
@@ -123,15 +105,12 @@ class pareto_settings extends pareto_functions {
 			} else return false;
 		}
 	}
-	
 	/*
 		Render settings page.
 	
 	*/
-	
 	function render() {
 		global $wp_meta_boxes;
-	
 		$title = __( 'Pareto Security Dashboard', 'pareto_security_settings' );
 		?>
 		<div class="wrap">
@@ -144,18 +123,17 @@ class pareto_settings extends pareto_functions {
 			<form method="post" action="options.php">
 				<div class="metabox-holder">
 					<div class="postbox-container" style="width: 99%;">
-					<?php
-						// Render metaboxes
-						settings_fields( $this->settings_field );
-						do_meta_boxes( $this->pagehook, 'main', null );
-						if ( isset( $wp_meta_boxes[ $this->pagehook ][ 'column2' ] ) )
-							do_meta_boxes( $this->pagehook, 'column2', null );
-					?>
+<?php
+	// Render metaboxes
+	settings_fields( $this->settings_field );
+	do_meta_boxes( $this->pagehook, 'main', null );
+	if ( isset( $wp_meta_boxes[ $this->pagehook ][ 'column2' ] ) )
+		do_meta_boxes( $this->pagehook, 'column2', null );
+?>
 					</div>
 				</div>
 			</form>
 		</div>
-	
 		<!-- Needed to allow metabox layout and close functionality. -->
 		<script type="text/javascript">
 			//<![CDATA[
@@ -167,9 +145,7 @@ class pareto_settings extends pareto_functions {
 			});
 			//]]>
 		</script>
-	<?php }
-	
-	
+<?php }
 	function metaboxes() {
 		add_meta_box( 'pareto-security-settings-version', __( 'Information', 'pareto_security_settings' ), array( $this, 'info_box' ), $this->pagehook, 'main', 'high' );
 		add_meta_box( 'pareto-security-settings-conditions', __( 'Custom Settings', 'pareto_security_settings' ), array( $this, 'condition_box' ), $this->pagehook, 'main' );
@@ -177,9 +153,8 @@ class pareto_settings extends pareto_functions {
 		add_meta_box( 'pareto-security-settings-logs', __( 'Last 100 Attack Requests', 'pareto_security_settings' ), array( $this, 'logfile_box' ), $this->pagehook, 'main' );
 		add_meta_box( 'pareto-security-settings-donations', __( 'Donations', 'pareto_security_settings' ), array( $this, 'donations_box' ), $this->pagehook, 'main' );
 	}
-
 	function info_box() {
-		?>
+?>
 			<table style="text-align: left;">
 				<tr>
 					<td><strong><?php _e( 'Version:', 'pareto_security_settings' ); ?></strong> <?php echo PARETO_VERSION; ?> <?php echo '&middot;'; ?> <strong><?php _e( 'Released:', 'pareto_security_settings' ); ?></strong> <?php echo PARETO_RELEASE_DATE; ?> ( NZ Timezone )</td>
@@ -188,16 +163,16 @@ class pareto_settings extends pareto_functions {
 					<td><strong>Email:</strong> hokioi-security@protonmail.ch</td>
 				</tr>
 			</table>
-		<?php
+<?php
 	}
 
 	function donations_box() {
-		?>
+?>
 		<p><strong><a href=BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX>BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX</a></strong></p>
-		<?php
+<?php
 	}
 	function condition_box() {
-	?>
+?>
 		<table style="text-align: left; background-color: #C9C9C9;">
 			<tr>
 				<td>
@@ -209,49 +184,49 @@ class pareto_settings extends pareto_functions {
 					<tr style="text-align: left; background-color: #E8E8E8;">
 						<td style="width: 400px; vertical-align:top;">
 							<dl>
-								<dt>&nbsp;&nbsp;• <b>Standard Mode</b> is the recommended setting</dt>
-								<dt>&nbsp;&nbsp;• Hard ban attempts to attack the webserver</dt>
-								<dt>&nbsp;&nbsp;• Hard ban attempts to inject malicious code into the database</dt>
-								<dt>&nbsp;&nbsp;• Hard ban injection attempts via browser user-agents</dt>
-								<dt>&nbsp;&nbsp;• Does not filter User-Agent</dt>
-								<dt>&nbsp;&nbsp;• Advanced POST Filtering is disabled</dt>
+								<dt>&nbsp;&nbsp;- <b>Standard Mode</b> is the recommended setting</dt>
+								<dt>&nbsp;&nbsp;- Hard ban attempts to attack the webserver</dt>
+								<dt>&nbsp;&nbsp;- Hard ban attempts to inject malicious code into the database</dt>
+								<dt>&nbsp;&nbsp;- Hard ban injection attempts via browser user-agents</dt>
+								<dt>&nbsp;&nbsp;- Does not filter User-Agent</dt>
+								<dt>&nbsp;&nbsp;- Advanced POST Filtering is disabled</dt>
 							</dl>
 						 </td>
 						<td style="width: 500px; vertical-align:top;">
 							<table>
 								<tr>
-								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="<?php echo isset( $this->options['advanced_mode'] ) ? 1 : 0; ?>" <?php echo ( isset( $this->options['advanced_mode'] ) || false !== ( bool ) $this->_adv_mode ) ? 'checked' : ''; ?> /></td>
+								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="<?php echo isset( $this->options[ 'advanced_mode' ] ) ? $this->options[ 'advanced_mode' ] : 0; ?>" <?php echo ( isset( $this->options[ 'advanced_mode' ] ) || false !== ( bool ) $this->_adv_mode ) ? 'checked' : ''; ?> /></td>
 								  <td>
 								<label for="<?php echo $this->get_field_id( 'advanced_mode' ); ?>"><?php _e( '<b>Set Advanced Mode</b> ( Use at your own risk )', 'pareto_security_settings' ); ?></label></td>
 								</tr>
 								<tr>
 								  <td></td>
-								  <td>• Hard ban attempts to attack the webserver</td>
+								  <td>- Hard ban attempts to attack the webserver</td>
 								</tr>
 								<tr>
 								  <td></td>
-								  <td>• Hard ban attempts to inject malicious code into the database</td>
+								  <td>- Hard ban attempts to inject malicious code into the database</td>
 								</tr>
 								<tr>
 								  <td></td>
-								  <td>• Hard ban injection attempts via browser user-agents</td>
+								  <td>- Hard ban injection attempts via browser user-agents</td>
 								</tr>
 								<tr>
 								<tr>
 								  <td></td>
-								  <td>• Advanced filtering of HTTP_HOST</td>
+								  <td>- Advanced filtering of HTTP_HOST</td>
 								</tr>
 								<tr>
 								  <td></td>
-								  <td>• Soft Ban Bots</td>
+								  <td>- Soft Ban Bots</td>
 								</tr>
 								<tr>
 								  <td></td>
-								  <td>• Advanced POST Filtering</td>
+								  <td>- Advanced POST Filtering</td>
 								</tr>
 								<tr>
-								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'spider_mode' ); ?>" id="<?php echo $this->get_field_id( 'spider_mode' ); ?>" value="<?php echo isset( $this->options['spider_mode'] ) ? 1 : 0; ?>" <?php echo ( !isset( $this->options[ 'advanced_mode' ] ) )? "disabled=\"disabled\"":""; ?><?php echo ( isset( $this->options['spider_mode'] ) && isset( $this->options[ 'advanced_mode' ] ) )? 'checked' : ''; ?> /></td>
-								  <td>• <label for="<?php echo $this->get_field_id( 'spider_mode' ); ?>"><?php _e( 'Hard ban of bots', 'pareto_security_settings' ); ?></label></td>
+								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'spider_mode' ); ?>" id="<?php echo $this->get_field_id( 'spider_mode' ); ?>" value="<?php echo isset( $this->options['spider_mode'] ) ? 1 : 0; ?>" <?php echo ( !isset( $this->options[ 'advanced_mode' ] ) )? "disabled=\"disabled\"":""; ?><?php echo ( isset( $this->options['spider_mode'] ) && isset( $this->options[ 'advanced_mode' ] ) && $this->options[ 'advanced_mode' ] == 1 )? 'checked' : ''; ?> /></td>
+								  <td>- <label for="<?php echo $this->get_field_id( 'spider_mode' ); ?>"><?php _e( 'Hard ban of bots', 'pareto_security_settings' ); ?></label></td>
 								</tr>
 							</table>
 						</td>
@@ -265,22 +240,21 @@ class pareto_settings extends pareto_functions {
 <?php }
 	function notes_box () {
 		$mode = ( false === ( bool ) $this->_adv_mode ) ? 'Standard' : 'Advanced';
-	?><ul>
+?>   <ul>
 		<li>+ Status: <i><?php echo $mode; ?> mode</i></li>
-		<?php if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) ) {	?>
+<?php if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) ) {	?>
 		<li>+ Your <code>.htaccess</code> is configured correctly in <code><?php echo $this->get_dir(); ?></code></li>
 		<li>+ <?php echo ( $this->_adv_mode ) ? 'Hard Ban' : 'Soft Ban'; ?>: IP address <?php echo ( $this->_adv_mode ) ? '<i>will</i>' : '<i>will not</i>'; ?> be added to the .htaccess file <?php echo ( $this->_adv_mode ) ? '' : 'except for instances of direct attacks'; ?></li>
-		<?php
+<?php
 		} else {
-		?><li>+ Your <code>.htaccess</code> file cannot be written to in <code><?php echo $this->get_dir(); ?></code> Pareto Security will still soft ban attack vectors.</li>
+?>      <li>+ Your <code>.htaccess</code> file cannot be written to in <code><?php echo $this->get_dir(); ?></code> Pareto Security will still soft ban attack vectors.</li>
 		  <li>+ Hard Ban: IP address will not be added to the .htaccess file</li>
-		<?php } ?>
+<?php } ?>
 			<li>+ Date-Time is set to NZ timezone</li>
 	</ul>
 <?php }
 	function logfile_box () {
-	?>
-
+?>
 		<table style="text-align: left; background-color: #C9C9C9;">
 			<tr>
 				<td>
@@ -300,7 +274,7 @@ class pareto_settings extends pareto_functions {
 						<td></td>
 						<td></td>
 					  </tr>
-					<?php
+<?php
 						if ( !file_exists( PARETO_LOGS . ".htaccess" ) ) $this->create_fileset();
 						$mylogs = array();
 						$mylogs = array_reverse( file( PARETO_LOGS . $this->_log_file ) );
@@ -324,13 +298,13 @@ class pareto_settings extends pareto_functions {
 						  } else break;
 						$i++;
 						}
-					?>
+?>
 				</table>
 				</code>
 				</td>
 			</tr>
 		</table>
-		<?php
+<?php
 	}
 	function do_settings_box() {
 		if ( ( false !== ( bool )defined( 'WP_ADMIN' ) && false !== WP_ADMIN ) && ( false !== ( bool )is_admin() ) ) {

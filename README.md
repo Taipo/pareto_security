@@ -3,13 +3,14 @@
 Contributors: te_taipo
 
 Donate link: https://hokioisecurity.com
+
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 
 Requires at least: 4.0.1
 
 Tested up to: 4.7.5
 
-Stable tag: 1.6.2
+Stable tag: 1.6.3
 
 License: GPLv2 or later
 
@@ -92,6 +93,10 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 1.6.3 =
+* Fixed potential plugin activation error on some configurations
+* Fixed issues that would affect TorHS
 
 = 1.6.2 =
 * Fix HTTPHOST_SHIELD issues
