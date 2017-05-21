@@ -88,6 +88,10 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
+= 1.6.4 =
+* Advanced POST filtering update
+* Fixed possible false positives in local installations
+
 = 1.6.3 =
 * Fixed potential plugin activation error on some configurations
 * Fixed issues that would affect TorHS

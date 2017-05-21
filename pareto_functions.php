@@ -379,8 +379,6 @@ class pareto_functions {
 			if ( count( $match_list ) > 2 ) return true;
 		  } elseif ( ( false !== ( bool ) preg_match( "/%0D%0A/i", $thenode ) ) && ( false !== strpos( $thenode, 'utf-7' ) ) ) {
 			return true;
-		  } elseif ( false !== ( bool ) preg_match( "/php:\/\/filter|convert.base64-(?:encode|decode)|zlib.(?:inflate|deflate)/i", $string ) || false !== ( bool ) preg_match( "/data:\/\/filter|text\/plain|http:\/\/(?:127.0.0.1|localhost)/i", $string ) ) {
-			return true;
 		  }
 		  
 		  if ( 5 <= substr_count( $string, '%' ) )
@@ -437,12 +435,12 @@ class pareto_functions {
 		  "location.replace(","()}","@@datadir","_start_","php_self","%c2%bf","}if(",
 		  "[link=http://","[/link]","ywxlcnqo","\$_session","\$_request","\$_env",
 		  "\$_server",";!--=","substr(","\$_post","hex_ent","inurl:","replace(",
-		  ".php/admin","mosconfig_","<@replace(","/iframe>","=alert(","localhost",
+		  ".php/admin","mosconfig_","<@replace(","/iframe>","=alert(","ki9xsevsrs8q",
 		  "php/password_for","unhex(","error_reporting(","http_cmd","127.0.0.1:",
 		  "set-cookie","{\$","http/1.","print@@variable","xp_cmdshell","globals[",
 		  "xp_availablemedia","sp_password","/etc/","file_get_contents(","<base",
 		  "*(|(objectclass=|||","../wp-",".htaccess",";echo","system(","zxzhbcg=",
-		  "rush=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==","ki9xsevsrs8q" );
+		  "rush=","znjvbunoyxjdb2rl","fsockopen","u0vmrunulyoqlw==" );
 	  
 	  # _POST[]
 	  $_datalist[ 2 ] = array( "zxzhbcg","eval(", "base64_","fromcharcode","allow_url_include",
@@ -627,15 +625,9 @@ class pareto_functions {
 	function _POST_SHIELD() {
 	  if ( false === $this->cmpstr( 'POST', $_SERVER[ 'REQUEST_METHOD' ] ) )
 		 return; // of no interest to us
-	  
 	  # _POST content-length should be longer than 0
-	  if ( ( ( false !== ( bool ) $this->_adv_mode || false !== ( bool ) $this->_post_filter_mode ) && ( isset( $_SERVER[ 'CONTENT_LENGTH' ] ) && $_SERVER[ 'CONTENT_LENGTH' ] < 1 ) ) ) {
-		# Don't ban the server...
-		if ( false === $this->is_server() ) {
-			$this->karo( "_SERVER[ 'CONTENT_LENGTH' ] == 0", ( bool ) $this->_banip, 444 );
-		}
-		if ( count( $_POST, COUNT_RECURSIVE ) >= 10000 ) 
-			$this->karo( "_POST DoS Attack", ( bool ) $this->_banip ); // very likely a denial of service attack
+	  if ( ( false !== ( bool ) $this->_adv_mode || false !== ( bool ) $this->_post_filter_mode ) ) {
+		if ( count( $_POST, COUNT_RECURSIVE ) >= 10000 ) $this->karo( "_POST DoS Attack", ( bool ) $this->_banip ); // very likely a denial of service attack
 	  }
 	  array_walk_recursive( $_POST, array( $this, 'post_filter' ) );
 	}
@@ -1203,6 +1195,7 @@ class pareto_functions {
 		if ( false !== ( bool ) $mode ) {
 		  $this->_banip = 1;
 		  $this->_adv_mode = 1;
+		  $this->_post_filter_mode = 1;
 		}
 	}
 }

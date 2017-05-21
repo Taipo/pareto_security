@@ -11,7 +11,7 @@ class pareto_settings extends pareto_functions {
 			header( 'HTTP/1.1 403 Forbidden' );
 			exit();
 		}
-		$unix_time = 1495233625 + 43200;
+		$unix_time = 1495357295 + 43200;
 		define( 'PARETO_VERSION', '1.6.3' );
 		define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
 		define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
