@@ -11,8 +11,8 @@ class pareto_settings extends pareto_functions {
 			header( 'HTTP/1.1 403 Forbidden' );
 			exit();
 		}
-		$unix_time = 1495357295 + 43200;
-		define( 'PARETO_VERSION', '1.6.3' );
+		$unix_time = 1496459199 + 43200;
+		define( 'PARETO_VERSION', '1.6.7' );
 		define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
 		define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 		define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -245,6 +245,7 @@ class pareto_settings extends pareto_functions {
 <?php if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) ) {	?>
 		<li>+ Your <code>.htaccess</code> is configured correctly in <code><?php echo $this->get_dir(); ?></code></li>
 		<li>+ <?php echo ( $this->_adv_mode ) ? 'Hard Ban' : 'Soft Ban'; ?>: IP address <?php echo ( $this->_adv_mode ) ? '<i>will</i>' : '<i>will not</i>'; ?> be added to the .htaccess file <?php echo ( $this->_adv_mode ) ? '' : 'except for instances of direct attacks'; ?></li>
+		<li>+ Your server is running PHP version <?php echo substr( phpversion(), 0, 3 ); ?><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? '' : ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 5.4'; ?> </li>
 <?php
 		} else {
 ?>      <li>+ Your <code>.htaccess</code> file cannot be written to in <code><?php echo $this->get_dir(); ?></code> Pareto Security will still soft ban attack vectors.</li>
@@ -279,7 +280,7 @@ class pareto_settings extends pareto_functions {
 						$mylogs = array();
 						$mylogs = array_reverse( file( PARETO_LOGS . $this->_log_file ) );
 						$i = 0;
-						$trim = 110;
+						$trim = 200;
 						while( $i <= 99 ) {
 						  if ( isset( $mylogs[ $i ] ) ) {
 							$row_colour = ( $i % 2 == 0 ) ? "#E8E8E8" : "#D0D0DE";
@@ -287,7 +288,8 @@ class pareto_settings extends pareto_functions {
 							if ( false !== ( bool ) $this->_banip || false !== ( bool ) $this->_adv_mode ) $row_colour = ( false === stripos( html_entity_decode( $req_var[ 4 ], ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), 'UTF-8' ), 'USER_AGENT:' ) && false !== stripos( $req_var[ 2 ], 'ban' ) ) ? "#F89E98" : $row_colour;
 							$ip_addr = ( false !== $this->check_ip( $req_var[ 1 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 1 ] . '&run=networktools">[Blacklist]</a> <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 1 ] . '">[Whois]</a> ' . $req_var[ 1 ] : $req_var[ 1 ];
 							$attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 4 ] ) ) );
-							$attack_string = ( strlen( $attack_string ) > $trim ) ? substr( $attack_string, 0, $trim ) . "..." : $attack_string;
+							$trim = 4 * strlen( html_entity_decode( $attack_string, ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 | ENT_QUOTES : ENT_COMPAT | ENT_HTML401 ), 'UTF-8' ) );
+							$attack_string = ( strlen( $attack_string ) > $trim ) ? substr( $attack_string, 0, $trim ) . "..." : $attack_string;					
 							echo "<tr style=\"background-color:" . $row_colour . "\">" .
 								 "	<td style=\"vertical-align:top; width:90px; white-space: nowrap\">" . $req_var[ 0 ] . "</td>" .
 								 "	<td style=\"vertical-align:top; width:200px; white-space: nowrap\">" . $ip_addr . "</td>" .

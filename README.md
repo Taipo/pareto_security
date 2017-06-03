@@ -8,9 +8,9 @@ Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command
 
 Requires at least: 4.0.1
 
-Tested up to: 4.7.5
+Tested up to: 4.8.0
 
-Stable tag: 1.6.3
+Stable tag: 1.6.7
 
 License: GPLv2 or later
 
@@ -93,6 +93,23 @@ Email me at hokioi-security@protonmail.ch
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 1.6.7 =
+* Further tweaks to HTACCESS ban method
+* Extended the display text in log tables
+* Added more _POST shell injection detection
+* Proper base64 and hex code checking
+
+= 1.6.6 =
+* Further tweaks to HTACCESS ban method
+
+= 1.6.5 =
+* Update to HTACCESS ban method
+
+= 1.6.4 =
+* Advanced POST filtering update
+* Fixed possible false positives in local installations
+* Due to demand, now compatible again with PHP 5.2
 
 = 1.6.3 =
 * Fixed potential plugin activation error on some configurations

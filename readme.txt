@@ -5,8 +5,8 @@ Contributors: te_taipo
 Donate link: https://hokioisecurity.com
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Requires at least: 4.0.1
-Tested up to: 4.7.5
-Stable tag: 1.6.3
+Tested up to: 4.8.0
+Stable tag: 1.6.7
 
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -88,9 +88,22 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
+= 1.6.7 =
+* Further tweaks to HTACCESS ban method
+* Extended the display text in log tables
+* Added more _POST shell injection detection
+* Proper base64 and hex code checking
+
+= 1.6.6 =
+* Further tweaks to HTACCESS ban method
+
+= 1.6.5 =
+* Update to HTACCESS ban method
+
 = 1.6.4 =
 * Advanced POST filtering update
 * Fixed possible false positives in local installations
+* Due to demand, now compatible again with PHP 5.2
 
 = 1.6.3 =
 * Fixed potential plugin activation error on some configurations
