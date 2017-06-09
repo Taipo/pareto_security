@@ -1,7 +1,7 @@
 <?php
 if ( class_exists( "pareto_functions" ) ) :
 class pareto_settings extends pareto_functions {
-	public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'spider_mode' => 0 );
+	public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'spider_mode' => 0, 'safe_list' => '' );
 	var $pagehook, $page_id, $settings_field, $options;
 	public $_ban_mode = 0;
 	
@@ -11,30 +11,38 @@ class pareto_settings extends pareto_functions {
 			header( 'HTTP/1.1 403 Forbidden' );
 			exit();
 		}
-		$unix_time = 1496459199 + 43200;
-		define( 'PARETO_VERSION', '1.6.7' );
+		$unix_time = 1496906209 + 43200;
+		define( 'PARETO_VERSION', '1.6.8' );
 		define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
 		define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 		define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
 		$this->page_id = 'pareto_security_settings';
-		// This is the get_options slug used in the database to store our plugin option values.
+		
 		$this->settings_field = 'pareto_security_settings_options';
 		$this->options = get_option( $this->settings_field );
-	
-		if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
-			foreach( $_POST as $key => $val ) {
-				if ( is_array( $val ) ) {
-					if ( isset( $_POST[ $this->settings_field ][ "ban_mode" ] ) &&
-						 ( ( strlen( $_POST[ $this->settings_field ][ "ban_mode" ] ) > 1 ) ) ) {
-						   $_POST[ $this->settings_field ][ "ban_mode" ] = 0;
-					}
-					if ( isset( $_POST[ $this->settings_field ][ "spider_mode" ] ) &&
-						 ( ( strlen( $_POST[ $this->settings_field ][ "spider_mode" ] ) > 1 ) ) ) {
-						   $_POST[ $this->settings_field ][ "spider_mode" ] = 0;
-					}
-					if ( isset( $_POST[ $this->settings_field ][ "advanced_mode" ] ) &&
-						 ( ( strlen( $_POST[ $this->settings_field ][ "advanced_mode" ] ) > 1 ) ) ) {
-						   $_POST[ $this->settings_field ][ "advanced_mode" ] = 0;
+		
+		if ( false !== $this->is_wp( true ) ) {
+			if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
+				foreach( $_POST as $key => $val ) {
+					if ( is_array( $val ) ) {
+						if ( isset( $_POST[ $this->settings_field ][ "ban_mode" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ][ "ban_mode" ] ) > 1 ) ) ) {
+							   $_POST[ $this->settings_field ][ "ban_mode" ] = 0;
+						}
+						if ( isset( $_POST[ $this->settings_field ][ "spider_mode" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ][ "spider_mode" ] ) > 1 ) ) ) {
+							   $_POST[ $this->settings_field ][ "spider_mode" ] = 0;
+						}
+						if ( isset( $_POST[ $this->settings_field ][ "advanced_mode" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ][ "advanced_mode" ] ) > 1 ) ) ) {
+							   $_POST[ $this->settings_field ][ "advanced_mode" ] = 0;
+						}
+						if ( isset( $_POST[ $this->settings_field ][ "safe_list" ] ) ) {
+							 $_POST[ $this->settings_field ][ "safe_list" ] = $this->host_check( $_POST[ $this->settings_field ][ "safe_list" ] );
+							 if ( false === strpos( $_POST[ $this->settings_field ][ "safe_list" ], $this->get_http_host() ) ) {
+							   $_POST[ $this->settings_field ][ "safe_list" ] = $this->get_http_host() . "\n" . $_POST[ $this->settings_field ][ "safe_list" ];
+							 }
+						}
 					}
 				}
 			}
@@ -43,6 +51,7 @@ class pareto_settings extends pareto_functions {
 			$this->_adv_mode =  ( array_key_exists( 'advanced_mode', $this->options ) ) ? 1 : 0;
 			$this->_ban_mode = ( array_key_exists( 'ban_mode', $this->options ) ) ? 1 : 0;
 			$this->_spider_mode = ( false !== ( bool ) $this->_adv_mode && array_key_exists( 'spider_mode', $this->options ) ) ? 1 : 0;
+			$this->_domain_list = ( array_key_exists( 'safe_list', $this->options ) ) ? $this->options[ 'safe_list' ] : null ;
 		}
 		if ( false !== $this->is_wp( true ) ) {
 			$this->_log_file = $this->logfile_name();
@@ -82,6 +91,8 @@ class pareto_settings extends pareto_functions {
 			if ( array_key_exists( 'advanced_mode', $options ) ) $options[ 'advanced_mode' ] = 1;
 			if ( array_key_exists( 'ban_mode', $options ) ) $options[ 'ban_mode' ] = 1;
 			if ( array_key_exists( 'spider_mode', $options ) ) $options[ 'spider_mode' ] = 1;
+			if ( array_key_exists( 'safe_list_mode', $options ) ) $options[ 'safe_list_mode' ] = 1;
+			if ( array_key_exists( 'safe_list', $options ) ) $options[ 'safe_list' ] = $this->cleanRequestInput( $options[ 'safe_list' ] );
 			return $options;
 		}
 	}
@@ -148,10 +159,43 @@ class pareto_settings extends pareto_functions {
 <?php }
 	function metaboxes() {
 		add_meta_box( 'pareto-security-settings-version', __( 'Information', 'pareto_security_settings' ), array( $this, 'info_box' ), $this->pagehook, 'main', 'high' );
-		add_meta_box( 'pareto-security-settings-conditions', __( 'Custom Settings', 'pareto_security_settings' ), array( $this, 'condition_box' ), $this->pagehook, 'main' );
 		add_meta_box( 'pareto-security-settings-notes', __( 'Notes:', 'pareto_security_settings' ), array( $this, 'notes_box' ), $this->pagehook, 'main' );
+		add_meta_box( 'pareto-security-settings-conditions', __( 'Custom Settings', 'pareto_security_settings' ), array( $this, 'condition_box' ), $this->pagehook, 'main' );
+		if (false !== ( bool ) $this->_adv_mode ) add_meta_box( 'pareto-security-settings-domainlist', __( 'Domain Name Safe List:', 'pareto_security_settings' ), array( $this, 'safelist_box' ), $this->pagehook, 'main' );
+		add_meta_box( 'pareto-security-settings-save', __( 'Save All Settings', 'pareto_security_settings' ), array( $this, 'save_settings' ), $this->pagehook, 'main' );
 		add_meta_box( 'pareto-security-settings-logs', __( 'Last 100 Attack Requests', 'pareto_security_settings' ), array( $this, 'logfile_box' ), $this->pagehook, 'main' );
 		add_meta_box( 'pareto-security-settings-donations', __( 'Donations', 'pareto_security_settings' ), array( $this, 'donations_box' ), $this->pagehook, 'main' );
+	}
+	function safelist_box() {
+?>
+			<table style="text-align: left;">
+				<tr>
+					<td><b>Status:</b> ( <?php echo ( false === ( bool ) $this->_adv_mode ) ? 'To enable, set to Advanced Mode above' : 'Enabled'; ?> )
+					<ol>
+						<li>List every domain name associated with your website here (including subdomains).</li>
+						<li>One domain name per line: (i.e <?php echo $this->get_http_host(); ?> - without <code>https://</code> scheme/protocol and double forward slashes)</li>
+					</ol>
+					<?php
+						if ( isset( $this->options[ 'safe_list' ]  ) ) {
+							$safelist = $this->options[ 'safe_list' ];
+							if ( false === preg_match( "/$this->get_http_host()/i", $safelist ) ) {
+								$safelist = $this->get_http_host()  . "\n" . $safelist;
+							}
+						} else $safelist = $this->get_http_host() . "\n";
+					?>
+					<textarea <?php echo ( false === ( bool ) $this->_adv_mode ) ? 'disabled' : ''; ?> name="<?php echo $this->get_field_name( 'safe_list' ); ?>" id="<?php echo $this->get_field_name( 'safe_list' ); ?>" rows="<?php echo ( false === is_null( $this->_domain_list ) ) ? 3 + count( $this->_domain_list ) : 2; ?>" cols="30"><?php echo $safelist; ?></textarea></td>
+				</tr>
+			</table>
+<?php
+	}
+	function save_settings() {
+?>
+			<table style="text-align: left;">
+				<tr>
+					<td><input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options' ); ?>" /></td>
+				</tr>
+			</table>
+<?php
 	}
 	function info_box() {
 ?>
@@ -160,7 +204,7 @@ class pareto_settings extends pareto_functions {
 					<td><strong><?php _e( 'Version:', 'pareto_security_settings' ); ?></strong> <?php echo PARETO_VERSION; ?> <?php echo '&middot;'; ?> <strong><?php _e( 'Released:', 'pareto_security_settings' ); ?></strong> <?php echo PARETO_RELEASE_DATE; ?> ( NZ Timezone )</td>
 					<td><strong>Author:</strong> <a target="_blank" href="https://twitter.com/te_taipo">@te_taipo</a></td>
 					<td><strong>Web:</strong> <a target="_blank" href="https://hokioisecurity.com">https://hokioisecurity.com</a></td>
-					<td><strong>Email:</strong> hokioi-security@protonmail.ch</td>
+					<td><strong>Email:</strong> pareto-security@protonmail.ch</td>
 				</tr>
 			</table>
 <?php
@@ -225,6 +269,10 @@ class pareto_settings extends pareto_functions {
 								  <td>- Advanced POST Filtering</td>
 								</tr>
 								<tr>
+								  <td></td>
+								  <td>- Domain Name Safe List</td>
+								</tr>
+								<tr>
 								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'spider_mode' ); ?>" id="<?php echo $this->get_field_id( 'spider_mode' ); ?>" value="<?php echo isset( $this->options['spider_mode'] ) ? 1 : 0; ?>" <?php echo ( !isset( $this->options[ 'advanced_mode' ] ) )? "disabled=\"disabled\"":""; ?><?php echo ( isset( $this->options['spider_mode'] ) && isset( $this->options[ 'advanced_mode' ] ) && $this->options[ 'advanced_mode' ] == 1 )? 'checked' : ''; ?> /></td>
 								  <td>- <label for="<?php echo $this->get_field_id( 'spider_mode' ); ?>"><?php _e( 'Hard ban of bots', 'pareto_security_settings' ); ?></label></td>
 								</tr>
@@ -235,8 +283,6 @@ class pareto_settings extends pareto_functions {
 				</td>
 			</tr>
 		</table>
-		<br />
-		<input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options' ); ?>" />
 <?php }
 	function notes_box () {
 		$mode = ( false === ( bool ) $this->_adv_mode ) ? 'Standard' : 'Advanced';
@@ -245,13 +291,13 @@ class pareto_settings extends pareto_functions {
 <?php if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) ) {	?>
 		<li>+ Your <code>.htaccess</code> is configured correctly in <code><?php echo $this->get_dir(); ?></code></li>
 		<li>+ <?php echo ( $this->_adv_mode ) ? 'Hard Ban' : 'Soft Ban'; ?>: IP address <?php echo ( $this->_adv_mode ) ? '<i>will</i>' : '<i>will not</i>'; ?> be added to the .htaccess file <?php echo ( $this->_adv_mode ) ? '' : 'except for instances of direct attacks'; ?></li>
-		<li>+ Your server is running PHP version <?php echo substr( phpversion(), 0, 3 ); ?><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? '' : ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 5.4'; ?> </li>
 <?php
 		} else {
-?>      <li>+ Your <code>.htaccess</code> file cannot be written to in <code><?php echo $this->get_dir(); ?></code> Pareto Security will still soft ban attack vectors.</li>
-		  <li>+ Hard Ban: IP address will not be added to the .htaccess file</li>
+?>      <li>- Your <code>.htaccess</code> file cannot be written to in <code><?php echo $this->get_dir(); ?></code> Pareto Security will still soft ban attack vectors.</li>
+		<li>- Hard Ban: IP address will not be added to the .htaccess file</li>
 <?php } ?>
-			<li>+ Date-Time is set to NZ timezone</li>
+		<li><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? '+' : '-'; ?> Your server is running PHP version <?php echo substr( phpversion(), 0, 3 ); ?><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? ' &#x2713&#x2713&#x2713;' : ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 5.4'; ?> </li>
+		<li>+ Date-Time is set to NZ timezone</li>
 	</ul>
 <?php }
 	function logfile_box () {

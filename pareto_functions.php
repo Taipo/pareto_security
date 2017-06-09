@@ -100,6 +100,7 @@ class pareto_functions {
 	function karo( $req = '', $t = false, $header_type = 403 ) {
 	  $this->_log_file = $this->logfile_name();
 	  $ban_type = ( ( false !== $this->_adv_mode || false !== ( bool ) $this->_banip ) || false !== $t ) ? 'Ban' : 'Block';
+	  if ( false === $t ) $ban_type = 'Block';
 	  $req = ( substr( $req, 0, 2 ) == "/?" ) ? substr( $req, 2 ) : $req;
 	  $req = ( substr( $req, 0, 1 ) == "/" ) ? substr( $req, 1 ) : $req;
 	  $this->log_request( $req, $ban_type );	
@@ -434,7 +435,7 @@ class pareto_functions {
 		  "pwtoken_get","php_uname","passthru(","sha1(","sha2(","expect://[cmd]",":;};",
 		  "<?php","/iframe","\$_get","@@version","ob_starting","../cmd","document.",
 		  "onload=","mysql_query","window.location","/frameset","utl_http.request",
-		  "location.replace(","()}","@@datadir","_start_","php_self","%c2%bf","}if(",
+		  "location.replace(","()}","@@datadir","_start_","php_self","}if(",
 		  "[link=http://","[/link]","ywxlcnqo","\$_session","\$_request","\$_env",
 		  "\$_server",";!--=","substr(","\$_post","hex_ent","inurl:","replace(",
 		  ".php/admin","mosconfig_","<@replace(","/iframe>","=alert(","ki9xsevsrs8q",
@@ -457,7 +458,7 @@ class pareto_functions {
 	  
 	  $_datalist[ 4 ] = array( "mozilla","android","windows","chrome","safari","opera","apple","google",
 							   "facebookexternalhit", "wordpress", "twitter", "msn.com", "wp.com",
-							   "pinterest", "netcraft ssl" );
+							   "pinterest", "netcraft ssl", "go-http-client" );
 	  
 	  for( $x=0; $x < count( $_datalist[ ( int ) $list ] ); $x++ ) {
 		if ( false !== strpos( strtolower( $val ), $this->decode_code( $_datalist[ ( int ) $list ][ $x ] ) ) ) {
@@ -509,7 +510,7 @@ class pareto_functions {
 	  if ( false !== strpos( $req, '\0' ) ) $this->karo( "Null byte: " . $req, true );
 	  # prevent arbitrary file includes/uploads
 	  if ( false !== ( bool ) @ini_get( 'allow_url_include' ) ) {
-		  if ( false !== $this->instr_url( $req ) ) {
+		  if ( false !== ( bool ) $this->instr_url( $req, true ) ) {
 			preg_match( "/(?:http:|https:|ftp:|file:|php:)/i", $req, $matches );
 			if ( false === stripos( $req, $this->get_http_host() ) && count( $matches[ 0 ] ) == 1 ) {
 			  $this->karo( "RFI: " . $req, true );
@@ -558,7 +559,7 @@ class pareto_functions {
 	  }
 	  # WP Author Discovery
 	  if ( false !== strpos( $req, '?author=' ) || false !== strpos( $req, 'wp-json/wp/v2/users' ) ) {
-	  $this->karo( "Author Discovery: " . $req, true );
+			$this->karo( "Author Discovery: " . $req, true );
 	  }
 	  
 	  if ( false !== strpos( $req, '?' ) ) {
@@ -673,9 +674,13 @@ class pareto_functions {
 	  
 	  if ( isset( $_SERVER[ 'HTTP_HOST' ] ) ) {
 		  $http_host = strtolower( $_SERVER[ 'HTTP_HOST' ] );
+
 		  if ( false !== $this->injectMatch( $http_host ) ) $this->karo( "HOST Inject: " . $http_host, ( bool ) $this->_banip );
 		  if ( false !== $this->is_wp( false ) ) {
 			  if ( false !== ( bool ) $this->_adv_mode ) {
+				  # if domain names have been added to the safe list, check them
+				  if ( false === is_null( $this->_domain_list ) ) $this->host_check( $this->_domain_list );
+				  
 				  preg_match_all( "/xenial|directory|usr|spool|run/i", $http_host, $matches );
 				  if ( is_array( $matches[ 0 ] ) ) {
 					  $match_list = array_unique( $matches[ 0 ] );
@@ -753,13 +758,53 @@ class pareto_functions {
 		}
 		# mandatory filtering
 		if ( false !== $this->injectMatch( $val ) || false !== ( bool ) $this->datalist( $val, 3 ) ) {
-		  #$this->karo( "USER-AGENT: " . $val, true );
+		  $this->karo( "USER-AGENT: " . $val, true );
 		}
 		# disable this in wp-admin (disable advanced mode) if you want bots to crawl your website
 		if ( false !== ( bool ) $this->_adv_mode && false === $this->cmpstr( $val, "''") && false === ( bool ) $this->datalist( $val, 4 ) ) {
 		  if ( false === $this->is_server() && ( bool ) false !== $this->_banip ) $this->karo( "USER_AGENT: ". $val, ( ( ( bool ) $this->_spider_mode ) ? ( bool ) $this->_banip : false ), 444 );
 		}
 	  } // else UA is basically empty
+	}
+	function filter_domainlist( $domain_list ) {
+		return preg_replace("/https|http|:|\/|[^a-zA-Z0-9\.\n]+/", "", strtolower( $domain_list ) );
+	}
+	function filter_domain( $domain_list ) {
+		return preg_replace( "/https|http|:|\/|[^a-zA-Z0-9\.]+/", "", strtolower( $domain_list ) );
+	}
+	function host_check( $domain_list ) {
+		$checked_list = '';
+		if ( isset( $_SERVER[ 'HTTP_HOST' ] ) ) {
+		  $http_host = strtolower( $_SERVER[ 'HTTP_HOST' ] );
+		  $domain_list = $this->instr_url( $domain_list, false );
+		  for( $x=0; $x < count( $domain_list ); $x++ ) {
+			#$domain_list[ $x ] = htmlspecialchars( $this->filter_domain( $domain_list[ $x ] ), ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), 'utf-8' );
+			if ( false !== filter_has_var( INPUT_SERVER, $domain_list[ $x ] ) ) {
+			  $domain_list[ $x ] = filter_input( INPUT_SERVER, $domain_list[ $x ], FILTER_UNSAFE_RAW, FILTER_NULL_ON_FAILURE );
+			} else {
+			  $domain_list[ $x ] = filter_var( $domain_list[ $x ], FILTER_UNSAFE_RAW, FILTER_NULL_ON_FAILURE );
+			}
+			$checked_list .= $domain_list[ $x ] . "\n";
+		  }
+		  return $checked_list;
+		} return;
+	}
+	function instr_url( $string, $num = false, $urls = array() ) {
+		$dlist = explode( "\n", $string );
+		foreach( $dlist as $domain ) {
+			$domain = ( false === strpos( $string, '://' ) ) ? 'https://' . $domain : $domain;
+			$domain = preg_replace( "/[\s]/i", " ", $domain );
+			
+			preg_match_all( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $domain, $matches );
+			if ( count( $matches[ 0 ] ) > 0 ) {
+			   $this_match = $this->filter_domain( $matches[ 0 ][ 0 ] );
+			   if ( false !== strpos( $this_match, "www." ) ) $urls[] = str_replace( "www.", "", $this_match );
+			   if ( false === strpos( $this_match, "www." ) ) $urls[] = "www." . $this_match;
+			   $urls[] = $this_match;
+			}
+		}
+		$dlist = array_values( array_unique( $urls ) );
+		return $dlist;
 	}
 	 /**
 	  * checkfilename()
@@ -935,7 +980,8 @@ class pareto_functions {
 	  } else {
 		$servername = $_SERVER[ 'SERVER_NAME' ];
 	  }
-	  $servername = htmlspecialchars( preg_replace( "/^(?:([^\.]+)\.)?domain\.com$/", '\1', $servername ), ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
+	  $servername = htmlspecialchars( $this->filter_domain( $servername ), ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), $encoding );
+
 	  if ( false !== filter_has_var( INPUT_SERVER, $servername ) ) {
 		return filter_input( INPUT_SERVER, $servername, FILTER_UNSAFE_RAW, FILTER_NULL_ON_FAILURE );
 	  } else {
@@ -1202,9 +1248,6 @@ class pareto_functions {
 	  }
 	}
 	
-	function instr_url( $string ) {
-	  return preg_match( "/(?:(?:https?|ftp|file):\/\/|www\.|ftp\.)(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[-A-Z0-9+&@#\/%=~_|$?!:,.])*(?:\([-A-Z0-9+&@#\/%=~_|$?!:,.]*\)|[A-Z0-9+&@#\/%=~_|$])/i", $string );
-	}
 	function is_wp( $isadmin = false ) {
 	  if ( defined( 'WP_PLUGIN_DIR' ) ) {
 		  if ( false !== function_exists( 'is_admin' ) ) {

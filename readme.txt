@@ -6,7 +6,7 @@ Donate link: https://hokioisecurity.com
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Requires at least: 4.0.1
 Tested up to: 4.8.0
-Stable tag: 1.6.7
+Stable tag: 1.6.8
 
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -82,11 +82,14 @@ Donations via Bitcoin to 1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
 
 = Do you have an email contact? =
 
-Email me at hokioi-security@protonmail.ch
+Email me at pareto-security@protonmail.ch
 
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 1.6.8 =
+* Domain name safe listing
 
 = 1.6.7 =
 * Further tweaks to HTACCESS ban method

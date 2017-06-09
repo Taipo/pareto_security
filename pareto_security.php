@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: https://hokioisecurity.com/?p=17
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.6.7
+Version: 1.6.8
 Requirements: Requires at least PHP version 5.2.0
 Author URI: https://hokioisecurity.com
 BTC:1Ae77P7W3BrHJozD4J5awmHJM18LAereGT
