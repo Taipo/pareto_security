@@ -1,7 +1,7 @@
 <?php
 if ( class_exists( "pareto_functions" ) ) :
 class pareto_settings extends pareto_functions {
-	public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'spider_mode' => 0, 'safe_list' => '' );
+	public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'first_time_setup' => 0 );
 	var $pagehook, $page_id, $settings_field, $options;
 	public $_ban_mode = 0;
 	
@@ -11,8 +11,8 @@ class pareto_settings extends pareto_functions {
 			header( 'HTTP/1.1 403 Forbidden' );
 			exit();
 		}
-		$unix_time = 1496906209 + 43200;
-		define( 'PARETO_VERSION', '1.6.8' );
+		$unix_time = 1506851048 + 43200;
+		define( 'PARETO_VERSION', '1.7.7' );
 		define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
 		define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 		define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -20,22 +20,36 @@ class pareto_settings extends pareto_functions {
 		
 		$this->settings_field = 'pareto_security_settings_options';
 		$this->options = get_option( $this->settings_field );
-		
-		if ( false !== $this->is_wp( true ) ) {
+
+		if ( false === $this->logfile_exists() ) {
+			if ( isset( $this->options[ 'advanced_mode' ] ) ) $this->options[ 'advanced_mode' ] = 0;
+			if ( isset( $this->options[ 'hard_ban_mode' ] ) ) $this->options[ 'hard_ban_mode' ] = 0;
+			if ( isset( $this->options[ 'ban_mode' ] ) ) $this->options[ 'ban_mode' ] = 0;
+			if ( isset( $this->options[ 'first_time_setup' ] ) ) $this->create_fileset();
+		} else {
+			$this->options[ 'advanced_mode' ] = ( isset( $this->options[ 'advanced_mode' ] ) ) ? 1 : 0;
+			$this->options[ 'hard_ban_mode' ] = ( isset( $this->options[ 'hard_ban_mode' ] ) ) ? 1 : 0;
+			$this->options[ 'ban_mode' ] = ( isset( $this->options[ 'ban_mode' ] ) ) ? 1 : 0;
+		}
+		if ( false !== ( bool )$this->is_wp( true ) ) {
 			if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
 				foreach( $_POST as $key => $val ) {
 					if ( is_array( $val ) ) {
 						if ( isset( $_POST[ $this->settings_field ][ "ban_mode" ] ) &&
-							 ( ( strlen( $_POST[ $this->settings_field ][ "ban_mode" ] ) > 1 ) ) ) {
+						   ( strlen( $_POST[ $this->settings_field ][ "ban_mode" ] ) > 1  ) ) {
 							   $_POST[ $this->settings_field ][ "ban_mode" ] = 0;
 						}
-						if ( isset( $_POST[ $this->settings_field ][ "spider_mode" ] ) &&
-							 ( ( strlen( $_POST[ $this->settings_field ][ "spider_mode" ] ) > 1 ) ) ) {
-							   $_POST[ $this->settings_field ][ "spider_mode" ] = 0;
+						if ( isset( $_POST[ $this->settings_field ][ "hard_ban_mode" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ][ "hard_ban_mode" ] ) > 1 ) ) ) {
+							   $_POST[ $this->settings_field ][ "hard_ban_mode" ] = 0;
 						}
 						if ( isset( $_POST[ $this->settings_field ][ "advanced_mode" ] ) &&
 							 ( ( strlen( $_POST[ $this->settings_field ][ "advanced_mode" ] ) > 1 ) ) ) {
 							   $_POST[ $this->settings_field ][ "advanced_mode" ] = 0;
+						}
+						if ( isset( $_POST[ $this->settings_field ][ "first_time_setup" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ][ "first_time_setup" ] ) > 1 ) ) ) {
+							   $_POST[ $this->settings_field ][ "first_time_setup" ] = 0;
 						}
 						if ( isset( $_POST[ $this->settings_field ][ "safe_list" ] ) ) {
 							 $_POST[ $this->settings_field ][ "safe_list" ] = $this->host_check( $_POST[ $this->settings_field ][ "safe_list" ] );
@@ -48,17 +62,25 @@ class pareto_settings extends pareto_functions {
 			}
 		}
 		if ( false !== is_array( $this->options ) ) {
-			$this->_adv_mode =  ( array_key_exists( 'advanced_mode', $this->options ) ) ? 1 : 0;
-			$this->_ban_mode = ( array_key_exists( 'ban_mode', $this->options ) ) ? 1 : 0;
-			$this->_spider_mode = ( false !== ( bool ) $this->_adv_mode && array_key_exists( 'spider_mode', $this->options ) ) ? 1 : 0;
-			$this->_domain_list = ( array_key_exists( 'safe_list', $this->options ) ) ? $this->options[ 'safe_list' ] : null ;
+				$this->_adv_mode = $this->options[ 'advanced_mode' ];
+				$this->_ban_mode = $this->options[ 'ban_mode' ];
+				$this->_hard_ban_mode = ( false !== ( bool ) $this->_adv_mode ) ? $this->options[ 'hard_ban_mode' ]  : 0;
+				$this->_domain_list = ( array_key_exists( 'safe_list', $this->options ) ) ? $this->options[ 'safe_list' ] : null;
 		}
-		if ( false !== $this->is_wp( true ) ) {
+		if ( false !== ( bool )$this->is_wp( true ) ) {
 			$this->_log_file = $this->logfile_name();
 			add_action( 'admin_init', array( $this,'admin_init' ), 20 );
 			add_action( 'admin_menu', array( $this, 'admin_menu' ), 20 );
-			if ( !file_exists( PARETO_LOGS . ".htaccess" ) || !file_exists( PARETO_LOGS . $this->_log_file ) ) $this->create_fileset();
 		}
+	}
+	function add_notice_reminder() {
+		$class = 'notice notice-error';
+		if ( ( 'options-general.php' == $this->get_filename() ) && $_GET[ 'page' ] == 'pareto_security_settings' ) {
+			$message = __( 'Pareto Security Note: To begin logging, click the "Save Options" button below.', '' );
+		} else {
+			$message = __( 'Pareto Security Note: To begin logging, go to <a href="options-general.php?page=pareto_security_settings">Pareto Security Dashboard</a> (in Settings) and click the "Save Options" button at the bottom of the page.', '' );
+		}
+		printf( '<div class="%1$s"><p>%2$s</p></div>', esc_attr( $class ), $message );
 	}
 	function admin_init() {
 		register_setting( $this->settings_field, $this->settings_field, array( $this, 'sanitize_theme_options' ) );
@@ -72,6 +94,7 @@ class pareto_settings extends pareto_functions {
 		add_action( 'load-' . $this->pagehook, array( $this, 'metaboxes' ) );
 		add_action( "admin_print_scripts-$page", array( $this, 'js_includes' ) );
 		add_action( "admin_head-$page", array( $this, 'admin_head' ) );
+		if ( false === $this->logfile_exists() ) add_action( 'admin_notices', array( $this, 'add_notice_reminder' ) );
 	}
 	function admin_head() { ?>
 		<style>
@@ -81,19 +104,20 @@ class pareto_settings extends pareto_functions {
 	function js_includes() {
 		// Needed to allow metabox layout and close functionality.
 		wp_enqueue_script( 'postbox' );
-	}	
+	}
 	/*
 		Sanitize our plugin settings array as needed.
 	*/
 	function sanitize_theme_options( $options ) {
 		if ( is_array( $options ) ) {
-			if ( array_key_exists( 'pareto_security_settings_text', $options ) ) $options[ 'pareto_security_settings_text' ] = stripcslashes( $options[ 'pareto_security_settings_text' ] );
-			if ( array_key_exists( 'advanced_mode', $options ) ) $options[ 'advanced_mode' ] = 1;
-			if ( array_key_exists( 'ban_mode', $options ) ) $options[ 'ban_mode' ] = 1;
-			if ( array_key_exists( 'spider_mode', $options ) ) $options[ 'spider_mode' ] = 1;
-			if ( array_key_exists( 'safe_list_mode', $options ) ) $options[ 'safe_list_mode' ] = 1;
-			if ( array_key_exists( 'safe_list', $options ) ) $options[ 'safe_list' ] = $this->cleanRequestInput( $options[ 'safe_list' ] );
-			return $options;
+				if ( array_key_exists( 'pareto_security_settings_text', $options ) ) $options[ 'pareto_security_settings_text' ] = stripcslashes( $options[ 'pareto_security_settings_text' ] );
+				if ( array_key_exists( 'advanced_mode', $options ) && ( false === is_int( $options[ 'advanced_mode' ] ) || $options[ 'advanced_mode' ] > 1 ) ) $options[ 'advanced_mode' ] = 0;
+				if ( array_key_exists( 'ban_mode', $options ) && ( false === is_int( $options[ 'ban_mode' ] ) || $options[ 'ban_mode' ] > 1 ) ) $options[ 'ban_mode' ] = 0;
+				if ( array_key_exists( 'hard_ban_mode', $options ) && ( false === is_int( $options[ 'hard_ban_mode' ] ) || $options[ 'hard_ban_mode' ] > 1 ) ) $options[ 'hard_ban_mode' ] = 0;
+				if ( array_key_exists( 'safe_list_mode', $options ) && ( false === is_int( $options[ 'safe_list_mode' ] ) || $options[ 'safe_list_mode' ] > 1 ) ) $options[ 'safe_list_mode' ] = 0;
+				if ( array_key_exists( 'safe_list', $options ) ) $options[ 'safe_list' ] = $this->cleanRequestInput( $options[ 'safe_list' ] );
+				if ( array_key_exists( 'first_time_setup', $options ) && ( false === is_int( $options[ 'first_time_setup' ] ) || $options[ 'first_time_setup' ] > 1 ) ) $options[ 'first_time_setup' ] = 0;
+				return $options;
 		}
 	}
 	/*
@@ -127,11 +151,11 @@ class pareto_settings extends pareto_functions {
 		<div class="wrap">
 			<table style="text-align: left;">
 				<tr>
-					<td><img src="<?php echo PARETO_URL; ?>img/icon-64x64.png"></td>
+					<td><img src="data:image/png;base64,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"></td>
 					<td><h1><?php echo esc_html( $title ); ?></h1></td>
 				</tr>
 			</table>
-			<form method="post" action="options.php">
+			<form method="post" action="options.php" <?php if ( false !== ( bool ) $this->_adv_mode && false === ( bool ) $this->_hard_ban_mode ) { ?>onsubmit="return confirm( 'Warning: If you are changing from advanced mode to standard mode log files marked as Low Severity will be cleared. Click Ok to continue' );"<?php } ?>>
 				<div class="metabox-holder">
 					<div class="postbox-container" style="width: 99%;">
 <?php
@@ -166,14 +190,16 @@ class pareto_settings extends pareto_functions {
 		add_meta_box( 'pareto-security-settings-logs', __( 'Last 100 Attack Requests', 'pareto_security_settings' ), array( $this, 'logfile_box' ), $this->pagehook, 'main' );
 		add_meta_box( 'pareto-security-settings-donations', __( 'Donations', 'pareto_security_settings' ), array( $this, 'donations_box' ), $this->pagehook, 'main' );
 	}
+
 	function safelist_box() {
+		$http = ( "on" == @$_SERVER[ "HTTPS" ] || "on" == getenv( "HTTPS" ) ) ? 'https://' : 'http://';
 ?>
 			<table style="text-align: left;">
 				<tr>
 					<td><b>Status:</b> ( <?php echo ( false === ( bool ) $this->_adv_mode ) ? 'To enable, set to Advanced Mode above' : 'Enabled'; ?> )
 					<ol>
 						<li>List every domain name associated with your website here (including subdomains).</li>
-						<li>One domain name per line: (i.e <?php echo $this->get_http_host(); ?> - without <code>https://</code> scheme/protocol and double forward slashes)</li>
+						<li>One domain name per line: (i.e <?php echo $this->get_http_host(); ?> - without <code><?php echo $http; ?></code> scheme/protocol and double forward slashes)</li>
 					</ol>
 					<?php
 						if ( isset( $this->options[ 'safe_list' ]  ) ) {
@@ -192,7 +218,7 @@ class pareto_settings extends pareto_functions {
 ?>
 			<table style="text-align: left;">
 				<tr>
-					<td><input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options' ); ?>" /></td>
+					<td><input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options' ); ?>" /><br /><br /><?php if ( false === $this->logfile_exists() ) echo '<strong>(Click "Save Options" to begin logging)</strong>'; ?></td>
 				</tr>
 			</table>
 <?php
@@ -239,9 +265,11 @@ class pareto_settings extends pareto_functions {
 						<td style="width: 500px; vertical-align:top;">
 							<table>
 								<tr>
-								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="<?php echo isset( $this->options[ 'advanced_mode' ] ) ? $this->options[ 'advanced_mode' ] : 0; ?>" <?php echo ( isset( $this->options[ 'advanced_mode' ] ) || false !== ( bool ) $this->_adv_mode ) ? 'checked' : ''; ?> /></td>
+								  <td><?php if ( false === $this->logfile_exists() ) { ?><input type="hidden" name="<?php echo $this->get_field_name( 'first_time_setup' ); ?>" id="<?php echo $this->get_field_id( 'first_time_setup' ); ?>" value="1" /><?php } ?>
+								      <input type="hidden" name="<?php echo $this->get_field_name( 'ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'ban_mode' ); ?>" value="<?php echo $this->_ban_mode; ?>"/>
+									  <input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'advanced_mode' ] ) && false !== ( bool )$this->options[ 'advanced_mode' ] ) || false !== ( bool ) $this->_adv_mode || false !== ( bool )$this->_hard_ban_mode ) { ?>checked<?php } ?> /></td>
 								  <td>
-								<label for="<?php echo $this->get_field_id( 'advanced_mode' ); ?>"><?php _e( '<b>Set Advanced Mode</b> ( Use at your own risk )', 'pareto_security_settings' ); ?></label></td>
+								<label for="<?php echo $this->get_field_id( 'advanced_mode' ); ?>"><?php _e( '<b>Set Advanced Mode</b> (Use at your own risk)', 'pareto_security_settings' ); ?></label></td>
 								</tr>
 								<tr>
 								  <td></td>
@@ -272,9 +300,13 @@ class pareto_settings extends pareto_functions {
 								  <td></td>
 								  <td>- Domain Name Safe List</td>
 								</tr>
+							<tr>
+								  <td></td>
+								  <td>- Filter login attempts (beta)</td>
+								</tr>
 								<tr>
-								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'spider_mode' ); ?>" id="<?php echo $this->get_field_id( 'spider_mode' ); ?>" value="<?php echo isset( $this->options['spider_mode'] ) ? 1 : 0; ?>" <?php echo ( !isset( $this->options[ 'advanced_mode' ] ) )? "disabled=\"disabled\"":""; ?><?php echo ( isset( $this->options['spider_mode'] ) && isset( $this->options[ 'advanced_mode' ] ) && $this->options[ 'advanced_mode' ] == 1 )? 'checked' : ''; ?> /></td>
-								  <td>- <label for="<?php echo $this->get_field_id( 'spider_mode' ); ?>"><?php _e( 'Hard ban of bots', 'pareto_security_settings' ); ?></label></td>
+								  <td><input type="checkbox" name="<?php echo $this->get_field_name( 'hard_ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>" value="1" <?php if ( !isset( $this->options[ 'advanced_mode' ] ) || ( isset( $this->options[ 'advanced_mode' ] ) && false === ( bool )$this->options[ 'advanced_mode' ] ) || false === ( bool )$this->_adv_mode ) { ?>disabled="disabled"<?php } ?><?php if ( isset( $this->options[ 'hard_ban_mode' ] ) && isset( $this->options[ 'advanced_mode' ] ) && false !== ( bool )$this->_hard_ban_mode ) { ?>checked<?php } ?> /></td>
+								  <td>- <label for="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>"><?php _e( 'Hard ban all bad requests (<b>WARNING: Not Recommended!!!</b>)', 'pareto_security_settings' ); ?></label></td>
 								</tr>
 							</table>
 						</td>
@@ -286,15 +318,16 @@ class pareto_settings extends pareto_functions {
 <?php }
 	function notes_box () {
 		$mode = ( false === ( bool ) $this->_adv_mode ) ? 'Standard' : 'Advanced';
+		$ban_type = ( false !== ( bool ) $this->_adv_mode && false !== ( bool )$this->_hard_ban_mode ) ? 'Low, Medium and High severity requests added to banned IP list' : 'Medium and High severity requests added to banned IP list';
 ?>   <ul>
-		<li>+ Status: <i><?php echo $mode; ?> mode</i></li>
+		<li>+ Status: <i><?php echo $mode; ?> Mode</i></li>
 <?php if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) ) {	?>
 		<li>+ Your <code>.htaccess</code> is configured correctly in <code><?php echo $this->get_dir(); ?></code></li>
-		<li>+ <?php echo ( $this->_adv_mode ) ? 'Hard Ban' : 'Soft Ban'; ?>: IP address <?php echo ( $this->_adv_mode ) ? '<i>will</i>' : '<i>will not</i>'; ?> be added to the .htaccess file <?php echo ( $this->_adv_mode ) ? '' : 'except for instances of direct attacks'; ?></li>
+		<li>+ <?php echo ( $this->_adv_mode ) ? 'Hard Ban' : 'Soft Ban'; ?>: <?php echo $ban_type; ?></li>
 <?php
 		} else {
 ?>      <li>- Your <code>.htaccess</code> file cannot be written to in <code><?php echo $this->get_dir(); ?></code> Pareto Security will still soft ban attack vectors.</li>
-		<li>- Hard Ban: IP address will not be added to the .htaccess file</li>
+		<li>- Hard Ban: <?php echo $ban_type; ?></li>
 <?php } ?>
 		<li><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? '+' : '-'; ?> Your server is running PHP version <?php echo substr( phpversion(), 0, 3 ); ?><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? ' &#x2713&#x2713&#x2713;' : ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 5.4'; ?> </li>
 		<li>+ Date-Time is set to NZ timezone</li>
@@ -309,8 +342,8 @@ class pareto_settings extends pareto_functions {
 					<tbody>
 					  <tr style="background-color:#5F607B">
 						<td style="width:90px"><b><font color="#FFFFF">Date-Time:</font></b></td>
-						<td style="width:200px"><b><font color="#FFFFF">IP Address:</font></b></td>
-						<td style="width:30px"><b><font color="#FFFFF">Type:</font></b></td>
+						<td style="width:30px"><b><font color="#FFFFF">Severity:</font></b></td>
+						<td style="width:150px"><b><font color="#FFFFF">IP Address:</font></b></td>
 						<td style="width:30px"><b><font color="#FFFFF">Req:</font></b></td>
 						<td><b><font color="#FFFFF">Attack String:</font></b></td>
 					  </tr>
@@ -322,29 +355,45 @@ class pareto_settings extends pareto_functions {
 						<td></td>
 					  </tr>
 <?php
-						if ( !file_exists( PARETO_LOGS . ".htaccess" ) ) $this->create_fileset();
-						$mylogs = array();
-						$mylogs = array_reverse( file( PARETO_LOGS . $this->_log_file ) );
-						$i = 0;
-						$trim = 200;
-						while( $i <= 99 ) {
-						  if ( isset( $mylogs[ $i ] ) ) {
-							$row_colour = ( $i % 2 == 0 ) ? "#E8E8E8" : "#D0D0DE";
-							$req_var = explode( ' ', $mylogs[ $i ] );
-							if ( false !== ( bool ) $this->_banip || false !== ( bool ) $this->_adv_mode ) $row_colour = ( false === stripos( html_entity_decode( $req_var[ 4 ], ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 : ENT_QUOTES ), 'UTF-8' ), 'USER_AGENT:' ) && false !== stripos( $req_var[ 2 ], 'ban' ) ) ? "#F89E98" : $row_colour;
-							$ip_addr = ( false !== $this->check_ip( $req_var[ 1 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 1 ] . '&run=networktools">[Blacklist]</a> <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 1 ] . '">[Whois]</a> ' . $req_var[ 1 ] : $req_var[ 1 ];
-							$attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 4 ] ) ) );
-							$trim = 4 * strlen( html_entity_decode( $attack_string, ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 | ENT_QUOTES : ENT_COMPAT | ENT_HTML401 ), 'UTF-8' ) );
-							$attack_string = ( strlen( $attack_string ) > $trim ) ? substr( $attack_string, 0, $trim ) . "..." : $attack_string;					
-							echo "<tr style=\"background-color:" . $row_colour . "\">" .
-								 "	<td style=\"vertical-align:top; width:90px; white-space: nowrap\">" . $req_var[ 0 ] . "</td>" .
-								 "	<td style=\"vertical-align:top; width:200px; white-space: nowrap\">" . $ip_addr . "</td>" .
-								 "	<td style=\"vertical-align:top; width:30px; white-space: nowrap\">" . $req_var[ 2 ] . "</td>" .
-								 "	<td style=\"vertical-align:top; width:30px; white-space: nowrap\">" . $req_var[ 3 ] . "</td>" .
-								 "	<td style=\"vertical-align:top; white-space: nowrap\"><code>" . $attack_string . "</code></td>" .
-								 "</tr>";
-						  } else break;
-						$i++;
+						if ( file_exists( PARETO_LOGS . ".htaccess" ) ) {
+							$mylogs = array();
+							$mylogs_fin = array();
+							$logfile = PARETO_LOGS . $this->_log_file;
+							$mylogs = array_reverse( file( $logfile ) );
+							$i = 0;
+							$text_color = "#e68735";
+							while( $i <= 99 ) {
+							  if ( isset( $mylogs[ $i ] ) ) {
+								$row_colour = ( $i % 2 == 0 ) ? "#E8E8E8" : "#D0D0DE";
+								$req_var = explode( ' ', $mylogs[ $i ] );
+								if ( $req_var[ 1 ] == "Low" ) {
+									 if ( false === ( bool ) $this->_adv_mode ) {
+										$i++;
+										continue;
+									 }
+									 $text_color = "#517ecf";
+								} elseif ( $req_var[ 1 ] == "Medium" ) {
+									 $text_color = "#e68735";
+								} elseif ( empty( $req_var[ 1 ] ) ) {
+									$req_var[ 1 ] = "Medium";
+									$text_color = "#e68735";
+								} else $text_color = "#c72b2c";
+								$mylogs_fin[ $i ] = $mylogs[ $i ];
+								$ip_addr = ( false !== ( bool )$this->check_ip( $req_var[ 2 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a> <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
+								$attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 4 ] ) ) );
+								echo "<tr style=\"background-color:" . $row_colour . "\">" .
+									 "	<td style=\"vertical-align:top; width:90px; white-space: nowrap\">" . $req_var[ 0 ] . "</td>" .
+									 "	<td style=\"vertical-align:top; text-align: center; width:30px; white-space: nowrap; font-weight: bold; color:" . $text_color . "\">" . $req_var[ 1 ] . "</td>" .
+									 "	<td style=\"vertical-align:top; width:150px; white-space: nowrap\">" . $ip_addr . "</td>" .
+									 "	<td style=\"vertical-align:top; width:30px; white-space: nowrap\">" . $req_var[ 3 ] . "</td>" .
+									 "	<td style=\"vertical-align:top; white-space: nowrap\"><code>" . $attack_string . "</code></td>" .
+									 "</tr>";
+							  } else break;
+							$i++;
+							}
+							$fp = fopen( $logfile, 'w' );
+							fwrite( $fp, implode( array_reverse( $mylogs_fin ), "" ) );
+							fclose( $fp );
 						}
 ?>
 				</table>
