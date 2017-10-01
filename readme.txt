@@ -2,15 +2,21 @@
 
 Contributors: te_taipo
 
-Donate link: https://hokioisecurity.com
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
+
 Requires at least: 4.0.1
-Tested up to: 4.8.0
-Stable tag: 1.6.8
+
+Tested up to: 4.8.2
+
+Stable tag: 1.7.7
+
+Donate link: https://hokioisecurity.com
 
 License: GPLv2 or later
+
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
-WordPress core security class: A Web Application Firewall to protect your Wordpress web portal
+
+WordPress Core Security: Secure your website with real security.
 
 == Description ==
 
@@ -88,39 +94,31 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 1.6.8 =
-* Domain name safe listing
+= 1.7.7 =
+* Bug in hexidecimal test that affects PHP 7 users
 
-= 1.6.7 =
-* Further tweaks to HTACCESS ban method
-* Extended the display text in log tables
-* Added more _POST shell injection detection
-* Proper base64 and hex code checking
+= 1.7.6 =
+* Create log file set if it doesn't exist
+* Small bug in Severity list
 
-= 1.6.6 =
-* Further tweaks to HTACCESS ban method
+= 1.7.5 =
+* Changed Cookie severity levels to High
 
-= 1.6.5 =
-* Update to HTACCESS ban method
+= 1.7.4 =
+* Fix to bug in log display
 
-= 1.6.4 =
-* Advanced POST filtering update
-* Fixed possible false positives in local installations
-* Due to demand, now compatible again with PHP 5.2
+= 1.7.3 =
+* Do not display Low severity in standard mode
 
-= 1.6.3 =
-* Fixed potential plugin activation error on some configurations
-* Fixed issues that would affect TorHS
+= 1.7.2 =
+* Fixed bug with logging when first installing Pareto Security
 
-= 1.6.2 =
-* Fix HTTPHOST_SHIELD issues
-* Add IP lookup
-* Fixed bug affecting log display on PHP 5.3
+= 1.7.1 =
+* Update blacklist
+* Speed up of filtering
+* Update to URL redirection
+* New layout to logging
 
-= 1.6.1 =
-* Reduce instances of false positives
-
-= 1.6.0 =
-* Block Apache Struts2 Remote Code Execution requests
-* Updated WP Author Discovery
-* Further adjustment to the block strategy
+= 1.7.0 =
+* Update to Bots list
+* Now filters login attempts. If in advanced mode will ban incorrect usernames
