@@ -1,18 +1,18 @@
 <?php
 if ( class_exists( "pareto_functions" ) ) :
 class pareto_settings extends pareto_functions {
-	public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'first_time_setup' => 0 );
+	public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'first_time_setup' => 0, 'email_report' => 0 );
 	var $pagehook, $page_id, $settings_field, $options;
 	public $_ban_mode = 0;
 	
 	function __construct() {
-		if ( false === $this->is_wp( false ) ) {
+		if ( false === $this->is_wp( false, false ) ) {
 			header( 'Status: 403 Forbidden' );
 			header( 'HTTP/1.1 403 Forbidden' );
 			exit();
 		}
-		$unix_time = 1506851048 + 43200;
-		define( 'PARETO_VERSION', '1.7.7' );
+		$unix_time = 1509430129 + 43200;
+		define( 'PARETO_VERSION', '1.8.3' );
 		define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
 		define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 		define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -24,11 +24,13 @@ class pareto_settings extends pareto_functions {
 		if ( false === $this->logfile_exists() ) {
 			if ( isset( $this->options[ 'advanced_mode' ] ) ) $this->options[ 'advanced_mode' ] = 0;
 			if ( isset( $this->options[ 'hard_ban_mode' ] ) ) $this->options[ 'hard_ban_mode' ] = 0;
+			if ( isset( $this->options[ 'email_report' ] ) ) $this->options[ 'email_report' ] = 0;
 			if ( isset( $this->options[ 'ban_mode' ] ) ) $this->options[ 'ban_mode' ] = 0;
 			if ( isset( $this->options[ 'first_time_setup' ] ) ) $this->create_fileset();
 		} else {
 			$this->options[ 'advanced_mode' ] = ( isset( $this->options[ 'advanced_mode' ] ) ) ? 1 : 0;
 			$this->options[ 'hard_ban_mode' ] = ( isset( $this->options[ 'hard_ban_mode' ] ) ) ? 1 : 0;
+			$this->options[ 'email_report' ] = ( isset( $this->options[ 'email_report' ] ) ) ? 1 : 0;
 			$this->options[ 'ban_mode' ] = ( isset( $this->options[ 'ban_mode' ] ) ) ? 1 : 0;
 		}
 		if ( false !== ( bool )$this->is_wp( true ) ) {
@@ -42,6 +44,10 @@ class pareto_settings extends pareto_functions {
 						if ( isset( $_POST[ $this->settings_field ][ "hard_ban_mode" ] ) &&
 							 ( ( strlen( $_POST[ $this->settings_field ][ "hard_ban_mode" ] ) > 1 ) ) ) {
 							   $_POST[ $this->settings_field ][ "hard_ban_mode" ] = 0;
+						}
+						if ( isset( $_POST[ $this->settings_field ][ "email_report" ] ) &&
+							 ( ( strlen( $_POST[ $this->settings_field ][ "email_report" ] ) > 1 ) ) ) {
+							   $_POST[ $this->settings_field ][ "email_report" ] = 0;
 						}
 						if ( isset( $_POST[ $this->settings_field ][ "advanced_mode" ] ) &&
 							 ( ( strlen( $_POST[ $this->settings_field ][ "advanced_mode" ] ) > 1 ) ) ) {
@@ -64,6 +70,7 @@ class pareto_settings extends pareto_functions {
 		if ( false !== is_array( $this->options ) ) {
 				$this->_adv_mode = $this->options[ 'advanced_mode' ];
 				$this->_ban_mode = $this->options[ 'ban_mode' ];
+				$this->_email_report = $this->options[ 'email_report' ];
 				$this->_hard_ban_mode = ( false !== ( bool ) $this->_adv_mode ) ? $this->options[ 'hard_ban_mode' ]  : 0;
 				$this->_domain_list = ( array_key_exists( 'safe_list', $this->options ) ) ? $this->options[ 'safe_list' ] : null;
 		}
@@ -114,6 +121,7 @@ class pareto_settings extends pareto_functions {
 				if ( array_key_exists( 'advanced_mode', $options ) && ( false === is_int( $options[ 'advanced_mode' ] ) || $options[ 'advanced_mode' ] > 1 ) ) $options[ 'advanced_mode' ] = 0;
 				if ( array_key_exists( 'ban_mode', $options ) && ( false === is_int( $options[ 'ban_mode' ] ) || $options[ 'ban_mode' ] > 1 ) ) $options[ 'ban_mode' ] = 0;
 				if ( array_key_exists( 'hard_ban_mode', $options ) && ( false === is_int( $options[ 'hard_ban_mode' ] ) || $options[ 'hard_ban_mode' ] > 1 ) ) $options[ 'hard_ban_mode' ] = 0;
+				if ( array_key_exists( 'email_report', $options ) && ( false === is_int( $options[ 'email_report' ] ) || $options[ 'email_report' ] > 1 ) ) $options[ 'email_report' ] = 0;
 				if ( array_key_exists( 'safe_list_mode', $options ) && ( false === is_int( $options[ 'safe_list_mode' ] ) || $options[ 'safe_list_mode' ] > 1 ) ) $options[ 'safe_list_mode' ] = 0;
 				if ( array_key_exists( 'safe_list', $options ) ) $options[ 'safe_list' ] = $this->cleanRequestInput( $options[ 'safe_list' ] );
 				if ( array_key_exists( 'first_time_setup', $options ) && ( false === is_int( $options[ 'first_time_setup' ] ) || $options[ 'first_time_setup' ] > 1 ) ) $options[ 'first_time_setup' ] = 0;
@@ -192,7 +200,12 @@ class pareto_settings extends pareto_functions {
 	}
 
 	function safelist_box() {
-		$http = ( "on" == @$_SERVER[ "HTTPS" ] || "on" == getenv( "HTTPS" ) ) ? 'https://' : 'http://';
+		if ( false === $this->_adv_mode ) return;
+		$is_https = ( "on" == @$_SERVER[ "HTTPS" ] || "on" == getenv( "HTTPS" ) ) ? true : false;
+		$http = ( false !== $is_https ) ? 'https://' : 'http://';
+		$url = str_replace( 'www.', '', $this->get_http_host() );
+		$hsts_url = 'https://hstspreload.org/?domain=' . $url;
+		$hsts_link = '<a target="_blank" href="' . $hsts_url . '">' . $hsts_url . '</a>';
 ?>
 			<table style="text-align: left;">
 				<tr>
@@ -200,16 +213,17 @@ class pareto_settings extends pareto_functions {
 					<ol>
 						<li>List every domain name associated with your website here (including subdomains).</li>
 						<li>One domain name per line: (i.e <?php echo $this->get_http_host(); ?> - without <code><?php echo $http; ?></code> scheme/protocol and double forward slashes)</li>
-					</ol>
-					<?php
-						if ( isset( $this->options[ 'safe_list' ]  ) ) {
-							$safelist = $this->options[ 'safe_list' ];
-							if ( false === preg_match( "/$this->get_http_host()/i", $safelist ) ) {
-								$safelist = $this->get_http_host()  . "\n" . $safelist;
-							}
-						} else $safelist = $this->get_http_host() . "\n";
-					?>
-					<textarea <?php echo ( false === ( bool ) $this->_adv_mode ) ? 'disabled' : ''; ?> name="<?php echo $this->get_field_name( 'safe_list' ); ?>" id="<?php echo $this->get_field_name( 'safe_list' ); ?>" rows="<?php echo ( false === is_null( $this->_domain_list ) ) ? 3 + count( $this->_domain_list ) : 2; ?>" cols="30"><?php echo $safelist; ?></textarea></td>
+							<?php
+								if ( isset( $this->options[ 'safe_list' ]  ) ) {
+									$safelist = $this->options[ 'safe_list' ];
+									if ( false === preg_match( "/$this->get_http_host()/i", $safelist ) ) {
+										$safelist = $this->get_http_host()  . "\n" . $safelist;
+									}
+								} else $safelist = $this->get_http_host() . "\n";
+							?>
+							<textarea <?php echo ( false === ( bool ) $this->_adv_mode ) ? 'disabled' : ''; ?> name="<?php echo $this->get_field_name( 'safe_list' ); ?>" id="<?php echo $this->get_field_name( 'safe_list' ); ?>" rows="<?php echo ( false === is_null( $this->_domain_list ) ) ? 3 + count( $this->_domain_list ) : 2; ?>" cols="30"><?php echo $safelist; ?></textarea>
+						<?php if ( false !== $is_https ) echo '<li>Register your domain with Google Chromes preload list ' . $hsts_link . '</li>'; ?>
+					</ol></td>
 				</tr>
 			</table>
 <?php
@@ -217,6 +231,11 @@ class pareto_settings extends pareto_functions {
 	function save_settings() {
 ?>
 			<table style="text-align: left;">
+				<tr>
+					<td><input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool )$this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /> <label for="<?php echo $this->get_field_id( 'email_report' ); ?>"><?php _e( '<b>Email Notification:</b> Recieve notifications of High Severity attacks', 'pareto_security_settings' ); ?></label>
+					<br /><br />
+					</td>
+				</tr>
 				<tr>
 					<td><input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options' ); ?>" /><br /><br /><?php if ( false === $this->logfile_exists() ) echo '<strong>(Click "Save Options" to begin logging)</strong>'; ?></td>
 				</tr>
@@ -230,7 +249,11 @@ class pareto_settings extends pareto_functions {
 					<td><strong><?php _e( 'Version:', 'pareto_security_settings' ); ?></strong> <?php echo PARETO_VERSION; ?> <?php echo '&middot;'; ?> <strong><?php _e( 'Released:', 'pareto_security_settings' ); ?></strong> <?php echo PARETO_RELEASE_DATE; ?> ( NZ Timezone )</td>
 					<td><strong>Author:</strong> <a target="_blank" href="https://twitter.com/te_taipo">@te_taipo</a></td>
 					<td><strong>Web:</strong> <a target="_blank" href="https://hokioisecurity.com">https://hokioisecurity.com</a></td>
-					<td><strong>Email:</strong> pareto-security@protonmail.ch</td>
+					<td><strong>Email:</strong> pareto-security@hokioisecurity.com</td>
+				</tr>
+				<tr>
+					<td><strong>Rate This Plugin:</strong> <a href="https://wordpress.org/support/plugin/pareto-security/reviews/" target="_blank">Rate this plugin 5 stars on WordPress.org</a>
+					</td>
 				</tr>
 			</table>
 <?php
@@ -238,7 +261,9 @@ class pareto_settings extends pareto_functions {
 
 	function donations_box() {
 ?>
-		<p><strong><a href=BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX>BTC:1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX</a></strong></p>
+		<p><strong>Bitcoin Address:</strong> 1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX</p>
+		<p><strong>ZCASH Address:</strong> t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1</p>
+		<p><strong>Paypal Address:</strong> pareto-security@protonmail.com</p>
 <?php
 	}
 	function condition_box() {
@@ -248,8 +273,8 @@ class pareto_settings extends pareto_functions {
 				<td>
 				<table style="width: 1050px;">
 					<tr style="background-color:#5F607B">
-					  <td style="width:110px"><b><font color="#FFFFF">&nbsp;<b>Standard Mode:</b></font></b></td>
-					  <td style="width:100px"><b><font color="#FFFFF">&nbsp;<b>Advanced Mode:</b></font></b></td>
+					  <td style="width:110px"><font color="#FFFFF"><b>&nbsp;<b>Standard Mode:</b></b></font></td>
+					  <td style="width:100px"><font color="#FFFFF"><b>&nbsp;<b>Advanced Mode:</b></b></font></td>
 					</tr>
 					<tr style="text-align: left; background-color: #E8E8E8;">
 						<td style="width: 400px; vertical-align:top;">
@@ -270,6 +295,11 @@ class pareto_settings extends pareto_functions {
 									  <input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'advanced_mode' ] ) && false !== ( bool )$this->options[ 'advanced_mode' ] ) || false !== ( bool ) $this->_adv_mode || false !== ( bool )$this->_hard_ban_mode ) { ?>checked<?php } ?> /></td>
 								  <td>
 								<label for="<?php echo $this->get_field_id( 'advanced_mode' ); ?>"><?php _e( '<b>Set Advanced Mode</b> (Use at your own risk)', 'pareto_security_settings' ); ?></label></td>
+								</tr>
+								
+								<tr>
+								  <td></td>
+								  <td>Note: For detailed descriptions, <a target="_blank" href="https://hokioisecurity.com/?p=343">click here</a></td>
 								</tr>
 								<tr>
 								  <td></td>
@@ -341,13 +371,15 @@ class pareto_settings extends pareto_functions {
 				<table style="width: 1100px; text-align: left;">
 					<tbody>
 					  <tr style="background-color:#5F607B">
-						<td style="width:90px"><b><font color="#FFFFF">Date-Time:</font></b></td>
-						<td style="width:30px"><b><font color="#FFFFF">Severity:</font></b></td>
-						<td style="width:150px"><b><font color="#FFFFF">IP Address:</font></b></td>
-						<td style="width:30px"><b><font color="#FFFFF">Req:</font></b></td>
-						<td><b><font color="#FFFFF">Attack String:</font></b></td>
+						<td style="width:90px"><font color="#FFFFF"><b>Date-Time:</b></font></td>
+						<td style="width:30px"><font color="#FFFFF"><b>Severity:</b></font></td>
+						<td style="width:150px"><font color="#FFFFF"><b>IP Address:</b></font></td>
+						<td style="width:30px"><font color="#FFFFF"><b>Req:</b></font></td>
+						<td style="width:50px"><font color="#FFFFF"><b>Filename:</b></font></td>
+						<td><font color="#FFFFF"><b>Attack String:</b></font></td>
 					  </tr>
 					  <tr>
+						<td></td>
 						<td></td>
 						<td></td>
 						<td></td>
@@ -380,12 +412,13 @@ class pareto_settings extends pareto_functions {
 								} else $text_color = "#c72b2c";
 								$mylogs_fin[ $i ] = $mylogs[ $i ];
 								$ip_addr = ( false !== ( bool )$this->check_ip( $req_var[ 2 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a> <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
-								$attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 4 ] ) ) );
+								$attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 5 ] ) ) );
 								echo "<tr style=\"background-color:" . $row_colour . "\">" .
 									 "	<td style=\"vertical-align:top; width:90px; white-space: nowrap\">" . $req_var[ 0 ] . "</td>" .
 									 "	<td style=\"vertical-align:top; text-align: center; width:30px; white-space: nowrap; font-weight: bold; color:" . $text_color . "\">" . $req_var[ 1 ] . "</td>" .
 									 "	<td style=\"vertical-align:top; width:150px; white-space: nowrap\">" . $ip_addr . "</td>" .
 									 "	<td style=\"vertical-align:top; width:30px; white-space: nowrap\">" . $req_var[ 3 ] . "</td>" .
+									 "	<td style=\"vertical-align:top; width:50px; white-space: nowrap\">" . $req_var[ 4 ] . "</td>" .
 									 "	<td style=\"vertical-align:top; white-space: nowrap\"><code>" . $attack_string . "</code></td>" .
 									 "</tr>";
 							  } else break;
