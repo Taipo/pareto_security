@@ -5,9 +5,9 @@ Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command
 
 Requires at least: 4.0.1
 
-Tested up to: 4.8.2
+Tested up to: 4.8.3
 
-Stable tag: 1.7.7
+Stable tag: 1.8.3
 
 Donate link: https://hokioisecurity.com
 
@@ -57,6 +57,8 @@ Features:
 * Optional IP address banning 
 * Works silently in the background blocking attacks
 
+See: https://hokioisecurity.com/?p=343 for further descriptions
+
 A Word on Security:
 Keeping any CMS as secure as possible is not easy. The very best thing you can do to prevent attacks is to always keep your website code, themes and plugins up to date, and remove any plugins and themes you are not using.
 
@@ -87,37 +89,20 @@ Donations via Bitcoin to 1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX
 
 = Do you have an email contact? =
 
-Email me at pareto-security@protonmail.ch
+Email me at pareto-security@hokioisecurity.com
 
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 1.7.7 =
-* Bug in hexidecimal test that affects PHP 7 users
+= 1.8.3 =
+* Improve detection of WP administrator
+* Detect and prevent attempts to bypass Mod_Security
 
-= 1.7.6 =
-* Create log file set if it doesn't exist
-* Small bug in Severity list
+= 1.8.2 =
+* Fixed error in email report
+* Protect admin from being banned
 
-= 1.7.5 =
-* Changed Cookie severity levels to High
-
-= 1.7.4 =
-* Fix to bug in log display
-
-= 1.7.3 =
-* Do not display Low severity in standard mode
-
-= 1.7.2 =
-* Fixed bug with logging when first installing Pareto Security
-
-= 1.7.1 =
-* Update blacklist
-* Speed up of filtering
-* Update to URL redirection
-* New layout to logging
-
-= 1.7.0 =
-* Update to Bots list
-* Now filters login attempts. If in advanced mode will ban incorrect usernames
+= 1.8.0 =
+* Added a simple email alert for High Severity attacks
+* Better prevention of Wordpress Admin's IP address from being banned
