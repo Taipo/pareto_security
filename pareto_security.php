@@ -4,10 +4,14 @@ Plugin Name: Pareto Security
 Plugin URI: https://hokioisecurity.com/?p=17
 Description: Core Security Class - Defense against a range of common attacks such as database injection
 Author: Te_Taipo
-Version: 1.8.3
+Version: 1.8.7
 Requirements: Requires at least PHP version 5.2.0
 Author URI: https://hokioisecurity.com
-BTC:1Ae77P7W3BrHJozD4J5awmHJM18LAereGT
+Bitcoin: 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf
+ZCASH Address: t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1
+Vericoin: VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v
+Ethereum: 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf
+Paypal Address: pareto-security@protonmail.com
 */
 /*
 This program is free software; you can redistribute it and/or
