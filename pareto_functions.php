@@ -108,9 +108,10 @@ class pareto_functions {
 		$req = ( substr( $req, 0, 2 ) == "/?" ) ? substr( $req, 2 ) : $req;
 		$req = ( substr( $req, 0, 1 ) == "/" ) ? substr( $req, 1 ) : $req;
 		# Will only log all requests if in advanced mode, else just Medium severity and above
-		$this->_log_file = $this->logfile_name();
-		if ( false === $this->logfile_exists() ) $this->create_fileset();
-		if ( false !== $this->logfile_exists() ) $this->log_request( $req, $ban_type );
+		if ( false !== $this->logfile_name() ) $this->_log_file = $this->logfile_name();
+		if ( false === $this->logfile_exists() ) {
+			$this->create_fileset();
+		} else $this->log_request( $req, $ban_type );
 		# If IP ban manually disabled
 		if ( false === ( bool ) $t || false !== $this->_bypassbanip ) $this->send403();
 		# Add IP address to htaccess file
@@ -167,7 +168,9 @@ class pareto_functions {
 	  return substr( $this->get_uuid(), 0, 32 ) . '_request.key';
 	}
 	function logfile_name() {
-		  $key_array = file( PARETO_LOGS . $this->crypto_key_file() );
+		  if ( false !== $this->logfile_exists() ) {
+			$key_array = file( PARETO_LOGS . $this->crypto_key_file() );
+		  } else return false;
 		  $filename = substr( hash( 'sha256', $key_array[ 0 ], false ), 0, 32 ) . "_request.log";
 		  return $filename;
 	}
@@ -227,6 +230,7 @@ class pareto_functions {
 		 fclose( $fp );
 
 		 $this->_log_file = $this->logfile_name();
+
 		 $logfile = PARETO_LOGS . $this->_log_file;
 		 # Create logfile
 		 $fp = fopen( $logfile, 'c' );
@@ -348,7 +352,7 @@ class pareto_functions {
 				allow_url_include|0x3c62723e";
 
 		$sqlupdatelist	= "\bcolumn\b|\bdata\b|concat\(|\bemail\b|\blogin\b|
-			\bname\b|\bpass\b|sha1|sha2|\btable\b|table|\bwhere\b|\buser\b|
+			\bname\b|\bpass\b|sha1|sha2|\btable\b|\bwhere\b|\buser\b|
 			\bval\b|0x|--";
 		$sqlfilematchlist = 'access_|access.|\balias\b|apache|\/bin|win.|
 			\bboot\b|config|\benviron\b|error_|error.|\/etc|httpd|
@@ -362,7 +366,7 @@ class pareto_functions {
 		  if ( false !== ( bool ) preg_match( "/(?:(?:(?:\b|[^a-z])union[^a-z]|\()[\w\W]*(?:\b|[^a-z])select[^a-z]|(?:updatexml|extractvalue)(?:\b|[^a-z])[\w\W]*\()[\w\W]+(?:(?:0x|x')[0-9a-f]{16}|(?:0b|b')[01]{64}|\(|\|\||\+)/i", $this_string ) ) {
 			 return true;
 		  }
-		  if ( false !== ( bool ) preg_match( "/\bdrop\b/i", $this_string ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b/i", $this_string ) && false !== ( bool ) preg_match( "/--|and|\//i", $this_string ) ) {
+		  if ( false !== ( bool ) preg_match( "/\bdrop\b/i", $this_string ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b/i", $this_string ) && false !== ( bool ) preg_match( "/--/i", $this_string ) ) {
 			return true;
 		  } elseif ( ( false !== strpos( $this_string, 'grant' ) ) && ( false !== strpos( $this_string, 'all' ) ) && ( false !== strpos( $this_string, 'privileges' ) ) ) {
 			return true;
@@ -373,10 +377,9 @@ class pareto_functions {
 			if ( count( $match_list ) > 3 ) return true;
 		  } elseif ( ( ( false !== ( bool ) preg_match( "/select|sleep|isnull|declare|ascii\(substring|length\(/i", $this_string ) ) && ( false !== ( bool ) preg_match( "/\band\b|\bif\b|group_|_ws|load_|exec|when|then|concat\(|\bfrom\b/i", $this_string ) ) && ( false !== ( bool ) preg_match( "/$sqlmatchlist/im", $this_string ) ) ) ) {
 			return true;
-		  } elseif ( false !== strpos( $this_string, 'update' ) && false !== ( bool ) preg_match( "/\bset\b/i", $this_string ) && false !== ( bool ) preg_match( "/$sqlupdatelist/im", $this_string ) ) {
+		  } elseif ( false !== strpos( $this_string, 'from' ) && false !== strpos( $this_string, 'update' ) && false !== ( bool ) preg_match( "/\bset\b/i", $this_string ) && false !== ( bool ) preg_match( "/$sqlupdatelist/im", $this_string, $matches ) ) {
 			return true;
 		  } elseif ( false !== strpos( $this_string, 'having' ) && false !== ( bool ) preg_match( "/\bor\b|\band\b/i", $this_string ) && false !== ( bool ) preg_match( "/$sqlupdatelist/im", $this_string ) ) {
-			return true;
 			# tackle the noDB / js issue
 		  } elseif ( ( $this->substri_count( $this_string, 'var' ) > 1 ) && false !== ( bool ) preg_match( "/date\(|while\(|sleep\(/i", $this_string ) ) {
 			return true;
@@ -415,7 +418,7 @@ class pareto_functions {
 			return true;
 		  } elseif ( false !== ( bool ) preg_match( "/\binto\b/i", $this_string ) && ( false !== ( bool ) preg_match( "/\boutfile\b/i", $this_string ) ) ) {
 			return true;
-		  } elseif ( false !== ( bool ) preg_match( "/\bdrop\b/i", $this_string ) && ( false !== ( bool ) preg_match( "/\buser\b/i", $this_string ) ) ) {
+		  } elseif ( false !== ( bool ) preg_match( "/\bdrop\b/i", $this_string ) && ( false !== ( bool ) preg_match( "/\--/i", $this_string ) ) && ( false !== ( bool ) preg_match( "/\btable\b/i", $this_string ) ) ) {
 			return true;
 		  } elseif ( ( ( false !== strpos( $this_string, 'create' ) && false !== ( bool ) preg_match( "/\btable\b|\buser\b|\bselect\b/i", $this_string ) ) || ( false !== strpos( $this_string, 'delete' ) && false !== strpos( $this_string, 'from' ) ) || ( false !== strpos( $this_string, 'insert' ) && ( false !== ( bool ) preg_match( "/\bexec\b|\binto\b|from/i", $this_string ) ) ) || ( false !== strpos( $this_string, 'select' ) && ( false !== ( bool ) preg_match( "/\bby\b|\bcase\b|extract|from|\bif\b|\binto\b|\bord\b|union/i", $this_string ) ) ) ) && ( ( false !== ( bool ) preg_match( "/$sqlmatchlist/im", $this_string ) ) ) ) {
 			return true;
@@ -466,10 +469,10 @@ class pareto_functions {
 			"znjvbunoyxjdb2rl","u0vmrunulyoqlw==" );
   
 		# _POST[] 
-		$_datalist[ 2 ] = array( "zxzhbcg","eval(", "base64_","fromcharcode","allow_url_include",
+		$_datalist[ 2 ] = array( "zxzhbcg","eval(", "fromcharcode","allow_url_include",")*cmd","=cmd|",
 			"@eval","concat(","suhosin.simulation=","usr/bin/perl","shell_exec(","string.fromcharcode",
 			"/etc/passwd","file_get_contents(","fopen(","get[cmd","/bin/cat","passthru(",
-			"><javas","ywxlcnqo","znjvbunoyxjdb2rl","\$_request[cmd","system(" );
+			"c powershell iex","><javas","ywxlcnqo","znjvbunoyxjdb2rl","\$_request[cmd","system(" );
   
 		# 'User-Agent'
 		$_datalist[ 3 ] = array( "usr/bin/perl",":;};","system(","base64_","phpinfo",
@@ -511,10 +514,9 @@ class pareto_functions {
 	  if ( 'wp-links-opml.php' == $this->get_filename() ) {
 		if ( false === $this->is_wp( true, true ) ) $this->karo( "WPScan: non-admin call to wp-links-opml.php", ( ( ( bool ) $this->_hard_ban_mode ) ? ( bool ) $this->_banip : false ), 'Medium' );
 	  }
-	  
+
 	  # if empty then the rest of no interest to us
 	  if ( false !== empty( $_REQUEST ) ) return;
-
 	  $_get_server = $_SERVER;
 	  $_get_post = $_POST;
 
@@ -552,6 +554,7 @@ class pareto_functions {
 			}
 		  }
 	  }
+	  
 	  # prevent command injection
 	  if ( false !== in_array( "'cmd'", $this->_get_all ) || false !== in_array( "'system'", $this->_get_all ) ) $this->karo( "CMD Inject: " . $req, true, 'High' );
 	  # Detect HTTP Parameter Pollution
@@ -571,11 +574,7 @@ class pareto_functions {
 		if ( ( false !== function_exists( 'is_admin' ) && false === is_admin() ) &&
 			   false !== $this->cmpstr( 'admin-ajax.php', $this->get_filename() ) &&
 			 ( false !== in_array( 'default_role' , $_get_post ) && false !== $this->cmpstr( 'administrator', $_get_post[ 'default_role' ] ) ) ) $this->karo( $req, true, 'High' );
-		# And lets take care of the WP REST API exploit too
-		if ( false !== strpos( $req, '/wp-json/wp/v2/posts/' ) ) {
-		   $id = isset( $_GET[ 'id' ] ) ? $_GET[ 'id' ] : NULL;
-		   if ( false === is_null( $id ) && false === $this->integ_prop( ( int ) $id ) ) $this->karo( "REST API exploit: " . $req, true, 'High' );
-		}
+
 		# Start HTTP Parameter Pollution
 		$dup_check_post = array();
 		for( $x = 0; $x < count( $this->_post_all ); $x++ ) {
@@ -602,9 +601,22 @@ class pareto_functions {
 		}
 	  }
 	  # WP Author Discovery
-	  if ( false !== strpos( $req, '?author=' ) || false !== strpos( $req, 'wp-json/wp/v2/users' ) ) {
+	  if ( false !== strpos( $req, '?author=' ) ) {
 			$this->karo( "Author Discovery: " . $req, true, 'Medium' );
 	  }
+	  
+	  # WP DoS Mitigation CVE-2018-6389
+
+	  # In order for this to work you need to add the following code to wp-admin/load-script.php 
+	  # if ( false !== strpos( $_SERVER[ 'SCRIPT_NAME' ], 'load-scripts.php' ) ) require( ABSPATH . 'wp-admin/admin.php' );
+	  # and in wp-admin/load-styles.php
+	  # if ( false !== strpos( $_SERVER[ 'SCRIPT_NAME' ], 'load-styles.php' ) ) require( ABSPATH . 'wp-admin/admin.php' );
+	  if ( false !== $this->cmpstr( $this->get_filename(), 'wp-login.php' ) ) define( 'CONCATENATE_SCRIPTS', false );	  
+	  if ( isset( $_REQUEST[ 'load' ] ) ) {
+		  $query_len = strlen( $_REQUEST[ 'load' ][ 0 ] );
+		  if ( $query_len > 1000 ) $this->karo( "CVE-2018-6389 DoS Attack: Query Length = " . $query_len, true, 'High' );
+	  }
+
 	  # Check for database injections, even malformed ones
 	  if ( false !== $this->injectMatch( $req ) ) $this->karo( "REQ Inject: " . $req, true, 'High' );
 	  # this occurence of these many slashes etc are always an attack attempt
@@ -825,12 +837,7 @@ class pareto_functions {
 		}
 		# Only if in Advanced Mode
 		if ( false !== ( bool ) $this->_adv_mode ) {
-			# Prevent Spidering via wp-json
-			$req = strtolower( $this->url_decoder( $this->getREQUEST_URI() ) );
-			if ( false !== strpos( $req, 'wp-json/oembed' ) || false !== strpos( $req, 'wp-json/wp/' ) ) {
-				  $this->karo( "Irreg Spider Activity: " . $req, ( ( ( bool ) $this->_hard_ban_mode ) ? ( bool ) $this->_banip : false ), 'Low'  );
-			}
-			# disable this in wp-admin (disable advanced mode) if you want bots to crawl your website
+			# Disable this in wp-admin (disable advanced mode) if you want bots to crawl your website
 			if ( false === $this->cmpstr( $val, "''") && false === ( bool ) $this->datalist( $val, 4 ) ) {
 			  if ( false === $this->is_server( $this->get_ip() ) && ( bool ) false !== $this->_banip ) $this->karo( "USER-AGENT: ". $val, ( ( ( bool ) $this->_hard_ban_mode ) ? ( bool ) $this->_banip : false ), 'Low' );
 			}
