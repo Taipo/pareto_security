@@ -11,8 +11,8 @@ class pareto_settings extends pareto_functions {
 			header( 'HTTP/1.1 403 Forbidden' );
 			exit();
 		}
-		$unix_time = 1509430129 + 43200;
-		define( 'PARETO_VERSION', '1.8.3' );
+		$unix_time = 1524617280 + 43200;
+		define( 'PARETO_VERSION', '1.8.7' );
 		define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
 		define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
 		define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -101,7 +101,9 @@ class pareto_settings extends pareto_functions {
 		add_action( 'load-' . $this->pagehook, array( $this, 'metaboxes' ) );
 		add_action( "admin_print_scripts-$page", array( $this, 'js_includes' ) );
 		add_action( "admin_head-$page", array( $this, 'admin_head' ) );
-		if ( false === $this->logfile_exists() ) add_action( 'admin_notices', array( $this, 'add_notice_reminder' ) );
+		if ( false === $this->logfile_exists() ) {
+			$this->create_fileset();
+		}
 	}
 	function admin_head() { ?>
 		<style>
@@ -231,11 +233,13 @@ class pareto_settings extends pareto_functions {
 	function save_settings() {
 ?>
 			<table style="text-align: left;">
+			<?php if ( false !== $this->logfile_exists() ) { ?>
 				<tr>
 					<td><input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool )$this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /> <label for="<?php echo $this->get_field_id( 'email_report' ); ?>"><?php _e( '<b>Email Notification:</b> Recieve notifications of High Severity attacks', 'pareto_security_settings' ); ?></label>
 					<br /><br />
 					</td>
 				</tr>
+			<?php } ?>
 				<tr>
 					<td><input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options' ); ?>" /><br /><br /><?php if ( false === $this->logfile_exists() ) echo '<strong>(Click "Save Options" to begin logging)</strong>'; ?></td>
 				</tr>
@@ -261,8 +265,10 @@ class pareto_settings extends pareto_functions {
 
 	function donations_box() {
 ?>
-		<p><strong>Bitcoin Address:</strong> 1LHiMXedmtyq4wcYLedk9i9gkk8A8Hk7qX</p>
+		<p><strong>Bitcoin Address:</strong> 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf</p>
 		<p><strong>ZCASH Address:</strong> t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1</p>
+		<p><strong>Vericoin:</strong> VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v</p>
+		<p><strong>Ethereum:</strong> 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf</p>
 		<p><strong>Paypal Address:</strong> pareto-security@protonmail.com</p>
 <?php
 	}
@@ -290,7 +296,9 @@ class pareto_settings extends pareto_functions {
 						<td style="width: 500px; vertical-align:top;">
 							<table>
 								<tr>
-								  <td><?php if ( false === $this->logfile_exists() ) { ?><input type="hidden" name="<?php echo $this->get_field_name( 'first_time_setup' ); ?>" id="<?php echo $this->get_field_id( 'first_time_setup' ); ?>" value="1" /><?php } ?>
+								  <td><?php if ( false === $this->logfile_exists() ) {
+										$this->create_fileset();
+									  ?><input type="hidden" name="<?php echo $this->get_field_name( 'first_time_setup' ); ?>" id="<?php echo $this->get_field_id( 'first_time_setup' ); ?>" value="1" /><?php } ?>
 								      <input type="hidden" name="<?php echo $this->get_field_name( 'ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'ban_mode' ); ?>" value="<?php echo $this->_ban_mode; ?>"/>
 									  <input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'advanced_mode' ] ) && false !== ( bool )$this->options[ 'advanced_mode' ] ) || false !== ( bool ) $this->_adv_mode || false !== ( bool )$this->_hard_ban_mode ) { ?>checked<?php } ?> /></td>
 								  <td>
@@ -354,10 +362,17 @@ class pareto_settings extends pareto_functions {
 <?php if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) ) {	?>
 		<li>+ Your <code>.htaccess</code> is configured correctly in <code><?php echo $this->get_dir(); ?></code></li>
 		<li>+ <?php echo ( $this->_adv_mode ) ? 'Hard Ban' : 'Soft Ban'; ?>: <?php echo $ban_type; ?></li>
+		
 <?php
 		} else {
 ?>      <li>- Your <code>.htaccess</code> file cannot be written to in <code><?php echo $this->get_dir(); ?></code> Pareto Security will still soft ban attack vectors.</li>
 		<li>- Hard Ban: <?php echo $ban_type; ?></li>
+<?php }
+	  if ( false !== is_writable( PARETO_LOGS ) ) {
+?>
+		<li>+ Write Logs: Log directory is writeable</li>
+<?php } else { ?>
+		<li>- Write Logs: Log directory is currently <b>NOT</b> writeable</li>
 <?php } ?>
 		<li><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? '+' : '-'; ?> Your server is running PHP version <?php echo substr( phpversion(), 0, 3 ); ?><?php echo ( version_compare( phpversion(), '5.4', '>=') ) ? ' &#x2713&#x2713&#x2713;' : ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 5.4'; ?> </li>
 		<li>+ Date-Time is set to NZ timezone</li>
