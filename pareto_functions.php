@@ -3,7 +3,7 @@ class pareto_functions {
 	# if open_basedir is not set in php.ini. Leave disabled unless you are sure about using this.
 	protected $_open_basedir = 0;
 	# activate _SPIDER_SHIELD()
-	public $_hard_ban_mode = 0;
+	public $_hard_ban_mode = false;
 	public $_spider_block = 0;
 	# ban attack ip address to the root /.htaccess file. Leave this disabled if you are hosting a website using TOR's Hidden Services
 	protected $_banip = 0;
@@ -18,15 +18,18 @@ class pareto_functions {
 	# Other
 	protected $_bypassbanip = false;
 	public $_post_filter_mode = 0;
+	public $timestamp = '';
+	public $log_list = 'pareto_security_log_list';
+	public $settings_field = 'pareto_security_settings_options';
 	protected $_get_all = array();
 	protected $_post_all = array();
 	protected $_log_file = '';
 	protected $_log_file_key = '';
 	function __construct() {
-
+		
 		define( 'PARETO_LOGS', dirname(__FILE__) . "/logs/" );
 		$this->_log_file_key = $this->crypto_key_file();
-		
+		$this->timestamp = ( false !== $this->is_wp() ) ? date_i18n( 'd-m-y,G:i', ( $this->updated( ( int )time(), ( int )get_option( 'gmt_offset' ) ) ) ) : date( "d.m.y-G:i" );
 		$this->_set_error_level();
 		# if open_basedir is not set in php.ini then set it in the local scope
 		$this->setOpenBaseDir();
@@ -38,7 +41,7 @@ class pareto_functions {
 		$_REQUEST = array_merge( $_GET, $_POST );
 	}
 	function _set_error_level() {
-	  $val = ( false !== $this->integ_prop( $this->_quietscript ) || false !== ctype_digit( $this->_quietscript ) ) ? ( int ) $this->_quietscript : 0;
+	  $val = ( false !== $this->integ_prop( $this->_quietscript ) ) ? ( int ) $this->_quietscript : 0;
 	  @ini_set( 'display_errors', 0 );
 	  switch ( ( int ) $val ) {
 		case ( 0 ):
@@ -92,14 +95,25 @@ class pareto_functions {
 	  }
 	  exit();
 	}
-
+	function _activate() {
+		update_option( $this->log_list, array( 0 => $this->timestamp . " Safe 127.0.0.1 GET plugins.php Pareto%20Security%20Installed" ) );
+		update_option( $this->settings_field, array( // set defaults
+													'advanced_mode' => 0,
+													'hard_ban_mode' => 0,
+													'email_report' => 1,
+													'ban_mode' => 0 ) );
+	}
+	function _deactivate() {
+		update_option( $this->log_list, "" );
+		update_option( $this->settings_field, "" );
+	}
 	/**
 	 * karo()
 	 *
 	 * @return
 	 */
 
-	function karo( $req = '', $t = false, $severity = '', $header_type = 403 ) {
+	function karo( $req = '', $t = false, $severity = '' ) {
 		# Give a logged in WP Admins a pass only when posting data
 		if ( false !== $this->is_wp( false, true ) ) return;
 		
@@ -108,17 +122,30 @@ class pareto_functions {
 		$req = ( substr( $req, 0, 2 ) == "/?" ) ? substr( $req, 2 ) : $req;
 		$req = ( substr( $req, 0, 1 ) == "/" ) ? substr( $req, 1 ) : $req;
 		# Will only log all requests if in advanced mode, else just Medium severity and above
-		if ( false !== $this->logfile_name() ) $this->_log_file = $this->logfile_name();
-		if ( false === $this->logfile_exists() ) {
-			$this->create_fileset();
-		} else $this->log_request( $req, $ban_type );
+		if ( false == $this->is_wp() ) {
+			if ( false !== $this->logfile_name() ) $this->_log_file = $this->logfile_name();
+			if ( false === $this->logfile_exists() ) $this->create_fileset();
+		}
+		$this->log_request( $req, $ban_type );
 		# If IP ban manually disabled
 		if ( false === ( bool ) $t || false !== $this->_bypassbanip ) $this->send403();
 		# Add IP address to htaccess file
 		if ( ( ( false !== $this->_adv_mode || false !== ( bool ) $this->_banip ) || false !== $t ) && ( false === ( bool ) $this->_bypassbanip ) ) $this->htaccessbanip( $this->get_ip() );
 		$this->send403();
 	}
-	function write_log( $req = "", $htpath ) {
+	function write_log( $req = "" ) {
+	  $logfile = array();
+	  $logfile = get_option( $this->log_list );
+	  array_unshift( $logfile, $req );
+	  
+	  $mylogs = array();
+	  $log_total = ( int ) ( count( $logfile ) >= 100 ) ? 99 : count( $logfile );
+	  for( $x = 0; ( $x <= $log_total && !empty( $logfile[ $x ] ) ); $x++ ) {
+		  $mylogs[ $x ] = $logfile[ $x ];
+	  }
+	  update_option( $this->log_list, $mylogs );
+	}
+	function write_log_non_wp( $req = "", $htpath ) {
 	  $logfile = PARETO_LOGS . $this->_log_file;
 	  if ( file_exists( $logfile ) ) {
 		  @chmod( $logfile, 0666 );
@@ -140,13 +167,14 @@ class pareto_functions {
 	function log_request( $req, $ban_type ) {
 		  if ( false !== ( bool ) $this->_adv_mode || ( false === ( bool ) $this->_adv_mode && $ban_type != 'Low' ) ) {
 			if ( false === $this->is_wp() ) date_default_timezone_set( 'NZ' );
-			$timestamp = ( false !== $this->is_wp() ) ? date_i18n( 'd-m-y,G:i', ( time() + 43200 ) ) : date( "d.m.y-G:i" );
+			
 			$trim = 90;
 			$req = ( strlen( $req ) > $trim )? substr( $req, 0, $trim ) . "..." : $req;
 			$req = htmlentities( $req, ( ( version_compare( phpversion(), '5.4', '>=') ) ? ENT_HTML5 | ENT_QUOTES : ENT_COMPAT | ENT_HTML401 ), 'UTF-8' );
 			$req_orig = $req;
 			$req = str_replace( "\\", "&bsol;", $req );
-			$req = $timestamp . " " .
+			$this->timestamp = ( false !== $this->is_wp() ) ? date_i18n( 'd-m-y,G:i', ( $this->updated( time(), ( int )get_option( 'gmt_offset' ) ) ) ) : date( "d.m.y-G:i" );
+			$req = $this->timestamp . " " .
 				   $ban_type . " " .
 				   $this->get_ip() . " " .
 				   $_SERVER[ 'REQUEST_METHOD' ] . " " .
@@ -154,15 +182,21 @@ class pareto_functions {
 				   str_replace( " ", "%20", $req ) . "\n";
 			if ( 'High' == $ban_type && false !== ( bool )$this->_email_report )
 				$this->email_log( '<tr style="background-color:"#E8E8E8">' .
-					 '	<td style="vertical-align:top; width:90px; white-space: nowrap">' . $timestamp . '</td>' .
+					 '	<td style="vertical-align:top; width:90px; white-space: nowrap">' . $this->timestamp . '</td>' .
 					 '	<td style="vertical-align:top; text-align: center; width:80px; white-space: nowrap; font-weight: bold; color:#c72b2c">High</td>' .
 					 '	<td style="vertical-align:top; width:150px; white-space: nowrap">' . $this->get_ip() . '</td>' .
 					 '	<td style="vertical-align:top; width:50px; white-space: nowrap">' . $_SERVER[ 'REQUEST_METHOD' ] . '</td>' .
 					 '	<td style="vertical-align:top; width:50px; white-space: nowrap">' . $this->get_filename() . '</td>' .
 					 '	<td style="vertical-align:top; white-space: nowrap"><code>' . $req_orig . '</code> [LATEST]</td>' .
 				'</tr>' );
-			$this->write_log( $req, $this->_log_file );
+			if ( false == $this->is_wp() ) {
+				$this->write_log_non_wp( $req, $this->_log_file );
+			} else $this->write_log( $req );
 		  }
+	}
+	function dirfile_perms( $path ) {
+	  $length = strlen( decoct( fileperms( $path ) ) ) - 3;
+	  return substr( decoct( fileperms( $path ) ), $length );
 	}
 	function crypto_key_file() {
 	  return substr( $this->get_uuid(), 0, 32 ) . '_request.key';
@@ -192,10 +226,6 @@ class pareto_functions {
 	}
 	function logfile_exists() {
 		return ( bool )( file_exists( PARETO_LOGS . ".htaccess" ) || file_exists( PARETO_LOGS . $this->_log_file_key ) );
-	}
-	function dirfile_perms( $path ) {
-	  $length = strlen( decoct( fileperms( $path ) ) ) - 3;
-	  return substr( decoct( fileperms( $path ) ), $length );
 	}
 	function do_bcrypt( $string, $cost = 5 ) {
 		  $salt = ( function_exists( 'openssl_random_pseudo_bytes' ) ) ? substr( base64_encode( openssl_random_pseudo_bytes( 17 ) ), 0, 22 ) : substr( strtr( base64_encode( mcrypt_create_iv( 16, MCRYPT_DEV_URANDOM ) ), '+', '.' ), 0, 22 );
@@ -284,6 +314,18 @@ class pareto_functions {
 			}
 			return $_server_vars;
 	}
+	function updated( $unixtime, $offset ) {
+		if ( false !== $this->integ_prop( $offset ) ) {
+				if ( $offset > 0 && $offset < 14 ) {
+					return $unixtime + ( $offset * 3600 );
+				} elseif ( $offset == 0 ) {
+					return $unixtime;
+				}
+		} elseif ( false !== preg_match( "#^(-[0-9]{1,}|[0-9]{1,})$#", $offset ) ) {
+			    $x = ( int ) str_replace( '-', '', ( string )$offset );
+				return $unixtime - ( $x * 3600 );
+		}
+	}	
 	/**
 	 * injectMatch()
 	 *
@@ -1076,7 +1118,7 @@ class pareto_functions {
 	  $test = ( $cut = strpos( $locale, '?') ) ? substr( $locale, 0, $cut ) : $locale;
 	  $lp = @parse_url( $test );
 	  if ( isset( $lp['scheme'] ) && !( 'http' == $lp[ 'scheme' ] || 'https' == $lp[' scheme' ] ) ) return $this->get_http_host();
-	  if ( ! isset( $lp['host'] ) && ( isset( $lp['scheme'] ) || isset( $lp['user'] ) || isset( $lp['pass'] ) || isset( $lp['port'] ) ) )  return $this->get_http_host();
+	  if ( ! isset( $lp['host'] ) && ( isset( $lp['scheme'] ) || isset( $lp['user'] ) || isset( $lp['pass'] ) || isset( $lp['port'] ) ) ) return $this->get_http_host();
       foreach ( array( 'user', 'pass', 'host' ) as $component ) {
 		if ( isset( $lp[ $component ] ) && strpbrk( $lp[ $component ], ':/?#@' ) ) {
 			return str_replace( '/', '', $this->get_http_host() );
@@ -1123,12 +1165,12 @@ class pareto_functions {
 	 * is_server()
 	 * @return bool
 	 */
-	function is_server( $ip, $localhost = false ) {
-	  # tests if ip address accessing webserver
-	  # is either server ip ( localhost access )
-	  # or is 127.0.0.1 ( i.e onion visitors )
+	function is_server( $ip, $localhost = true ) {
+	  # tests if ip address reported as _SERVER[ 'SERVER_ADDR' ]
+	  # is either server ip ( localhost access ) or is 127.0.0.1
+	  # ( i.e onion visitors )
 
-	  if ( false === isset( $ip ) ) $ip = $this->get_ip();
+	  if ( !isset( $ip ) ) $ip = $this->get_ip();
 	  if ( false !== $this->cmpstr( $ip, $_SERVER[ 'SERVER_ADDR' ] ) ) {
 		return true;
 	  } elseif ( ( false !== $localhost ) && false !== $this->cmpstr( $ip, '127.0.0.1' ) ) {
@@ -1149,7 +1191,7 @@ class pareto_functions {
 		if ( false === ( bool ) filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 || FILTER_FLAG_IPV6 ) ) {
 			return false;
 		}
-		if ( false !== $this->is_server( $ip, true ) ) {
+		if ( false !== $this->is_server( $ip ) ) {
 		  $this->_bypassbanip = true;
 		}
 		return true;
@@ -1200,7 +1242,7 @@ class pareto_functions {
 	  $this_ip = $this->getREMOTE_ADDR();
       if ( false !== $this->cmpstr( $this_ip, '::1' ) ) $this_ip = '127.0.0.1';
 	  # for TorHS to prevent banning of server IP
-	  if ( false !== $this->is_server( $this_ip, true ) ) {
+	  if ( false !== $this->is_server( $this_ip ) ) {
 		 $this->_bypassbanip = true;
 	  }
 	  # generally speaking, never trust any ip headers except REMOTE_ADDR
@@ -1311,14 +1353,17 @@ class pareto_functions {
 	 * integ_prop()
 	 */
 	function integ_prop( $integ ) {
-	  $integ = preg_replace( '/\d+/u', '', $integ );
-	  if ( ( $integ == 0 || false === empty( $integ ) ) &&
-		 false !== is_int( $integ ) &&
-		 false === is_float( $integ ) ) {
-		 if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_INT' ) ) {
-		  return ( ( filter_var( $integ, FILTER_VALIDATE_INT ) === 0 || false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) ? true : false );
-		 } else	return true;
-	  } else return false;
+		if ( false !== ( strval( $integ ) == strval( intval( $integ ) ) ) &&
+		   ( false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) &&
+		   ( false !== ctype_digit( strval( $integ ) ) ) &&
+		   ( false !== preg_match( '/^\d+$/', $integ ) ) &&
+		   ( $integ == 0 || false === empty( $integ ) ) &&
+		   ( false !== is_int( $integ ) ) &&
+		   ( false === is_float( $integ ) ) ) {
+				if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_INT' ) ) {
+					return ( ( filter_var( $integ, FILTER_VALIDATE_INT ) === 0 || false !== filter_var( $integ, FILTER_VALIDATE_INT ) ) ? true : false );
+				} else	return true;
+		} else return false;
 	}
 	/**
 	 * cmpstr()
@@ -1360,6 +1405,7 @@ class pareto_functions {
 	  } else return false;
 	}
 	function email_log( $pareto_report2 = '' ) {
+		
 		if ( false === function_exists( 'wp_mail' ) ) require_once ABSPATH . WPINC . '/pluggable.php';
 		$blog_email  = 'wordpress@' . $this->get_http_host();
 		$admin_email = get_option( 'admin_email' );
@@ -1429,44 +1475,42 @@ class pareto_functions {
 												<td></td>
 											  </tr>';
 		$pareto_report3 = '';
-		if ( file_exists( PARETO_LOGS . ".htaccess" ) ) {
-			$mylogs = array();
-			$mylogs_fin = array();
-			$logfile = PARETO_LOGS . $this->_log_file;
-			$mylogs = array_reverse( file( $logfile ) );
-			$i = 0;
-			$text_color = "#e68735";
-			while( $i < 4 ) {
-			  if ( isset( $mylogs[ $i ] ) ) {
-				$row_colour = "#E8E8E8";
-				$req_var = explode( ' ', $mylogs[ $i ] );
-				if ( $req_var[ 1 ] == "Low" ) {
-					 if ( false === ( bool ) $this->_adv_mode ) {
-						$i++;
-						continue;
-					 }
-					 $text_color = "#517ecf";
-				} elseif ( $req_var[ 1 ] == "Medium" ) {
-					 $text_color = "#e68735";
-				} elseif ( empty( $req_var[ 1 ] ) ) {
-					$req_var[ 1 ] = "Medium";
-					$text_color = "#e68735";
-				} else $text_color = "#c72b2c";
-				$mylogs_fin[ $i ] = $mylogs[ $i ];
-				$ip_addr = $req_var[ 2 ];
-				$attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 5 ] ) ) );
-				$pareto_report3 .= '<tr style="background-color:"' . $row_colour . '">' .
-					 '	<td style="vertical-align:top; width:90px; white-space: nowrap">' . $req_var[ 0 ] . '</td>' .
-					 '	<td style="vertical-align:top; text-align: center; width:80px; white-space: nowrap; font-weight: bold; color:' .
-																						  $text_color . '">' . $req_var[ 1 ] . '</td>' .
-					 '	<td style="vertical-align:top; width:150px; white-space: nowrap">' . $ip_addr . '</td>' .
-					 '	<td style="vertical-align:top; width:50px; white-space: nowrap">' . $req_var[ 3 ] . '</td>' .
-					 '	<td style="vertical-align:top; width:50px; white-space: nowrap">' . $req_var[ 4 ] . '</td>' .
-					 '	<td style="vertical-align:top; white-space: nowrap"><code>' . $attack_string . '</code></td>' .
-					 '</tr>';
-			  } else break;
-			$i++;
-			}
+			
+		$mylogs = array();
+		
+		$mylogs = get_option( $this->log_list );
+		$i = 0;
+		$text_color = "#e68735";
+		while( $i < 4 ) {
+		  if ( isset( $mylogs[ $i ] ) ) {
+			$row_colour = "#E8E8E8";
+			$req_var = explode( ' ', $mylogs[ $i ] );
+			if ( $req_var[ 1 ] == "Low" ) {
+				 if ( false === ( bool ) $this->_adv_mode ) {
+					$i++;
+					continue;
+				 }
+				 $text_color = "#517ecf";
+			} elseif ( $req_var[ 1 ] == "Medium" ) {
+				 $text_color = "#e68735";
+			} elseif ( empty( $req_var[ 1 ] ) ) {
+				$req_var[ 1 ] = "Medium";
+				$text_color = "#e68735";
+			} else $text_color = "#c72b2c";
+			$mylogs_fin[ $i ] = $mylogs[ $i ];
+			$ip_addr = $req_var[ 2 ];
+			$attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 5 ] ) ) );
+			$pareto_report3 .= '<tr style="background-color:"' . $row_colour . '">' .
+				 '	<td style="vertical-align:top; width:90px; white-space: nowrap">' . $req_var[ 0 ] . '</td>' .
+				 '	<td style="vertical-align:top; text-align: center; width:80px; white-space: nowrap; font-weight: bold; color:' .
+																					  $text_color . '">' . $req_var[ 1 ] . '</td>' .
+				 '	<td style="vertical-align:top; width:150px; white-space: nowrap">' . $ip_addr . '</td>' .
+				 '	<td style="vertical-align:top; width:50px; white-space: nowrap">' . $req_var[ 3 ] . '</td>' .
+				 '	<td style="vertical-align:top; width:50px; white-space: nowrap">' . $req_var[ 4 ] . '</td>' .
+				 '	<td style="vertical-align:top; white-space: nowrap"><code>' . $attack_string . '</code></td>' .
+				 '</tr>';
+		  } else break;
+		$i++;
 		}
 		$pareto_report3 .= '
 		</table>
