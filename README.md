@@ -8,7 +8,7 @@ Requires at least: 4.0.1
 
 Tested up to: 4.9.5
 
-Stable tag: 1.8.7
+Stable tag: 1.8.9
 
 Donate link: https://hokioisecurity.com
 
@@ -40,19 +40,22 @@ Pareto Security class acts as a Central Security Hub checking all inputs from us
 * Completely Free
 * and much more...
 
-#### PARETO SECURITY FIREWALL
-* Pareto Security Firewall identifies and blocks malicious traffic.
-* Pareto Security Firewall dynamic IP Blacklist protects your site while reducing load.
+#### PARETO SECURITY PROTECTION
+
+* Pareto Security Protection identifies and blocks malicious traffic.
+* Pareto Security Protection dynamic IP Blacklist protects your site while reducing load.
 * Protects your site at the entry-point, disabling attack peneration of your WordPress site.
 * Extends Wordpress inbuilt security, defends your website against vulnerabilities added in via bad plugin coding.
 
 #### PARETO SECURITY TOOLS
+
 * Monitor blocked attack attempts
 * Optionally receive notifications of *REAL* attack attempts that Pareto Security has blocked
 
 = A Word on Security: =
+By the very nature of plugins, no plugin should ever claim to be a Web Application Firewall.
 
-No security plugin can save your website from really-really badly written site, theme and/or plugin code, 
+No security plugin can save your website from really-really badly written site, theme and/or plugin code.
 
 No security plugin can save your site from attacks that result from when administrators do not follow basic security practices.
 
@@ -71,9 +74,9 @@ Keeping any CMS as secure as possible is not easy. The very best thing you can d
 
 The Pareto Security developers understand how PHP - the coding language in which Wordpress is written in, can be exploited. Pareto Security principles of protection stop these attacks at the entry point.
 
-= How does the Pareto Security Firewall protect websites? =
+= How does the Pareto Security Protection work? =
 
-* Web Application Firewall stops you from getting hacked by identifying malicious requests before they can access your website.
+* Pareto Security Protection stops you from getting hacked by identifying malicious requests before they can access your website.
 * Unlike other very popular plugins, Pareto Security prevents malicious files from being uploaded into your Wordpress site
 * Optionally prevents vulnerability scanners like WPScan from probing your websites defenses.
 
@@ -128,6 +131,13 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 1.8.9 =
+* Fix default settings for new installations
+* Code cleanup
+
+= 1.8.8 =
+* No need for logfile anymore. Logs are saved into the WP database therefore carry across with upgrades.
 
 = 1.8.7 =
 * Removed annoying message when upgrading.
