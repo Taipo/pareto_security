@@ -72,7 +72,7 @@ The Pareto Security developers understand how PHP - the coding language in which
 
 = What checks does the Pareto Security Scanner perform? =
 
-* Scans all input requests (GET, POST, REQUEST, COOKIES) for malicious intent. If a firewall does this well, there is no need to then scan files in your website file repository - They should never be there in the first place!
+* Scans all input requests (GET, POST, REQUEST, COOKIES) for malicious intent. If an input validation application  does this well, there is no need to then scan files in your website file repository - They should never be there in the first place!
 
 = What security monitoring features does Pareto Security include? =
 
@@ -85,9 +85,9 @@ Pareto Security sends attack alerts via email. Once you install Pareto Security 
 
 = Do I need other security plugins or cloud based firewalls? =
 
-Pareto Security provides true entry-point security for your WordPress website. Pareto Security does not prevent or have conflict with other security plugins, however they are not needed.
+Pareto Security provides true entry-point security for your WordPress website. Pareto Security does not prevent or have conflict with other webserver security addons and hardware web application firewalls.
 
-= What blocking features does Wordfence include? =
+= What blocking features does Pareto Security include? =
 
 * Real-time blocking of attackers and repeat attackers.
 * Prevents vulnerability scanners from scanning your wordpress website
