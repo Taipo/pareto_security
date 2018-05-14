@@ -33,11 +33,17 @@ See: See http://www.gnu.org/licenses/gpl-3.0.txt
 require_once( 'pareto_functions.php' );
 $ParetoSecurity = new pareto_functions();
 if ( false !== $ParetoSecurity->is_wp( false ) ) {
-	require_once( 'pareto_settings.php' );
-	$ParetoSecurity = new pareto_settings();
+    require_once( 'pareto_settings.php' );
+    $ParetoSecurity = new pareto_settings();
 }
-register_activation_hook( __FILE__, array( $ParetoSecurity, '_activate' ) );
-register_activation_hook( __FILE__, array( $ParetoSecurity, '_deactivate' ) );
+register_activation_hook( __FILE__, array(
+     $ParetoSecurity,
+    '_activate' 
+) );
+register_activation_hook( __FILE__, array(
+     $ParetoSecurity,
+    '_deactivate' 
+) );
 
 $ParetoSecurity->advanced_mode( $ParetoSecurity->_adv_mode );
 # Shields Up
