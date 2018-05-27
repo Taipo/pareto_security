@@ -1,9 +1,9 @@
 === Pareto Security ===
 Contributors: te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
-Requires at least: 4.0.1
-Tested up to: 4.9.5
-Stable tag: 1.8.9
+Requires at least: 4.7.2
+Tested up to: 4.9.6
+Stable tag: 1.9.5
 Donate link: https://hokioisecurity.com
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -24,7 +24,7 @@ Security plugin designers mostly focus on cleaning up attacks rather than stoppi
 
 Pareto Security class acts as a Central Security Hub checking all inputs from users, preventing bad requests from executing on your website.
 
-* Real Attack Prevention
+* Real Attack Prevention that can be achieved via a plugin
 * Automatic Blacklist Management
 * Easy-To-Use
 * No customisation needed
@@ -116,6 +116,21 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 1.9.5 =
+* Improve detection of shell injection attempts.
+* Detect Malicious Data Exfiltrations attempts
+* Improve detection of CVE-2017-8295 attack
+* Better displaying of logfile in emails
+
+= 1.9.4 =
+* Fixed code errors in functions that affected some older versions of PHP
+
+= 1.9.0 =
+* Update blacklists
+* Prevent malicious code from Pastebin being injected into PHP files
+* Prevent direct viewing of Pareto Security files
+* Update the way uninstall.php works
 
 = 1.8.9 =
 * Fix default settings for new installations
