@@ -1,14 +1,13 @@
 === Pareto Security ===
-
 Contributors: te_taipo
 
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 
-Requires at least: 4.0.1
+Requires at least: 4.7.2
 
-Tested up to: 4.9.5
+Tested up to: 4.9.6
 
-Stable tag: 1.8.9
+Stable tag: 1.9.5
 
 Donate link: https://hokioisecurity.com
 
@@ -32,7 +31,7 @@ Security plugin designers mostly focus on cleaning up attacks rather than stoppi
 
 Pareto Security class acts as a Central Security Hub checking all inputs from users, preventing bad requests from executing on your website.
 
-* Real Attack Prevention
+* Real Attack Prevention that can be achieved via a plugin
 * Automatic Blacklist Management
 * Easy-To-Use
 * No customisation needed
@@ -53,6 +52,7 @@ Pareto Security class acts as a Central Security Hub checking all inputs from us
 * Optionally receive notifications of *REAL* attack attempts that Pareto Security has blocked
 
 = A Word on Security: =
+
 By the very nature of plugins, no plugin should ever claim to be a Web Application Firewall.
 
 No security plugin can save your website from really-really badly written site, theme and/or plugin code.
@@ -113,16 +113,11 @@ Pareto Security provides true entry-point security for your WordPress website. P
 = How can I contribute to the cause =
 
 Donations via:
-
-Bitcoin: 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf
-
-ZCASH Address: t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1
-
-Vericoin: VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v
-
-Ethereum: 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf
-
-Paypal Address: pareto-security@protonmail.com
+* Bitcoin: 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf
+* ZCASH Address: t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1
+* Vericoin: VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v
+* Ethereum: 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf
+* Paypal Address: pareto-security@protonmail.com
 
 = Do you have an email contact? =
 
@@ -131,6 +126,21 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 1.9.5 =
+* Improve detection of shell injection attempts.
+* Detect Malicious Data Exfiltrations attempts
+* Improve detection of CVE-2017-8295 attack
+* Better displaying of logfile in emails
+
+= 1.9.4 =
+* Fixed code errors in functions that affected some older versions of PHP
+
+= 1.9.0 =
+* Update blacklists
+* Prevent malicious code from Pastebin being injected into PHP files
+* Prevent direct viewing of Pareto Security files
+* Update the way uninstall.php works
 
 = 1.8.9 =
 * Fix default settings for new installations
