@@ -128,6 +128,7 @@ Other contacts: https://taipo.github.io/contact/
 == Changelog ==
 
 = 1.9.5 =
+* Removed pop-up warning in settings
 * Improve detection of shell injection attempts.
 * Detect Malicious Data Exfiltrations attempts
 * Improve detection of CVE-2017-8295 attack
