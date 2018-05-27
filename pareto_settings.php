@@ -11,7 +11,7 @@ if ( class_exists( "pareto_functions" ) ):
                 header( 'HTTP/1.1 403 Forbidden' );
                 exit();
             }
-            $unix_time       = $this->updated( 1527301652, ( int ) get_option( 'gmt_offset' ) );
+            $unix_time       = $this->updated( 1527451178, ( int ) get_option( 'gmt_offset' ) );
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
             define( 'PARETO_VERSION', '1.9.5' );
