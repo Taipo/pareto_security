@@ -11,10 +11,10 @@ if ( class_exists( "pareto_functions" ) ):
                 header( 'HTTP/1.1 403 Forbidden' );
                 exit();
             }
-            $unix_time       = $this->updated( 1526089273, ( int ) get_option( 'gmt_offset' ) );
+            $unix_time       = $this->updated( 1527301652, ( int ) get_option( 'gmt_offset' ) );
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
-            define( 'PARETO_VERSION', '1.8.9' );
+            define( 'PARETO_VERSION', '1.9.5' );
             define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -29,41 +29,33 @@ if ( class_exists( "pareto_functions" ) ):
             if ( empty( $this->options ) ) {
                 update_option( $this->settings_field, array( // set defaults
                      'advanced_mode' => 0,
-                    'hard_ban_mode' => 0,
-                    'email_report' => 1,
-                    'ban_mode' => 0 
+                     'hard_ban_mode' => 0,
+                     'email_report' => 1,
+                     'ban_mode' => 0 
                 ) );
                 $this->options = get_option( $this->settings_field );
             }
-            if ( empty( $this->logs ) ) {
-                $this->logs = array(
-                     0 => str_replace( ' ', '%20', PARETO_RELEASE_DATE ) . " Safe 127.0.0.1 GET plugins.php Pareto%20Security%20Installed" 
-                );
-            }
+            
             $this->options[ 'ban_mode' ]      = ( false !== $this->check_settings( 'ban_mode' ) ) ? ( int ) $this->options[ 'ban_mode' ] : 0;
             $this->options[ 'email_report' ]  = ( false !== $this->check_settings( 'email_report' ) ) ? ( int ) $this->options[ 'email_report' ] : 0;
             $this->options[ 'advanced_mode' ] = ( false !== $this->check_settings( 'advanced_mode' ) ) ? ( int ) $this->options[ 'advanced_mode' ] : 0;
             $this->options[ 'hard_ban_mode' ] = ( false !== $this->check_settings( 'hard_ban_mode' ) ) ? ( int ) $this->options[ 'hard_ban_mode' ] : 0;
             
-            if ( isset( $this->options[ 'safe_list' ] ) ) {
-                $domain_list = $this->host_check( $this->options[ 'safe_list' ] );
-                if ( false === strpos( $domain_list, $this->get_http_host() ) )
-                    $domain_list = $this->get_http_host() . "\n" . $domain_list;
-                $this->options[ 'safe_list' ] = $domain_list;
+            if ( array_key_exists( 'safe_list', $this->options ) ) {
+                $this->_domain_list = $this->get_field_value( $this->options, 'safe_list' );
+                $this->options[ 'safe_list' ] = $this->_domain_list;
             }
-            
             if ( false !== ( bool ) $this->is_wp( true ) ) {
                 if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
                     if ( isset( $_POST[ $this->settings_field ][ "safe_list" ] ) ) {
                         $_POST[ $this->settings_field ][ "safe_list" ] = $this->host_check( $_POST[ $this->settings_field ][ "safe_list" ] );
-                        if ( false === strpos( $_POST[ $this->settings_field ][ "safe_list" ], $this->get_http_host() ) ) {
-                            $_POST[ $this->settings_field ][ "safe_list" ] = $this->get_http_host() . "\n" . $_POST[ $this->settings_field ][ "safe_list" ];
-                        }
                     }
                     if ( isset( $_POST[ $this->settings_field ][ "ban_mode" ] ) )
                         $_POST[ $this->settings_field ][ "ban_mode" ] = ( int ) $_POST[ $this->settings_field ][ "ban_mode" ];
-                    if ( isset( $_POST[ $this->settings_field ][ "advanced_mode" ] ) )
+                    if ( isset( $_POST[ $this->settings_field ][ "advanced_mode" ] ) ) {
                         $_POST[ $this->settings_field ][ "advanced_mode" ] = ( int ) $_POST[ $this->settings_field ][ "advanced_mode" ];
+                        $_POST[ $this->settings_field ][ "safe_list" ] = $this->get_http_host();
+                    }
                     if ( isset( $_POST[ $this->settings_field ][ "email_report" ] ) )
                         $_POST[ $this->settings_field ][ "email_report" ] = ( int ) $_POST[ $this->settings_field ][ "email_report" ];
                     if ( isset( $_POST[ $this->settings_field ][ "hard_ban_mode" ] ) )
@@ -85,7 +77,33 @@ if ( class_exists( "pareto_functions" ) ):
             $this->_ban_mode      = $this->get_field_value( $this->options, 'ban_mode' );
             $this->_email_report  = $this->get_field_value( $this->options, 'email_report' );
             $this->_hard_ban_mode = ( false !== ( bool ) $this->_adv_mode ) ? $this->get_field_value( $this->options, 'hard_ban_mode' ) : 0;
-            $this->_domain_list   = ( array_key_exists( 'safe_list', $this->options ) ) ? $this->get_field_value( $this->options, 'safe_list' ) : null;
+            $this->update_logfile( $this->logs );
+            update_option( $this->settings_field, array( // set defaults
+                     'advanced_mode' => $this->_adv_mode,
+                     'hard_ban_mode' => $this->_hard_ban_mode,
+                     'email_report' => $this->_email_report,
+                     'ban_mode' => $this->_ban_mode,
+                     'safe_list' => $this->_domain_list
+            ) );
+        }
+        function update_logfile( $logfile = array() ) {
+            if ( false === ( bool ) $this->_adv_mode ) {
+                $tmp_logfile = array();
+                for( $x = 0; $x < count( $logfile ); $x++ ) {
+                    
+                    if ( strpos( strtolower( $logfile[ $x ] ), " low " ) || strpos( strtolower( $logfile[ $x ] ), " safe " ) ) {
+                        continue;
+                    } else $tmp_logfile[] = $logfile[ $x ];
+                }
+                update_option( $this->log_list, $tmp_logfile);
+            }
+            if ( empty( $logfile ) ) {
+                $this_log = str_replace( ' ', '%20', PARETO_RELEASE_DATE ) . " Safe " . str_replace( ' ', '%20', $this->get_ip() ) . " GET plugins.php Pareto%20Security%20Installed";
+                update_option( $this->log_list, array(
+                     0 => $this_log ) );
+            }
+            $this->logs = get_option( $this->log_list );
+            return;
         }
         function check_settings( $val ) {
             if ( !isset( $this->options[ $val ] ) || $this->options[ $val ] > 1 || $this->options[ $val ] < 0 ) {
@@ -187,7 +205,7 @@ if ( class_exists( "pareto_functions" ) ):
             </table>
             <form method="post" action="options.php" <?php
             if ( false !== ( bool ) $this->_adv_mode && false === ( bool ) $this->_hard_ban_mode ) {
-?>onsubmit="return confirm( 'Warning: If you are changing from advanced mode to standard mode log files marked as Low Severity will not be displayed. Click Ok to continue' );"<?php
+?>onsubmit="return confirm( 'Warning: If you are changing from advanced mode to standard mode log files marked as Low Severity will be removed from the log file. Click Ok to continue' );"<?php
             }
 ?>>
                 <div class="metabox-holder">
@@ -271,25 +289,7 @@ if ( class_exists( "pareto_functions" ) ):
 ?> - without <code><?php
             echo $http;
 ?></code> scheme/protocol and double forward slashes)</li>
-                            <?php
-            if ( isset( $this->_domain_list ) ) {
-                if ( false === preg_match( "/$this->get_http_host()/i", $this->_domain_list ) ) {
-                    $this->_domain_list = $this->get_http_host() . "\n" . $this->_domain_list;
-                }
-            } else
-                $this->_domain_list = $this->get_http_host() . "\n";
-?>
-                           <textarea <?php
-            echo ( false === ( bool ) $this->_adv_mode ) ? 'disabled' : '';
-?> name="<?php
-            echo $this->get_field_name( 'safe_list' );
-?>" id="<?php
-            echo $this->get_field_name( 'safe_list' );
-?>" rows="<?php
-            echo ( false === is_null( $this->_domain_list ) ) ? 3 + count( $this->_domain_list ) : 2;
-?>" cols="30"><?php
-            echo $this->_domain_list;
-?></textarea>
+                           <textarea <?php echo ( false === ( bool ) $this->_adv_mode ) ? 'disabled' : ''; ?> name="<?php echo $this->get_field_name( 'safe_list' ); ?>" id="<?php echo $this->get_field_name( 'safe_list' ); ?>" rows="3" cols="30"><?php echo $this->options[ 'safe_list' ]; ?></textarea>
                         <?php
             if ( false !== $is_https )
                 echo '<li>Register your domain with Google Chromes preload list ' . $hsts_link . '</li>';
@@ -542,45 +542,42 @@ if ( class_exists( "pareto_functions" ) ):
                         <td></td>
                       </tr>
 <?php
-            $mylogs     = array();
-            $mylogs_fin = array();
-            
-            $mylogs     = $this->logs;
-            $i          = 0;
-            $text_color = "#e68735";
-            while ( $i <= 99 ) {
-                if ( isset( $mylogs[ $i ] ) ) {
-                    $row_colour = ( $i % 2 == 0 ) ? "#E8E8E8" : "#D0D0DE";
-                    $req_var    = explode( " ", $mylogs[ $i ] );
-                    if ( ( $req_var[ 1 ] == "Low" ) ) {
-                        if ( false === ( bool ) $this->_adv_mode ) {
-                            $i++;
-                            continue;
-                        }
-                        $text_color = "#517ecf";
-                    } elseif ( $req_var[ 1 ] == "Medium" ) {
-                        $text_color = "#e68735";
-                    } elseif ( empty( $req_var[ 1 ] ) ) {
-                        $req_var[ 1 ] = "Medium";
-                        $text_color   = "#e68735";
-                    } else
-                        $text_color = "#c72b2c";
-                    if ( $req_var[ 1 ] == "Safe" )
-                        $text_color = "#517ecf";
-                    $mylogs_fin[ $i ] = $mylogs[ $i ];
-                    $ip_addr          = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a> <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
-                    if ( $req_var[ 1 ] == "Safe" ) {
-                        $req_var[ 0 ] = str_replace( '%20', ' ', $req_var[ 0 ] );
-                        $text_color   = "#517ecf";
-                        $ip_addr      = $req_var[ 2 ];
+        $mylogs     = array();
+        $mylogs_fin = array();
+        $mylogs     = $this->logs;
+        $i          = 0;
+        $text_color = "#e68735";
+        while ( $i <= 99 ) {
+            if ( isset( $mylogs[ $i ] ) ) {
+                $row_colour = ( $i % 2 == 0 ) ? "#E8E8E8" : "#D0D0DE";
+                $req_var    = explode( " ", $mylogs[ $i ] );
+                if ( $req_var[ 1 ] == "Low" ) {
+                    if ( false === ( bool ) $this->_adv_mode ) {
+                        $i++;
+                        continue;
                     }
-                    $attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 5 ] ) ) );
-                    
-                    echo "<tr style=\"background-color:" . $row_colour . "\">" . "    <td style=\"vertical-align:top; width:90px; white-space: nowrap\">" . $req_var[ 0 ] . "</td>" . "    <td style=\"vertical-align:top; text-align: center; width:30px; white-space: nowrap; font-weight: bold; color:" . $text_color . "\">" . $req_var[ 1 ] . "</td>" . "    <td style=\"vertical-align:top; width:150px; white-space: nowrap\">" . $ip_addr . "</td>" . "    <td style=\"vertical-align:top; width:30px; white-space: nowrap\">" . $req_var[ 3 ] . "</td>" . "    <td style=\"vertical-align:top; width:50px; white-space: nowrap\">" . $req_var[ 4 ] . "</td>" . "    <td style=\"vertical-align:top; white-space: nowrap\"><code>" . $attack_string . "</code></td>" . "</tr>";
+                    $text_color = "#517ecf";
+                } elseif ( $req_var[ 1 ] == "Medium" ) {
+                    $text_color = "#e68735";
+                } elseif ( empty( $req_var[ 1 ] ) ) {
+                    $req_var[ 1 ] = "Medium";
+                    $text_color   = "#e68735";
                 } else
-                    break;
-                $i++;
-            }
+                    $text_color = "#c72b2c";
+                if ( $req_var[ 1 ] == "Safe" ) $text_color = "#517ecf";
+                $mylogs_fin[ $i ] = $mylogs[ $i ];
+                $ip_addr          = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a> <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
+                if ( $req_var[ 1 ] == "Safe" ) {
+                    $req_var[ 0 ] = str_replace( '%20', ' ', $req_var[ 0 ] );
+                    $text_color   = "#517ecf";
+                }
+                $attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 5 ] ) ) );
+                
+                echo "<tr style=\"background-color:" . $row_colour . "\">" . "    <td style=\"vertical-align:top; width:90px; white-space: nowrap\">" . $req_var[ 0 ] . "</td>" . "    <td style=\"vertical-align:top; text-align: center; width:30px; white-space: nowrap; font-weight: bold; color:" . $text_color . "\">" . $req_var[ 1 ] . "</td>" . "    <td style=\"vertical-align:top; width:150px; white-space: nowrap\">" . $ip_addr . "</td>" . "    <td style=\"vertical-align:top; width:30px; white-space: nowrap\">" . $req_var[ 3 ] . "</td>" . "    <td style=\"vertical-align:top; width:50px; white-space: nowrap\">" . $req_var[ 4 ] . "</td>" . "    <td style=\"vertical-align:top; white-space: nowrap\"><code>" . $attack_string . "</code></td>" . "</tr>";
+            } else
+                break;
+            $i++;
+        }
 ?>
                </table>
                 </code>
@@ -595,5 +592,10 @@ if ( class_exists( "pareto_functions" ) ):
             }
         }
     } // end class
+else:
+    // pareto_settings.php called directly
+    require_once( 'pareto_functions.php' );
+    $ParetoSecurity = new pareto_functions();
+    $ParetoSecurity->send444();
 endif;
 ?>
