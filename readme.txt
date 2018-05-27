@@ -103,11 +103,11 @@ Pareto Security provides true entry-point security for your WordPress website. P
 = How can I contribute to the cause =
 
 Donations via:
-Bitcoin: 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf
-ZCASH Address: t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1
-Vericoin: VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v
-Ethereum: 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf
-Paypal Address: pareto-security@protonmail.com
+* Bitcoin: 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf
+* ZCASH Address: t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1
+* Vericoin: VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v
+* Ethereum: 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf
+* Paypal Address: pareto-security@protonmail.com
 
 = Do you have an email contact? =
 
@@ -118,6 +118,7 @@ Other contacts: https://taipo.github.io/contact/
 == Changelog ==
 
 = 1.9.5 =
+* Removed pop-up warning in settings
 * Improve detection of shell injection attempts.
 * Detect Malicious Data Exfiltrations attempts
 * Improve detection of CVE-2017-8295 attack
