@@ -203,11 +203,7 @@ if ( class_exists( "pareto_functions" ) ):
 ?></h1></td>
                 </tr>
             </table>
-            <form method="post" action="options.php" <?php
-            if ( false !== ( bool ) $this->_adv_mode && false === ( bool ) $this->_hard_ban_mode ) {
-?>onsubmit="return confirm( 'Warning: If you are changing from advanced mode to standard mode log files marked as Low Severity will be removed from the log file. Click Ok to continue' );"<?php
-            }
-?>>
+            <form method="post" action="options.php">
                 <div class="metabox-holder">
                     <div class="postbox-container" style="width: 99%;">
 <?php
