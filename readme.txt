@@ -3,7 +3,7 @@ Contributors: te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Requires at least: 4.7.2
 Tested up to: 4.9.6
-Stable tag: 1.9.5
+Stable tag: 2.1.0
 Donate link: https://hokioisecurity.com
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
@@ -97,7 +97,7 @@ Pareto Security provides true entry-point security for your WordPress website. P
 * Pareto Security provides real security minus the scare-ware techniques used by other plugins
 * Pareto Security picks up security where Wordpress developers draw their line
 * Pareto Security prevents attackers making changes to website code by securing all inputs from the start.
-* Using the principle of "Artificial Ignorance" with blacklists rather than arbitrary blacklists, Pareto Security method ignores requests it knows aren't interesting and processes the remaining requests that must then be of interest.
+* Using the principle of "Artificial Ignorance" with blacklists rather than relying solely on arbitrary blacklists, Pareto Security method ignores requests it knows aren't interesting and processes the remaining requests that must then be of interest.
 * Pareto Security fully supports WordPress Multi-Site 
 
 = How can I contribute to the cause =
@@ -117,28 +117,38 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 1.9.5 =
-* Removed pop-up warning in settings
-* Improve detection of shell injection attempts.
-* Detect Malicious Data Exfiltrations attempts
-* Improve detection of CVE-2017-8295 attack
-* Better displaying of logfile in emails
+= 2.1.0 =
+* Update to POST Filters
+* Extend length of log entry to 500 characters
+* Fixed small bug in way the email report displays
+* Added Settings link to WP plugin page
+* Now checks for and filters $HTTP_RAW_POST_DATA raw post data for XMLRPC
+* Better descriptions of attack types
 
-= 1.9.4 =
-* Fixed code errors in functions that affected some older versions of PHP
+= 2.0.9 =
+* Update database injections to reduce false positives
 
-= 1.9.0 =
-* Update blacklists
-* Prevent malicious code from Pastebin being injected into PHP files
-* Prevent direct viewing of Pareto Security files
-* Update the way uninstall.php works
+= 2.0.8 =
+* Enable XML-RPC Flood Protection
+* Further work on HTTP_HOST filtering
 
-= 1.8.9 =
-* Fix default settings for new installations
+= 2.0.7 =
+* code cleanup
+
+= 2.0.6 =
+* Improve HTTP HOST detection
+* Fixed a bug in flood controls for failed logins
+
+= 2.0.5 =
+* Reset error reporting to production settings
+
+= 2.0.4 =
+* Update the layout of the logfile
 * Code cleanup
+* Fix the way the email report displays in some email apps
 
-= 1.8.8 =
-* No need for logfile anymore. Logs are saved into the WP database therefore carry across with upgrades.
+= 2.0.3 =
+* * Code cleanup
 
-= 1.8.7 =
-* Removed annoying message when upgrading.
+= 2.0.2 =
+* Fixed reported error message for identifying the server ip address
