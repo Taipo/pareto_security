@@ -750,7 +750,7 @@ class pareto_functions {
                 $s   = strpos( $val, $match_list[ 0 ] );
                 $f   = strlen( $val ) - $s;
                 $val = substr( $val, $s, $f );
-                $val = preg_replace( "/[\s\t\n\r\0\x08\x0B]/i", "", $this->remove_comments( $val ) );
+                $val = $this->cleanString( 9, $this->remove_comments( $val ) );
                 $this->karo( "Shell Inject: " . $val, true, "High", true );
             }
         }
