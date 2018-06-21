@@ -2,7 +2,7 @@
 if ( class_exists( "pareto_functions" ) ):
     class pareto_settings extends pareto_functions {
         public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'email_report' => 1, 'safe_list' => '' );
-        var $pagehook, $page_id, $settings_field, $options, $log_list, $logs, $time_zone, $_textdomain = 'pareto_security_settings';
+        var $pagehook, $page_id, $settings_field, $options, $log_list, $logs, $time_zone, $_total_ips = 500, $_textdomain = 'pareto_security_settings';
         public $_ban_mode = 0;
         private $prefix = 'pareto_settings';
         function __construct() {
@@ -11,10 +11,10 @@ if ( class_exists( "pareto_functions" ) ):
                 header( 'HTTP/1.1 403 Forbidden' );
                 exit();
             }
-            $unix_time       = $this->updated( 1529109391, ( int ) get_option( 'gmt_offset' ) );
+            $unix_time       = $this->updated( 1529522275, ( int ) get_option( 'gmt_offset' ) );
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
-            define( 'PARETO_VERSION', '2.1.0' );
+            define( 'PARETO_VERSION', '2.1.1' );
             define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
@@ -225,6 +225,51 @@ if ( class_exists( "pareto_functions" ) ):
                 return $options;
             }
         }
+
+        function count_ban_ips() {
+            $thisdomain = preg_replace( "/www\.|https:\/\/|http:\/\/|:\/\/|[^a-zA-Z0-9\.]+/i", "", $this->get_http_host() );
+            $limitstart = "# " . $thisdomain . " Pareto Security Ban\n";
+            $limitend   = "# End of " . $thisdomain . " Pareto Security Ban\n";
+            $mybans     = file( $this->htapath() );
+            if ( in_array( $limitend, $mybans ) ) {
+                $i = count( $mybans ) - 1;
+                while ( $mybans[ $i ] >= 0 ) {
+                    if ( false !== strpos( $mybans[ $i ], $limitend ) ) {
+                        $lastline = $i;
+                        break;
+                    }
+                    $i--;
+                }
+                $i = 0;
+                while ( $mybans[ $i ] >= 0 ) {
+                    if ( false !== strpos( $mybans[ $i ], $limitstart ) ) {
+                        $firstline = $i;
+                        break;
+                    }
+                    $i++;
+                }
+                $ip_count = ( int ) ( $lastline - $firstline - 3 );
+                if ( empty( $ip_count ) ) $ip_count = 0;
+                # No point in holding more than 500 IP addresses
+                if ( $ip_count >= $this->_total_ips ) {
+                    $mybans_tmp     = array_slice( $mybans, 0, $firstline + 2 );
+                    $mybans_end_tmp = array_slice( $mybans, $lastline + 1, count( $mybans ) );
+                    $new_ip_block_start = $lastline - $this->_total_ips;
+                    $mynew_ip_block = array_slice( $mybans, $new_ip_block_start, $lastline );
+                    $mybans         = array_merge( $mybans_tmp, $mynew_ip_block, $mybans_end_tmp );
+                    $mybans = $this->trim_array( $mybans );
+                    $orig_octal = $this->dirfile_perms( $this->htapath() );
+                    if ( false === $this->get_file_perms( $this->htapath(), true, true ) ) {
+                        chmod( $this->htapath(), 0666 );
+                    }
+                    $myfile = fopen( $this->htapath(), 'w' );
+                    fwrite( $myfile, implode( $mybans, '' ) );
+                    fclose( $myfile );
+                    chmod( $this->htapath(), 0644 );
+                }
+                return $ip_count;
+            }
+        }
         /*
         Settings access functions.
         
@@ -344,7 +389,7 @@ if ( class_exists( "pareto_functions" ) ):
 <?php } function save_settings() { ?>
            <table style="text-align: left;">
                 <tr>
-                    <td><label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo _e( '<b>Email Notification:</b> Recieve notifications of High Severity attacks', $this->_textdomain ); ?>
+                    <td><label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo _e( '<b>Email Notification:</b> Receive periodic notifications of High/Medium Severity attacks', $this->_textdomain ); ?>
                             <input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label> 
                     </td>
                 </tr>
@@ -469,6 +514,7 @@ if ( class_exists( "pareto_functions" ) ):
             if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) && false === $this->is_iis() ) {
         ?>
         <li><?php echo _e( '+ Your <code>.htaccess</code> is configured correctly in <code>' . $this->get_dir() . '</code>', $this->_textdomain ); ?></li>
+        <li><?php echo _e( '+ There currently ' . ( ( $this->count_ban_ips() == 1 ) ? 'is' : 'are' ) . ' [ ' . ( empty( $this->count_ban_ips() ) ? 0 : $this->count_ban_ips() ) . ' ] IP addresses banned by Pareto Security', $this->_textdomain ); ?></li>
         <li>+ <?php echo ( $this->_adv_mode ) ? esc_html( 'Hard Ban', $this->_textdomain ) : esc_html( 'Soft Ban', $this->_textdomain ); ?>: <?php echo $ban_type; ?></li>
         <?php } else { ?>
         <li><?php echo _e( '- Your <code>.htaccess</code> file cannot be written to in <code>' . $this->get_dir() . '</code> Pareto Security will still soft ban attack vectors.', $this->_textdomain ); ?></li>
