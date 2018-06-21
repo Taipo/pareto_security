@@ -3,12 +3,11 @@
 Contributors: te_taipo
 
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
-
 Requires at least: 4.7.2
 
 Tested up to: 4.9.6
 
-Stable tag: 2.1.0
+Stable tag: 2.1.1
 
 Donate link: https://hokioisecurity.com
 
@@ -125,6 +124,14 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
+= 2.1.1 =
+* XML database for blacklists
+* Change email report regularity to every 5 serious events
+* Update [RFI] Filters
+* Banned IP addresses now removed if app is deactivated
+* For improved performance, Pareto Security now restricts HTACCESS to the last 500 banned IP addresses
+* Fixed non-critical bug in plugin deactivation
+
 = 2.1.0 =
 * Update to POST Filters
 * Extend length of log entry to 500 characters
@@ -146,17 +153,3 @@ Other contacts: https://taipo.github.io/contact/
 = 2.0.6 =
 * Improve HTTP HOST detection
 * Fixed a bug in flood controls for failed logins
-
-= 2.0.5 =
-* Reset error reporting to production settings
-
-= 2.0.4 =
-* Update the layout of the logfile
-* Code cleanup
-* Fix the way the email report displays in some email apps
-
-= 2.0.3 =
-* * Code cleanup
-
-= 2.0.2 =
-* Fixed reported error message for identifying the server ip address
