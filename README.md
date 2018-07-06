@@ -2,8 +2,6 @@
 
 Contributors: te_taipo
 
-Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
-
 Requires at least: 4.7.2
 
 Tested up to: 4.9.7
