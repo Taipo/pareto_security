@@ -1,47 +1,62 @@
 <?php
 if ( class_exists( "pareto_functions" ) ):
     class pareto_settings extends pareto_functions {
-        public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'email_report' => 1, 'safe_list' => '' );
-        var $pagehook, $page_id, $settings_field, $options, $log_list, $logs, $time_zone, $_total_ips = 500, $_textdomain = 'pareto_security_settings';
+        public static $default_settings = array( 'advanced_mode' => 0,
+                                                 'ban_mode' => 0,
+                                                 'hard_ban_mode' => 0,
+                                                 'safe_list' => '',
+                                                 'email_report' => 1,
+                                                 'safe_list' => '',
+                                                 'admin_ip' => '' );
+        var $pagehook,
+            $page_id,
+            $settings_field,
+            $options,
+            $logs,
+            $time_zone,
+            $_textdomain = 'pareto_security_settings';
         public $_ban_mode = 0;
         private $prefix = 'pareto_settings';
         function __construct() {
+            
             if ( false === $this->is_wp() ) {
                 header( 'Status: 403 Forbidden' );
                 header( 'HTTP/1.1 403 Forbidden' );
                 exit();
             }
-            $unix_time       = $this->updated( 1529522275, ( int ) get_option( 'gmt_offset' ) );
+
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
             define( 'PARETO_VERSION', '2.1.1' );
-            define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
             
             load_plugin_textdomain( $this->_textdomain );
             add_action( "admin_enqueue_scripts", array( $this, 'enqueue_scripts' ) );
-            
             $this->kickoff();
         }
         function enqueue_scripts() {
             wp_enqueue_style( "{$this->prefix}_style", plugins_url( 'css/style.css', __FILE__ ) );
+            wp_enqueue_script( "{$this->prefix}_js", plugins_url( 'js/hokioi.js', __FILE__ ) );
         }
         function kickoff() {
             $this->page_id        = $this->_textdomain;
             $this->timestamp      = ( false !== $this->is_wp() ) ? date_i18n( 'd-m-y,G:i', ( $this->updated( time(), ( int ) get_option( 'gmt_offset' ) ) ) ) : date( "d.m.y-G:i" );
             $this->settings_field = 'pareto_security_settings_options';
-            $this->log_list       = 'pareto_security_log_list';
             
             $this->options = get_option( $this->settings_field );
-            $this->logs    = get_option( $this->log_list );
+            
+            $this->logs = get_option( PARETO_LOG_LIST );
+            
+            if ( !empty( $this->logs ) ) $this->logs = array_unique( $this->logs );
             
             if ( empty( $this->options ) ) {
                 update_option( $this->settings_field, array( // set defaults
                      'advanced_mode' => 0,
                      'hard_ban_mode' => 0,
                      'email_report' => 1,
-                     'ban_mode' => 0 
+                     'ban_mode' => 0,
+                     'admin_ip' => ''
                 ) );
                 $this->options = get_option( $this->settings_field );
             }
@@ -55,27 +70,53 @@ if ( class_exists( "pareto_functions" ) ):
                 $this->_domain_list = $this->get_field_value( $this->options, 'safe_list' );
                 $this->options[ 'safe_list' ] = $this->_domain_list;
             }
+            
             # only available to logged in Admins
             if ( false !== ( bool ) $this->is_wp( true, true ) ) {
                 $this->define_plugin_settings();
                 if ( $_SERVER[ 'REQUEST_METHOD' ] == 'POST' ) {
-                    if ( isset( $_POST[ $this->settings_field ][ "safe_list" ] ) ) {
-                        $_POST[ $this->settings_field ][ "safe_list" ] = $this->host_check( $_POST[ $this->settings_field ][ "safe_list" ] );
+                    # localise POST
+                    $this_post = $_POST;
+                    if ( isset( $this_post[ 'save_options' ] ) && strtolower( $this_post[ 'save_options' ] ) == 'save options' ) {
+                        if ( isset( $this_post[ $this->settings_field ][ "safe_list" ] ) ) {
+                            $this_post[ $this->settings_field ][ "safe_list" ] = $this->host_check( $this_post[ $this->settings_field ][ "safe_list" ] );
+                        }
+                        if ( isset( $this_post[ $this->settings_field ][ "ban_mode" ] ) )
+                            $this_post[ $this->settings_field ][ "ban_mode" ] = ( int ) $this_post[ $this->settings_field ][ "ban_mode" ];
+                        if ( isset( $this_post[ $this->settings_field ][ "advanced_mode" ] ) ) {
+                            $this_post[ $this->settings_field ][ "advanced_mode" ] = ( int ) $this_post[ $this->settings_field ][ "advanced_mode" ];
+                            if ( !isset( $this_post[ $this->settings_field ][ "safe_list" ] ) || empty( $this_post[ $this->settings_field ][ "safe_list" ] ) ) $this_post[ $this->settings_field ][ "safe_list" ] = $this->get_http_host();
+                        }
+                        if ( isset( $this_post[ $this->settings_field ][ "email_report" ] ) )
+                            $this_post[ $this->settings_field ][ "email_report" ] = ( int ) $this_post[ $this->settings_field ][ "email_report" ];
+                        if ( isset( $this_post[ $this->settings_field ][ "hard_ban_mode" ] ) )
+                            $this_post[ $this->settings_field ][ "hard_ban_mode" ] = ( int ) $this_post[ $this->settings_field ][ "hard_ban_mode" ];
+                            if ( false !== ( bool ) $this_post[ $this->settings_field ][ "hard_ban_mode" ] ) $this_post[ $this->settings_field ][ "advanced_mode" ] = 1;
                     }
-                    if ( isset( $_POST[ $this->settings_field ][ "ban_mode" ] ) )
-                        $_POST[ $this->settings_field ][ "ban_mode" ] = ( int ) $_POST[ $this->settings_field ][ "ban_mode" ];
-                    if ( isset( $_POST[ $this->settings_field ][ "advanced_mode" ] ) ) {
-                        $_POST[ $this->settings_field ][ "advanced_mode" ] = ( int ) $_POST[ $this->settings_field ][ "advanced_mode" ];
-                        if ( !isset( $_POST[ $this->settings_field ][ "safe_list" ] ) || empty( $_POST[ $this->settings_field ][ "safe_list" ] ) ) $_POST[ $this->settings_field ][ "safe_list" ] = $this->get_http_host();
+                    if ( isset( $this_post[ 'save_options' ] ) && strtolower( $this_post[ 'save_options' ] ) == 'x' ) {
+                        # Do logs
+                        $ulid = array();
+                        foreach( $this_post as $key => $val ) {
+                            if ( false !== strpos( $key, 'ulid' ) && false === strpos( $key, 'ulid_check_' ) ) $ulid[] = ( strlen( $key ) <= 8 && 'ulid_' == substr( $key, 0, 5 ) ) ? trim( substr( $key, 0, 8 ) ) : '';
+                        }
+                        $ulid_shorthash = array();
+                        foreach ( $ulid as $key => $val ) {
+                            if ( !empty( $val ) ) {
+                                $this_val = 'ulid_check_' . substr( $this_post[ $val ], 0, 6 );
+                                if ( isset( $this_post[ $this_val ] ) && 'on' == $this_post[ $this_val ] ) {
+                                    $shahash = preg_replace( "/[^a-f0-9]/i", '', $this_post[ $val ] );
+                                    $shahashlen = strlen( $shahash );
+                                    $ulid_shorthash[ $this_val ] = ( 40 == $shahashlen ) ? $shahash : '';
+                                }
+                            }
+                        }
+                        $this->log_pop( $ulid_shorthash );
                     }
-                    if ( isset( $_POST[ $this->settings_field ][ "email_report" ] ) )
-                        $_POST[ $this->settings_field ][ "email_report" ] = ( int ) $_POST[ $this->settings_field ][ "email_report" ];
-                    if ( isset( $_POST[ $this->settings_field ][ "hard_ban_mode" ] ) )
-                        $_POST[ $this->settings_field ][ "hard_ban_mode" ] = ( int ) $_POST[ $this->settings_field ][ "hard_ban_mode" ];
+                    $_POST = $this_post;
+                } else {
+                    # clean up failed login hashes
+                    $this->iphash_db_cleanup();
                 }
-                # clean up failed login hashes
-                if ( $this->is_wp( false, true ) ) $this->iphash_db_cleanup();
-                
                 add_action( 'admin_init', array(
                      $this,
                     'admin_init' 
@@ -90,25 +131,22 @@ if ( class_exists( "pareto_functions" ) ):
             $this->_ban_mode      = $this->get_field_value( $this->options, 'ban_mode' );
             $this->_email_report  = $this->get_field_value( $this->options, 'email_report' );
             $this->_hard_ban_mode = ( false !== ( bool ) $this->_adv_mode ) ? $this->get_field_value( $this->options, 'hard_ban_mode' ) : 0;
-            $this->update_logfile( $this->logs );
+            $this->count_banned_ips();
+            $this->update_logfile( $this->logs ); // set $this->logs
 
-            update_option( $this->settings_field, array( // set defaults
-                     'advanced_mode' => $this->_adv_mode,
-                     'hard_ban_mode' => $this->_hard_ban_mode,
-                     'email_report' => $this->_email_report,
-                     'ban_mode' => $this->_ban_mode,
-                     'safe_list' => ( isset( $this->_domain_list ) ? $this->_domain_list : '' )
-            ) );            
+            # deal with dynamic IP addresses
+            $this->update_admin_ip( $this->options[ 'admin_ip' ] );
         }
         function define_plugin_settings() {
             $basename = plugin_basename( __FILE__ );
             $prefix = is_network_admin() ? 'network_admin_' : '';
             add_filter( 'plugin_action_links', array( $this, 'add_plugin_action_links'), 10, 2);
             add_action( 'admin_menu', array( $this, 'add_to_admin_menu' ) );
+            $this->options[ 'admin_ip' ] = $this->get_ip();
         }
         function add_plugin_action_links( $links, $file ) {
             if ( strstr( $file, 'pareto-security/pareto_security.php' ) ) {
-                $settings[ 'settings' ] = '<a href="'. esc_url( admin_url( "options-general.php?page=pareto_security_settings") ) . '">Settings</a>';
+                $settings[ 'settings' ] = '<a href="'. esc_url( admin_url( "options-general.php?page=" . $this->_textdomain ) ) . '">Settings</a>';
                 array_unshift( $links, $settings[ 'settings' ] );
             }
             return $links;
@@ -131,30 +169,79 @@ if ( class_exists( "pareto_functions" ) ):
                          $icon_url, 
                          $position );
         }
-        function update_logfile( $logfile = array() ) {
-            $install_log = str_replace( ' ', '%20', PARETO_RELEASE_DATE ) . " Safe " . str_replace( ' ', '%20', $_SERVER[ 'SERVER_ADDR' ] ) . " GET plugins.php Pareto%20Security%20Installed";
-             if ( empty( $logfile ) ) {
-                update_option( $this->log_list, array(
-                     0 => $install_log ) );
-                    $logfile = $install_log;
-                    $this->logs = get_option( $this->log_list );
-                    return;
-            } elseif ( !empty( $logfile ) && false === ( bool ) $this->_adv_mode ) {
-                $tmp_logfile = array();
-                for( $x = 0; $x < count( $logfile ); $x++ ) {
-                    if ( false !== strpos( strtolower( $logfile[ $x ] ), " low " ) ||
-                         false !== strpos( strtolower( $logfile[ $x ] ), " safe " ) &&
-                         $logfile[ $x ] != $install_log ) {
-                         continue;
+        function log_pop( $ulid ) {
+            $get_logs = $this->logs;
+            foreach ( $ulid as $ukey => $hash ) {
+                foreach( $get_logs as $key => $val ) {
+                    $this_log = explode( ' ', $val );
+                    if ( isset( $this_log[ 6 ] ) && sha1( $this_log[ 6 ] ) == $hash ) {
+                        $ip = $this_log[ 2 ];
+                        $this->htaccess_unbanip( false, $ip );
+                        unset( $get_logs[ $key ] );
+                        break 1;
                     }
-                    $tmp_logfile[] = $logfile[ $x ];
+
                 }
-                update_option( $this->log_list, $tmp_logfile );
-                $this->logs = get_option( $this->log_list );
-                return;
-            } else {
-                $this->logs = get_option( $this->log_list );
             }
+            $final_logfile = array();
+            foreach( $get_logs as $key => $val ) {
+                $final_logfile[] = $val;
+            }
+            $this->logs = $final_logfile;
+            update_option( PARETO_LOG_LIST, $final_logfile );
+        }
+        function count_banned_ips() {
+            $mybans     = file( $this->htapath() );
+            $thisdomain = $this->cleanString( 10, $this->get_http_host() );
+            $limitstart = "# " . $thisdomain . " Pareto Security Ban\n";
+            $limitend   = "# End of " . $thisdomain . " Pareto Security Ban\n";
+            $firstline = 0;
+            $lastline   = 0;
+            $mybans_only = array();
+            for ( $x = 0; $x < count( $mybans ); $x++ ) {
+                $mybans[ $x ] = preg_replace( "/[\r]/i", '', $mybans[ $x ] );
+                if ( false !== strpos( $mybans[ $x ], 'deny from' ) ) $mybans_only[] = $mybans[ $x ];
+            }
+            return count( $mybans_only );
+        }
+        function update_logfile( $logfile = array() ) {
+            $tmp_logfile = array();
+            if ( !empty( $logfile ) && false === ( bool ) $this->_adv_mode ) {
+                for( $x = 0; $x < count( $logfile ); $x++ ) {
+                    $this_log = strtolower( substr( $logfile[ $x ], 0, 34) );
+                    if ( false === strpos( $this_log, "low" ) || false !== strpos( $this_log, PARETO_RELEASE_DATE ) ) {
+                         $tmp_logfile[] = $logfile[ $x ];
+                    }
+                }
+                $this->logs = $tmp_logfile;
+            }
+            if ( empty( $this->logs ) ) {
+                update_option( PARETO_LOG_LIST, array(
+                     0 => SETTINGS_INSTALL_LOG ) );
+                    $logfile = SETTINGS_INSTALL_LOG;
+                    $this->logs = array();
+                    $this->logs[ 0 ] = SETTINGS_INSTALL_LOG;
+                    return;
+            }
+            $final_log = strtolower( substr( $this->logs[ count( $this->logs ) - 1 ], 0, 50 ) );
+            # make sure install log remains
+
+            if ( count( $this->logs ) < 100 && false === strpos( $final_log, 'safe' ) ) {
+                array_push( $this->logs, SETTINGS_INSTALL_LOG );
+            }
+            # remove entries with same ip address
+            $check_duplicates = array();
+            $get_final_array = array();
+            foreach( $this->logs as $key => $log ) {
+                $this_entry = explode( ' ', $log );
+                $this_ip = $this_entry[ 2 ];
+                if ( !in_array( $this_ip, $check_duplicates ) ) {
+                     if ( false === $this->is_server( $this_ip ) ) $check_duplicates[] = $this_ip;
+                     $get_final_array[] = $log;
+                }
+            }
+            update_option( PARETO_LOG_LIST, $get_final_array );
+            $this->logs = $get_final_array;          
             return;
         }
         function check_settings( $val ) {
@@ -165,7 +252,7 @@ if ( class_exists( "pareto_functions" ) ):
         }
         function admin_init() {
             register_setting( $this->settings_field, $this->settings_field );
-            register_setting( $this->log_list, $this->log_list );
+            register_setting( PARETO_LOG_LIST, PARETO_LOG_LIST );
             add_option( $this->settings_field, pareto_settings::$default_settings );
         }
         function admin_menu() {
@@ -225,52 +312,8 @@ if ( class_exists( "pareto_functions" ) ):
                 return $options;
             }
         }
-
-        function count_ban_ips() {
-            $thisdomain = preg_replace( "/www\.|https:\/\/|http:\/\/|:\/\/|[^a-zA-Z0-9\.]+/i", "", $this->get_http_host() );
-            $limitstart = "# " . $thisdomain . " Pareto Security Ban\n";
-            $limitend   = "# End of " . $thisdomain . " Pareto Security Ban\n";
-            $mybans     = file( $this->htapath() );
-            if ( in_array( $limitend, $mybans ) ) {
-                $i = count( $mybans ) - 1;
-                while ( $mybans[ $i ] >= 0 ) {
-                    if ( false !== strpos( $mybans[ $i ], $limitend ) ) {
-                        $lastline = $i;
-                        break;
-                    }
-                    $i--;
-                }
-                $i = 0;
-                while ( $mybans[ $i ] >= 0 ) {
-                    if ( false !== strpos( $mybans[ $i ], $limitstart ) ) {
-                        $firstline = $i;
-                        break;
-                    }
-                    $i++;
-                }
-                $ip_count = ( int ) ( $lastline - $firstline - 3 );
-                if ( empty( $ip_count ) ) $ip_count = 0;
-                # No point in holding more than 500 IP addresses
-                if ( $ip_count >= $this->_total_ips ) {
-                    $mybans_tmp     = array_slice( $mybans, 0, $firstline + 2 );
-                    $mybans_end_tmp = array_slice( $mybans, $lastline + 1, count( $mybans ) );
-                    $new_ip_block_start = $lastline - $this->_total_ips;
-                    $mynew_ip_block = array_slice( $mybans, $new_ip_block_start, $lastline );
-                    $mybans         = array_merge( $mybans_tmp, $mynew_ip_block, $mybans_end_tmp );
-                    $mybans = $this->trim_array( $mybans );
-                    $orig_octal = $this->dirfile_perms( $this->htapath() );
-                    if ( false === $this->get_file_perms( $this->htapath(), true, true ) ) {
-                        chmod( $this->htapath(), 0666 );
-                    }
-                    $myfile = fopen( $this->htapath(), 'w' );
-                    fwrite( $myfile, implode( $mybans, '' ) );
-                    fclose( $myfile );
-                    chmod( $this->htapath(), 0644 );
-                }
-                return $ip_count;
-            }
-        }
-        /*
+ 
+         /*
         Settings access functions.
         
         */
@@ -309,7 +352,7 @@ if ( class_exists( "pareto_functions" ) ):
             <form method="post" action="options.php">
                 <div class="metabox-holder">
                     <div class="postbox-container" style="width: 99%;">
-<?php
+ <?php
             // Render metaboxes
             settings_fields( $this->settings_field );
             do_meta_boxes( $this->pagehook, 'main', null );
@@ -389,7 +432,7 @@ if ( class_exists( "pareto_functions" ) ):
 <?php } function save_settings() { ?>
            <table style="text-align: left;">
                 <tr>
-                    <td><label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo _e( '<b>Email Notification:</b> Receive periodic notifications of High/Medium Severity attacks', $this->_textdomain ); ?>
+                    <td><label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo _e( '<b>Email Notification:</b> Receive periodic notifications (every 5 events) of high/medium severity attacks', $this->_textdomain ); ?>
                             <input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label> 
                     </td>
                 </tr>
@@ -453,8 +496,7 @@ if ( class_exists( "pareto_functions" ) ):
 									<div class="divTableBody">
 										<div class="divTableRow">
 											<div class="divAdvancedMode"><input type="hidden" name="<?php echo $this->get_field_name( 'ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'ban_mode' ); ?>" value="1" />
-                                            <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="1"
-                                            <?php
+                                            <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="1" onclick="uncheck()" <?php
                                               if ( ( isset( $this->options[ 'advanced_mode' ] ) &&
                                                       false !== ( bool ) $this->options[ 'advanced_mode' ] ) ||
                                                       false !== ( bool ) $this->_adv_mode ||
@@ -514,7 +556,7 @@ if ( class_exists( "pareto_functions" ) ):
             if ( file_exists( $this->htapath() ) && $this->get_file_perms( $this->htapath(), true, true ) && false === $this->is_iis() ) {
         ?>
         <li><?php echo _e( '+ Your <code>.htaccess</code> is configured correctly in <code>' . $this->get_dir() . '</code>', $this->_textdomain ); ?></li>
-        <li><?php echo _e( '+ There currently ' . ( ( $this->count_ban_ips() == 1 ) ? 'is' : 'are' ) . ' [ ' . ( empty( $this->count_ban_ips() ) ? 0 : $this->count_ban_ips() ) . ' ] IP addresses banned by Pareto Security', $this->_textdomain ); ?></li>
+        <li><?php echo _e( '+ There currently ' . ( ( $this->count_banned_ips() == 1 ) ? 'is' : 'are' ) . ' [ ' . ( empty( $this->count_banned_ips() ) ? 0 : $this->count_banned_ips() ) . ' ] unique IP addresses banned by Pareto Security', $this->_textdomain ); ?></li>
         <li>+ <?php echo ( $this->_adv_mode ) ? esc_html( 'Hard Ban', $this->_textdomain ) : esc_html( 'Soft Ban', $this->_textdomain ); ?>: <?php echo $ban_type; ?></li>
         <?php } else { ?>
         <li><?php echo _e( '- Your <code>.htaccess</code> file cannot be written to in <code>' . $this->get_dir() . '</code> Pareto Security will still soft ban attack vectors.', $this->_textdomain ); ?></li>
@@ -529,7 +571,7 @@ if ( class_exists( "pareto_functions" ) ):
        <table style="width: 100%; text-align: left; background-color: #C9C9C9;">
             <tr>
                 <td>
-                <table style="width: 100%; text-align: left;">
+                <table class="hoverTable" style="width: 100%; text-align: left;">
                     <tbody>
                       <tr style="background-color:#5F607B">
                         <td style="padding:0px 3px 3px 3px;width:100px;color:#FFFFFF"><b><?php echo esc_html( 'Date-Time:', $this->_textdomain ); ?></b></font></td>
@@ -538,26 +580,19 @@ if ( class_exists( "pareto_functions" ) ):
                         <td style="padding:0px 3px 3px 3px;width:50px;color:#FFFFFF"><b><?php echo esc_html( 'Req:', $this->_textdomain ); ?></b></font></td>
                         <td style="padding:0px 3px 3px 3px;width:100px;color:#FFFFFF"><b><?php echo esc_html( 'Filename:', $this->_textdomain ); ?></b></font></td>
                         <td style="padding:0px 3px 3px 3px;color:#FFFFFF"><b><?php echo esc_html( 'Vector:', $this->_textdomain ); ?></b></font></td>
-                      </tr>
-                      <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                        <td style="padding:0px 3px 3px 3px;color:#FFFFFF;width:30px;"><b><?php echo esc_html( 'Edit:', $this->_textdomain ); ?></b></font></td>
                       </tr>
 <?php
         $mylogs     = array();
         $mylogs_fin = array();
         $mylogs     = $this->logs;
         $i          = 0;
-        $text_color = "#e68735";
-        
+        $text_color = "#e68735";       
         while ( $i <= 99 ) {
             if ( isset( $mylogs[ $i ] ) ) {
-                $row_colour = ( $i % 2 == 0 ) ? "#F3F3F3" : "#FFFFFF";
+                $row_colour = ''; // = ( $i % 2 == 0 ) ? "#F3F3F3" : "#FFFFFF";
                 $req_var    = explode( " ", $mylogs[ $i ] );
+
                 if ( strtolower( $req_var[ 1 ] ) == "low" ) {
                     if ( false === ( bool ) $this->_adv_mode ) {
                         $i++;
@@ -575,30 +610,34 @@ if ( class_exists( "pareto_functions" ) ):
                 $mylogs_fin[ $i ] = $mylogs[ $i ];
                 $ip_addr = $req_var[ 2 ];
                 if ( false === $this->is_server( $req_var[ 2 ] ) && $this->check_ip( $req_var[ 2 ] ) ) {
-                    $ip_addr = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a>
-                                                                                           <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
+                    $ip_addr = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a><a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
                 }
                 if ( $req_var[ 1 ] == "Safe" ) {
                     $req_var[ 0 ] = str_replace( '%20', ' ', $req_var[ 0 ] );
                     $text_color   = "#517ecf";
                 }
                 $this_timestamp = $req_var[ 0 ];
+                $uuid = ( isset( $req_var[ 6 ] ) ) ? sha1( preg_replace( "/[\n]/i", "", $req_var[ 6 ] ) ) : '';
+                $ulid = ( !empty( $uuid ) ) ? "<input type=\"hidden\" name=\"ulid_" . $i . "\" value=\"" . $uuid . "\" />
+                         <input title=\"Select Entry to Delete\" id=\"row" . $i . "\" class =\"checkbox\" type=\"checkbox\" name=\"ulid_check_" . substr( $uuid, 0, 6 ) . "\"/>
+                         <input title=\"Delete Entries\" type=\"submit\" class=\"del-button\" name=\"save_options\" value=\"" . esc_html( 'x', $this->_textdomain ) . "\" />" : 'N/A';
                 if ( $req_var[ 1 ] != "Safe" ) {
                     $this_timestamp = ( false !== strpos( $this_timestamp, 'AM' ) || false !== strpos( $this_timestamp, 'PM' ) ) ?
                                       ( false !== strpos( $this_timestamp, 'AM' ) ? substr( $this_timestamp, 0, strpos( $this_timestamp, 'AM' ) ) . ' AM' : substr( $this_timestamp, 0, strpos( $this_timestamp, 'PM' ) ) . ' PM' ) : $this_timestamp ;
                 }
                 $attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 5 ] ) ) );
                         echo "<tr style=\"font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;color:#3E3E3E;background-color:" . $row_colour . "\">" . "
-                        <td style=\"padding:3px 3px 3px 3px;vertical-align:top;width:100px; white-space: nowrap\">" . $this_timestamp . "</td>" . "
-                        <td style=\"padding:3px 3px 3px 3px; vertical-align:top;text-align:center; width:60px; white-space: nowrap; font-weight: bold; color:" . $text_color . "\">" . $req_var[ 1 ] . "</td>" . "
-                        <td style=\"padding:3px 3px 3px 3px; vertical-align:top; width:120px; white-space: nowrap\">" . $ip_addr . "</td>" . "
-                        <td style=\"padding:3px 3px 3px 3px; vertical-align:top; text-align:center; width:50px; white-space: nowrap\">" . $req_var[ 3 ] . "</td>" . "
-                        <td style=\"padding:3px 3px 3px 3px; vertical-align:top; width:100px; white-space: nowrap\">" . $req_var[ 4 ] . "</td>" . "
-                        <td style=\"padding:3px 3px 3px 3px; vertical-align:top;\"><code>" . $attack_string . "</code></td>" . "</tr>";
+                        <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px;vertical-align:top;width:100px; white-space: nowrap\">" . $this_timestamp . "</td>" . "
+                        <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px; vertical-align:top;text-align:center; width:60px; white-space: nowrap; font-weight: bold; color:" . $text_color . "\">" . $req_var[ 1 ] . "</td>" . "
+                        <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px; vertical-align:top; width:120px; white-space: nowrap\">" . $ip_addr . "</td>" . "
+                        <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px; vertical-align:top; text-align:center; width:50px; white-space: nowrap\">" . $req_var[ 3 ] . "</td>" . "
+                        <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px; vertical-align:top; width:100px; white-space: nowrap\">" . $req_var[ 4 ] . "</td>" . "
+                        <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px; vertical-align:top;\"><code>" . $attack_string . "</code></td>" . "
+                        <td style=\"padding:3px 3px 3px 3px; vertical-align:top;width:30px;white-space: nowrap\">" . $ulid . "</td></tr>";
             } else
                 break;
             $i++;
-        }
+        } 
 ?>
                </table>
                 </td>
