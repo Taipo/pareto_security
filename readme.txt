@@ -1,18 +1,11 @@
 === Pareto Security ===
-
 Contributors: te_taipo
-
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Requires at least: 4.7.2
-
-Tested up to: 4.9.6
-
+Tested up to: 4.9.7
 Stable tag: 2.1.1
-
 Donate link: https://hokioisecurity.com
-
 License: GPLv2 or later
-
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress Core Security: Secure your website with real security.
@@ -131,6 +124,7 @@ Other contacts: https://taipo.github.io/contact/
 * Banned IP addresses now removed if app is deactivated
 * For improved performance, Pareto Security now restricts HTACCESS to the last 500 banned IP addresses
 * Fixed non-critical bug in plugin deactivation
+* Improved logfile layout with ability to manually remove entries
 
 = 2.1.0 =
 * Update to POST Filters
