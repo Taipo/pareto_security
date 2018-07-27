@@ -1,22 +1,22 @@
 === Pareto Security ===
-Contributors: te_taipo
+Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
+Donate link: https://hokioisecurity.com/donations/
 Requires at least: 4.7.2
-Tested up to: 4.9.7
-Stable tag: 2.1.1
-Donate link: https://hokioisecurity.com
+Tested up to: 4.9.8
+Requires PHP: 5.3
+Stable tag: 2.1.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress Core Security: Secure your website with real security.
 
 == Description ==
-
 #### PARETO SECURITY FEATURES
 
 Had enough of the security theatre presented by the raft of Wordpress security plugins? Time to put a stop to the attacks!
 
-Firstly Wordpress and most other CMS's are built using PHP. PHP is a very insecure programming language, even worse in the hands of amateurs.
+Firstly Wordpress and most other CMS\'s are built using PHP. PHP is a very insecure programming language, even worse in the hands of amateurs.
 
 Wordpress has been plagued by plugins authored by amateurs that bring with them security vulnerabilities.
 
@@ -52,14 +52,12 @@ No security plugin can save your site from attacks that result from when adminis
 Keeping any CMS as secure as possible is not easy. The very best thing you can do to prevent attacks is to always keep your website code, themes and plugins up to date, and remove any plugins and themes you are not using.
 
 == Installation ==
-
-* <strong>Automated Setup Steps</strong>
+* Automated Setup Steps
 
 1. Upload `/pareto-security/` to the `/wp-content/plugins/` directory
-2. Activate the plugin through the 'Plugins' menu in WordPress
+2. Activate the plugin through the \'Plugins\' menu in WordPress
 
 == Frequently Asked Questions ==
-
 = How does Pareto Security protect sites from attackers? =
 
 The Pareto Security developers understand how PHP - the coding language in which Wordpress is written in, can be exploited. Pareto Security principles of protection stop these attacks at the entry point.
@@ -97,17 +95,13 @@ Pareto Security provides true entry-point security for your WordPress website. P
 * Pareto Security provides real security minus the scare-ware techniques used by other plugins
 * Pareto Security picks up security where Wordpress developers draw their line
 * Pareto Security prevents attackers making changes to website code by securing all inputs from the start.
-* Using the principle of "Artificial Ignorance" with blacklists rather than relying solely on arbitrary blacklists, Pareto Security method ignores requests it knows aren't interesting and processes the remaining requests that must then be of interest.
+* Using the principle of \"Artificial Ignorance\" with blacklists rather than relying solely on arbitrary blacklists, Pareto Security method ignores requests it knows aren\'t interesting and processes the remaining requests that must then be of interest.
 * Pareto Security fully supports WordPress Multi-Site 
 
 = How can I contribute to the cause =
 
 Donations via:
-* Bitcoin: 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf
-* ZCASH Address: t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1
-* Vericoin: VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v
-* Ethereum: 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf
-* Paypal Address: pareto-security@protonmail.com
+Go to https://hokioisecurity.com/donations/
 
 = Do you have an email contact? =
 
@@ -116,6 +110,15 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 2.1.2 =
+* Add in wordpress hooks to filter activity
+* Fixed issues related to when website has no .htaccess file
+* Replace depreciated mcrypt_create_iv() with random_bytes()
+* Now has username and password flood controls
+* Updated DoS Mitigation CVE-2018-6389
+* Update blacklists
+* Added Lockdown Mode: Temporarily disables emailing of log alerts during DoS attacks to reduce server load
 
 = 2.1.1 =
 * XML database for blacklists
@@ -133,17 +136,3 @@ Other contacts: https://taipo.github.io/contact/
 * Added Settings link to WP plugin page
 * Now checks for and filters $HTTP_RAW_POST_DATA raw post data for XMLRPC
 * Better descriptions of attack types
-
-= 2.0.9 =
-* Update database injections to reduce false positives
-
-= 2.0.8 =
-* Enable XML-RPC Flood Protection
-* Further work on HTTP_HOST filtering
-
-= 2.0.7 =
-* code cleanup
-
-= 2.0.6 =
-* Improve HTTP HOST detection
-* Fixed a bug in flood controls for failed logins
