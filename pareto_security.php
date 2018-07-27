@@ -4,14 +4,10 @@ Plugin Name: Pareto Security
 Plugin URI: https://hokioisecurity.com/?p=17
 Description: Core Security - Protection from a range of attacks against Content Management Systems (CMS)
 Author: Te_Taipo
-Version: 2.1.1
+Version: 2.1.2
 Requirements: Requires at least PHP version 5.2.0
 Author URI: https://hokioisecurity.com
-Bitcoin: 1HnQtSEXZXvL6sfgXRZ8sAhVmtMtwXfSyf
-ZCASH Address: t1Lnmn4r9jVxhjhTLix8sRfyoqqsJVbShQ1
-Vericoin: VRsjYZmjpYxXmhRxGzYcECfpNUksvBr25v
-Ethereum: 0xb9f7a75530ef6b4b21c721a81fe54c548492f9bf
-Paypal Address: pareto-security@protonmail.com
+Donations via: https://hokioisecurity.com/donations/
 */
 /*
 This program is free software; you can redistribute it and/or
@@ -31,10 +27,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 See: See http://www.gnu.org/licenses/gpl-3.0.txt
 */
 require_once( 'pareto_functions.php' );
-
 $ParetoSecurity = new pareto_functions();
-if ( false !== $ParetoSecurity->is_wp( false ) ) {
 
+if ( false !== $ParetoSecurity->is_wp() ) {
     register_activation_hook( __FILE__, array(
          $ParetoSecurity,
         '_activate' 
@@ -45,7 +40,7 @@ if ( false !== $ParetoSecurity->is_wp( false ) ) {
     ) );
     require_once( 'pareto_settings.php' );
     $ParetoSecurity = new pareto_settings();
-
+    $ParetoSecurity->_time_offset = ( int ) get_option( 'gmt_offset' );
 }
 
 $ParetoSecurity->advanced_mode( $ParetoSecurity->_adv_mode );
@@ -60,4 +55,3 @@ $ParetoSecurity->_LOGIN_SHIELD();
 $ParetoSecurity->_HTTPHOST_SHIELD();
 $ParetoSecurity->_COOKIE_SHIELD();
 $ParetoSecurity->_SPIDER_SHIELD();
-?>
