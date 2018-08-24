@@ -13,7 +13,7 @@ if ( class_exists( "pareto_functions" ) ):
             }
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
-            define( 'PARETO_VERSION', '2.1.2' );
+            define( 'PARETO_VERSION', '2.2.0' );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
             
@@ -110,13 +110,13 @@ if ( class_exists( "pareto_functions" ) ):
                      $this,
                     'admin_menu' 
                 ), 20 );
+                $this->ip_count = $this->count_banned_ips();
             }
             
             $this->_adv_mode      = $this->get_field_value( $this->options, 'advanced_mode' );
             $this->_ban_mode      = $this->get_field_value( $this->options, 'ban_mode' );
             $this->_email_report  = $this->get_field_value( $this->options, 'email_report' );
             
-            $this->count_banned_ips();
             $this->update_logfile( $this->logs ); // set $this->logs
 
             # deal with dynamic IP addresses
@@ -161,9 +161,11 @@ if ( class_exists( "pareto_functions" ) ):
                     $this_log = explode( ' ', $val );
                     if ( isset( $this_log[ 6 ] ) && $this->cmpstr( sha1( $this_log[ 6 ] ), $hash ) ) {
                         $ip = $this_log[ 2 ];
-                        $this->htaccess_unbanip( false, $ip );
-                        unset( $get_logs[ $key ] );
-                        break 1;
+                        if ( false !== $this->check_ip( $ip, true ) ) {
+                            $this->htaccess_unbanip( false, $ip );
+                            unset( $get_logs[ $key ] );
+                            break 1;
+                        }
                     }
 
                 }
@@ -224,7 +226,7 @@ if ( class_exists( "pareto_functions" ) ):
                 $this_ip = $this_entry[ 2 ];
                 $this_request = $this_entry[ 2 ] . $this_entry[ 5 ];
                 if ( !in_array( $this_request, $check_duplicates ) ) {
-                     if ( false === $this->is_server( $this_ip ) ) $check_duplicates[] = $this_request;
+                     if ( false !== $this->check_ip( $this_ip, true ) && false === $this->is_server( $this_ip ) ) $check_duplicates[] = $this_request;
                      $check_duplicates[] = $this_request;
                      $get_final_array[] = $log;
                  }
@@ -423,11 +425,6 @@ if ( class_exists( "pareto_functions" ) ):
 <?php } function save_settings() { ?>
            <table style="text-align: left;">
                 <tr>
-                    <td><label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo _e( '<b>Email Notification:</b> Receive periodic notifications (every 5 events) of high/medium severity attacks', $this->_textdomain ); ?>
-                            <input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label> 
-                    </td>
-                </tr>
-                <tr>
                     <td><input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options', $this->_textdomain ); ?>" /></td>
                 </tr>
             </table>
@@ -474,8 +471,7 @@ if ( class_exists( "pareto_functions" ) ):
 									<dt>&nbsp;&nbsp;- <?php echo esc_html( 'Hard ban attempts to attack the webserver', $this->_textdomain ); ?></dt>
 									<dt>&nbsp;&nbsp;- <?php echo esc_html( 'Hard ban attempts to inject malicious code into the database', $this->_textdomain ); ?></dt>
 									<dt>&nbsp;&nbsp;- <?php echo esc_html( 'Hard ban injection attempts via browser user-agents', $this->_textdomain ); ?></dt>
-									<dt>&nbsp;&nbsp;- <?php echo esc_html( 'Does not filter User-Agent', $this->_textdomain ); ?></dt>
-									<dt>&nbsp;&nbsp;- <?php echo esc_html( 'Advanced POST Filtering is disabled', $this->_textdomain ); ?></dt>
+                                    <dt>&nbsp;&nbsp;- <?php echo esc_html( 'Lockdown Mode: Auto Detect Denial of Service Attack', $this->_textdomain ); ?></dt>
 								</dl>
 							</div>
 							<div class="divTableCell">
@@ -494,15 +490,11 @@ if ( class_exists( "pareto_functions" ) ):
 										</div>
 										<div class="divTableRow">
 											<div class="divAdvancedMode">&nbsp;</div>
-											<div class="divAdvancedMode"><?php echo _e( 'Note: For detailed descriptions, <a target="_blank" href="https://hokioisecurity.com/?p=343">click here</a>', $this->_textdomain ); ?>
-                                                <br><?php echo esc_html( '- Hard ban attempts to attack the webserver', $this->_textdomain ); ?>
-                                                <br><?php echo esc_html( '- Hard ban attempts to inject malicious code into the database', $this->_textdomain ); ?>
-                                                <br><?php echo esc_html( '- Hard ban injection attempts via browser user-agents', $this->_textdomain ); ?>
-                                                <br><?php echo esc_html( '- Advanced filtering of HTTP_HOST', $this->_textdomain ); ?>
-                                                <br><?php echo esc_html( '- Soft Ban Bots', $this->_textdomain ); ?>
+											<div class="divAdvancedMode"><?php echo esc_html( '- Advanced filtering of the server host variable', $this->_textdomain ); ?>
                                                 <br><?php echo esc_html( '- Advanced POST Filtering', $this->_textdomain ); ?>
                                                 <br><?php echo esc_html( '- Domain Name Safe List', $this->_textdomain ); ?>
-                                                <br><?php echo esc_html( '- Filter login attempts', $this->_textdomain ); ?>
+                                                <br><?php echo esc_html( '- Filter login attempts - detect and ban User/Password Cracking Attack', $this->_textdomain ); ?>
+                                                <br><?php echo esc_html( '- XML-RPC Flood Protection - detect and ban User/Password Cracking Attack', $this->_textdomain ); ?>
                                             </div>
 										</div>
 										<div class="divTableRow">
@@ -514,13 +506,11 @@ if ( class_exists( "pareto_functions" ) ):
                                                          isset( $this->options[ 'advanced_mode' ] ) &&
                                                          false !== ( bool ) $this->_hard_ban_mode ) { ?>checked<?php } ?> />
                                             <span class="checkmark"></span></label></div>
-											<div class="divAdvancedMode">- <label for="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>"><?php _e( '<strong>Hard Ban Mode</strong>', $this->_textdomain ); ?></label></div>
+											<div class="divAdvancedMode"><label for="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>"><?php _e( '<strong>Hard Ban Mode</strong>', $this->_textdomain ); ?></label></div>
 										</div>
 										<div class="divTableRow">
 											<div class="divAdvancedMode">&nbsp;</div>
-											<div class="divAdvancedMode">- Add Attackers IP to ban list
-                                            <br>- XML-RPC Flood Protection
-                                            <br>- Lockdown Mode: Auto Detect DoS Attack</div>
+                                            <div class="divAdvancedMode">- Ban irregular user-agent/crawlers</div>
 										</div>
 									</div>
 								</div>
@@ -532,12 +522,16 @@ if ( class_exists( "pareto_functions" ) ):
 		</div>
 	</div>
 </div>
+<br>
+<label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo _e( '<b>Email Notification:</b> Receive periodic notifications (every 5 events) of high/medium severity attacks', $this->_textdomain ); ?>
+<input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label>
 <?php
         }
         function notes_box() {
             $mode     = ( false === ( bool ) $this->_adv_mode ) ? esc_html( 'Standard', $this->_textdomain ) : esc_html( 'Advanced', $this->_textdomain );
             $mode     = ( false !== $this->lockdown_status ) ? esc_html( 'Lockdown', $this->_textdomain ) : $mode;
-            $ban_type = ( false !== ( bool ) $this->_adv_mode && false !== ( bool ) $this->_hard_ban_mode ) ? esc_html( 'Low, Medium and High severity requests added to banned IP list', $this->_textdomain ) : esc_html( 'Medium and High severity requests added to banned IP list', $this->_textdomain ); ?>
+            $ban_type = ( false !== ( bool ) $this->_adv_mode && false !== ( bool ) $this->_hard_ban_mode ) ? esc_html( 'Low, Medium and High severity requests added to banned IP list', $this->_textdomain ) : esc_html( 'Medium and High severity requests added to banned IP list', $this->_textdomain );
+            ?>
     <ul>
         <li><?php echo esc_html( '+ Status:', $this->_textdomain ); ?> <i><?php echo $mode; ?> Mode</i></li>
         <li><?php echo esc_html( '+ Server:', $this->_textdomain ); ?> <?php echo ( strlen( $_SERVER[ "SERVER_SOFTWARE" ] ) > 14 ) ? trim( substr( $_SERVER[ "SERVER_SOFTWARE" ], 0, 14 ) ) . "..." : $_SERVER[ "SERVER_SOFTWARE" ]; ?></li>
@@ -545,7 +539,7 @@ if ( class_exists( "pareto_functions" ) ):
             if ( false !== $this->htapath() && false === $this->is_iis() ) {
         ?>
         <li><?php echo _e( '+ Your <code>.htaccess</code> is configured correctly in <code>' . $this->get_dir() . '</code>', $this->_textdomain ); ?></li>
-        <li><?php echo _e( '+ There currently ' . ( ( $this->cmpstr( $this->count_banned_ips(), 1 ) ) ? 'is' : 'are' ) . ' [ ' . ( empty( $this->count_banned_ips() ) ? 0 : $this->count_banned_ips() ) . ' ] unique IP addresses banned by Pareto Security', $this->_textdomain ); ?></li>
+        <li><?php echo _e( '+ There currently ' . ( ( $this->cmpstr( $this->ip_count, 1 ) ) ? 'is' : 'are' ) . ' [ ' . ( empty( $this->ip_count ) ? 0 : $this->ip_count ) . ' ] unique IP addresses banned by Pareto Security', $this->_textdomain ); ?></li>
         <li>+ <?php echo ( $this->_adv_mode ) ? esc_html( 'Hard Ban', $this->_textdomain ) : esc_html( 'Soft Ban', $this->_textdomain ); ?>: <?php echo $ban_type; ?></li>
         <?php } else { ?>
         <li><?php echo _e( '- Your <code>.htaccess</code> file cannot be written to in <code>' . $this->get_dir() . '</code> Pareto Security will still soft ban attack vectors.', $this->_textdomain ); ?></li>
@@ -597,9 +591,9 @@ if ( class_exists( "pareto_functions" ) ):
                     $text_color = "#c72b2c";
                 if ( $this->cmpstr( $req_var[ 1 ], "Safe" ) ) $text_color = "#517ecf";
                 $mylogs_fin[ $i ] = $mylogs[ $i ];
-                $ip_addr = $req_var[ 2 ];
-                if ( false === $this->is_server( $req_var[ 2 ] ) && $this->check_ip( $req_var[ 2 ] ) ) {
-                    $ip_addr = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ] ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a><a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
+                $ip_addr = ( false !== $this->check_ip( $req_var[ 2 ], true ) ) ? $req_var[ 2 ] : '';
+                if ( false === $this->is_server( $req_var[ 2 ] ) ) {
+                    $ip_addr = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ], true ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a><a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
                 }
                 if ( $this->cmpstr( $req_var[ 1 ], "Safe" ) ) {
                     $req_var[ 0 ] = str_replace( '%20', ' ', $req_var[ 0 ] );
