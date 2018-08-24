@@ -12,7 +12,7 @@ Tested up to: 4.9.8
 
 Requires PHP: 5.3
 
-Stable tag: 2.1.2
+Stable tag: 2.2.0
 
 License: GPLv2 or later
 
@@ -21,6 +21,7 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 WordPress Core Security: Secure your website with real security.
 
 == Description ==
+
 #### PARETO SECURITY FEATURES
 
 Had enough of the security theatre presented by the raft of Wordpress security plugins? Time to put a stop to the attacks!
@@ -120,28 +121,13 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 2.1.2 =
-* Add in wordpress hooks to filter activity
-* Fixed issues related to when website has no .htaccess file
-* Replace depreciated mcrypt_create_iv() with random_bytes()
-* Now has username and password flood controls
-* Updated DoS Mitigation CVE-2018-6389
-* Update blacklists
-* Added Lockdown Mode: Temporarily disables emailing of log alerts during DoS attacks to reduce server load
+= 2.2.0 =
+* Change the Advanced Mode and Hard Ban Mode philosophy.
+* In advanced mode this now allows preventing malicious attacks via user-agents without filtering all user-agents
+* This allows users to safely run Pareto Security in Advanced Mode
+* Prevent SQLi Without Quotes attack
 
-= 2.1.1 =
-* XML database for blacklists
-* Change email report regularity to every 5 serious events
-* Update [RFI] Filters
-* Banned IP addresses now removed if app is deactivated
-* For improved performance, Pareto Security now restricts HTACCESS to the last 500 banned IP addresses
-* Fixed non-critical bug in plugin deactivation
-* Improved logfile layout with ability to manually remove entries
-
-= 2.1.0 =
-* Update to POST Filters
-* Extend length of log entry to 500 characters
-* Fixed small bug in way the email report displays
-* Added Settings link to WP plugin page
-* Now checks for and filters $HTTP_RAW_POST_DATA raw post data for XMLRPC
-* Better descriptions of attack types
+= 2.1.9 =
+* Adjust filtering for XML-RPC to further avoid false positives
+* Harden UUID for non-WP websites
+* Fixed bug in get_dir() affecting non-WP websites 
