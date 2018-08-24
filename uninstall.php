@@ -1,6 +1,6 @@
 <?php
 /**
- * uninstall version 2.1.2
+ * uninstall version 2.2.0
  */
 require_once( 'pareto_functions.php' );
 $ParetoSecurity = new pareto_functions();
