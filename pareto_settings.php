@@ -13,7 +13,7 @@ if ( class_exists( "pareto_functions" ) ):
             }
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
-            define( 'PARETO_VERSION', '2.2.6' );
+            define( 'PARETO_VERSION', '2.2.8' );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
             
