@@ -222,11 +222,12 @@ class pareto_functions {
                 $short_val = strtolower( substr( $val, 0, 79 ) );
                 if ( ( false !== strpos( $short_val, "high" ) || false !== strpos( $short_val, "medium" ) ) && false === strpos( $short_val, "[blocked]" ) && false === strpos( $short_val, " safe " ) ) $x++;
             }        
-            # email every 5 entries
+             # email every 5 entries
             $ban_type = ucfirst( $ban_type );
+            if ( $this->cmpstr( 'Safe', $ban_type, true ) ) return;
             $logged_count = ( string ) ( $x / 5 );
             if ( false !== ( bool ) $this->_email_report && $x != 0 && false !== ctype_digit( $logged_count ) ) {
-                $text_color = ( $this->cmpstr( 'Medium', $ban_typ, true ) ) ? "#e68735" : "#c72b2c";
+                $text_color = ( $this->cmpstr( 'Medium', $ban_type, true ) ) ? "#e68735" : "#c72b2c";
                 $this->email_log( "\n<tr style=\"background-color: #F3F3F3\">\n" . "    <td style=\"font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;vertical-align:top; width:100px; white-space: nowrap\">" . $this->set_timestamp( time() ) . "</td>\n
                                          <td style=\"vertical-align:top; text-align: center; width:70px; white-space: nowrap; font-size:11px;white-space:nowrap; font-family:Verdana,Tahoma,Arial,sans-serif;font-weight: bold; color:" . $text_color . "\">" . $ban_type . "</td>\n
                                          <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:140px; white-space: nowrap\">" . $this->get_ip() . "</td>\n
