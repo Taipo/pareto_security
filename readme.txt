@@ -5,7 +5,7 @@ Donate link: https://hokioisecurity.com/donations/
 Requires at least: 4.7.2
 Tested up to: 5.0.3
 Requires PHP: 5.3
-Stable tag: 2.2.6
+Stable tag: 2.2.8
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -110,68 +110,6 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
-= 2.2.6 =
-* Improve the logging mechanism
-* Workaround for plugin conflict with plugin-load-filter
 
-= 2.2.5 =
-* Fixed bugs in the way Pareto Security deactivates
-
-= 2.2.4 =
-* Fixed a bug in Hard Core Mode where a crontab request could result in the server IP being blocked
-
-= 2.2.3 =
-* Prevent the exploit of Unauthenticated Call Any Action or Update Any Option
-
-= 2.2.2 =
-* Fixed issue with the way ip addresses are counted in the htaccess file which could result in an incorrect count
-* Fixed a reported bug in the way Pareto Security writes to the htaccess file dealing with appended code
-
-= 2.2.1 =
-* Fix issue with cleaning up logfile when disabling hard ban mode
-* Update injector list
-
-= 2.2.0 =
-* Change the Advanced Mode and Hard Ban Mode philosophy.
-* In advanced mode this now allows preventing malicious attacks via user-agents without filtering all user-agents
-* This allows users to safely run Pareto Security in Advanced Mode
-* Prevent SQLi Without Quotes attack
-
-= 2.1.9 =
-* Adjust filtering for XML-RPC to further avoid false positives
-* Harden UUID for non-WP websites
-* Fixed bug in get_dir() affecting non-WP websites 
-
-= 2.1.8 =
-* Fixed a bug in the email report where the date was not being converted from unixtime
-* Fixed an issue with Google IPs being banned.
-
-= 2.1.7 =
-* Updates to crawler filtering to expressly permit 3rd party payment processors to access WP when users use Pareto Security is in Advanced Mode
-
-= 2.1.6 =
-* Bugfix: False positive ban when users with less credentials than administrators delete files
-* No longer bans IPs of registered users with access less than administrator
-
-= 2.1.5 =
-* More backward compatibility to PHP 5.3
-* Compatibility check with WP 4.9.8
-* Detect incorrect server IP connection attempts
-* Allow w3c_validator
-
-= 2.1.1 =
-* XML database for blacklists
-* Change email report regularity to every 5 serious events
-* Update [RFI] Filters
-* Banned IP addresses now removed if app is deactivated
-* For improved performance, Pareto Security now restricts HTACCESS to the last 500 banned IP addresses
-* Fixed non-critical bug in plugin deactivation
-* Improved logfile layout with ability to manually remove entries
-
-= 2.1.0 =
-* Update to POST Filters
-* Extend length of log entry to 500 characters
-* Fixed small bug in way the email report displays
-* Added Settings link to WP plugin page
-* Now checks for and filters $HTTP_RAW_POST_DATA raw post data for XMLRPC
-* Better descriptions of attack types
+= 2.2.8 =
+* Small bug in email report that could cause "Safe" requests to be prepended.
