@@ -13,7 +13,7 @@ if ( class_exists( "pareto_functions" ) ):
             }
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
-            define( 'PARETO_VERSION', '2.2.0' );
+            define( 'PARETO_VERSION', '2.2.6' );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
             
@@ -54,10 +54,10 @@ if ( class_exists( "pareto_functions" ) ):
             $this->logs = get_option( PARETO_LOG_LIST );
             # only available to logged in Admins
             if ( false !== ( bool ) $this->is_wp( true, true ) ) {
+                $this->define_plugin_settings();
                 $this->page_id        = $this->_textdomain;
                 $this->lockdown_status = $this->lockdown_mode( $this->logs ); //( bool ) $this->get_field_value( $this->lockdown, 'lockdown_mode' );
                 
-                $this->define_plugin_settings();
                 if ( $this->cmpstr( $_SERVER[ 'REQUEST_METHOD' ], 'POST' ) ) {
                     # localise POST
                     $this_post = $_POST;
@@ -183,22 +183,22 @@ if ( class_exists( "pareto_functions" ) ):
             $thisdomain = $this->cleanString( 10, $this->get_http_host() );
             $limitstart = "# " . $thisdomain . " Pareto Security Ban\n";
             $limitend   = "# End of " . $thisdomain . " Pareto Security Ban\n";
-            $firstline = 0;
-            $lastline   = 0;
+            
             $mybans_only = array();
-            if ( empty( $mybans ) ) return 0;
-            for ( $x = 0; $x < count( $mybans ); $x++ ) {
-                $mybans[ $x ] = preg_replace( "/[\r]/i", '', $mybans[ $x ] );
-                if ( false !== strpos( $mybans[ $x ], 'deny from' ) ) $mybans_only[] = $mybans[ $x ];
+            if ( empty( $mybans ) || false === in_array( $limitstart, $mybans ) ) return 0;
+            $limitstart_key = ( int ) array_search( $limitstart, $mybans );
+            for ( $x = $limitstart_key; $x < count( $mybans ); $x++ ) {
+                $mybans[ $x ] = strtolower( preg_replace( "/[\r]/i", '', $mybans[ $x ] ) );
+                if ( false === strpos( $mybans[ $x ], 'deny from all' ) && false !== ( bool ) preg_match( "/^deny from \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/i", $mybans[ $x ] ) ) $mybans_only[] = $mybans[ $x ];
             }
             return count( $mybans_only );
         }
         function update_logfile( $logfile = array() ) {
             $tmp_logfile = array();
-            if ( !empty( $logfile ) && false === ( bool ) $this->_adv_mode ) {
+            if ( !empty( $logfile ) && false === ( bool ) $this->_hard_ban_mode ) {
                 for( $x = 0; $x < count( $logfile ); $x++ ) {
-                    $this_log = strtolower( substr( $logfile[ $x ], 0, 34) );
-                    if ( false === strpos( $this_log, "low" ) || false !== strpos( $this_log, PARETO_RELEASE_DATE ) ) {
+                    $this_log = strtolower( substr( $logfile[ $x ], 0, 100) );
+                    if ( ( false === strpos( $this_log, "low" ) && false === strpos( $this_log, "crawler" ) ) || false !== strpos( $this_log, PARETO_RELEASE_DATE ) ) {
                          $tmp_logfile[] = $logfile[ $x ];
                     }
                 }
@@ -213,27 +213,11 @@ if ( class_exists( "pareto_functions" ) ):
                     return;
             }
             $final_log = strtolower( substr( $this->logs[ count( $this->logs ) - 1 ], 0, 50 ) );
-            # make sure install log remains
 
+            # make sure install log remains
             if ( count( $this->logs ) < 100 && false === strpos( $final_log, 'safe' ) ) {
                 array_push( $this->logs, SETTINGS_INSTALL_LOG );
             }
-            # remove entries with same ip address
-            $check_duplicates = array();
-            $get_final_array = array();
-            foreach( $this->logs as $key => $log ) {
-                $this_entry = explode( ' ', $log );
-                $this_ip = $this_entry[ 2 ];
-                $this_request = $this_entry[ 2 ] . $this_entry[ 5 ];
-                if ( !in_array( $this_request, $check_duplicates ) ) {
-                     if ( false !== $this->check_ip( $this_ip, true ) && false === $this->is_server( $this_ip ) ) $check_duplicates[] = $this_request;
-                     $check_duplicates[] = $this_request;
-                     $get_final_array[] = $log;
-                 }
-            }
-            
-            update_option( PARETO_LOG_LIST, $get_final_array );
-            $this->logs = $get_final_array;          
             return;
         }
         function check_settings( $val ) {
