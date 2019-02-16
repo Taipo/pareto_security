@@ -148,8 +148,6 @@ class pareto_functions {
 	 * @return void
 	 */
     function karo( $req = '', $t = false, $severity = '', $log_only = false ) {
-        # Give a logged in WP Admins a pass only when posting data
-        if ( false !== $this->is_wp( false, true ) ) return;
         
         if ( $this->cmpstr( $severity, '' ) ) {
             $ban_type = 'Medium';
@@ -166,33 +164,35 @@ class pareto_functions {
         
         $this_ip = $this->get_ip();
         $block_request = false;
-        
+        $is_admin_ip = false;
         if ( false !== $this->is_wp() ) {
             $is_admin_ip = ( bool ) ( isset( $this->options[ 'admin_ip' ] ) && false !== $this->cmpstr( $this_ip, $this->options[ 'admin_ip' ] ) );
-        } else $is_admin_ip = false;
+        }
         $block_request = ( bool ) ( false !== $this->is_iis() ||
                                     false === ( bool ) $t ||
                                     false !== $this->is_server( $this_ip ) ||
                                     false !== $this->_bypassbanip ||
                                     false !== $is_admin_ip );
         $is_registered = false;
-        if ( false !== $this->is_wp( false, false, true ) ) {
+        if ( false !== $this->is_wp( false, false, true ) || false !== $this->is_wp( false, true ) ) {
             $is_registered = true;
             $ban_type = 'Safe';
            # $block_request = true;
             $this_user = $this->get_wp_current_user();
         }                                    
-                                    
-        $req = ( false !== $is_registered ) ? 'User: ' . $this_user . ' :: ' . $req : $req;
-        $req = ( ( false === $log_only ) ? '[Notice] ' : ( ( false !== $block_request ) ? '[Blocked] ' : '[Banned] ' ) ) . $req;
+        if ( false === $this->is_wp( false, true ) ) {                                    
+            $req = ( false !== $is_registered ) ? 'User: ' . $this_user . ' :: ' . $req : $req;
+            $req = ( ( false === $log_only ) ? '[Notice] ' : ( ( false !== $block_request ) ? '[Blocked] ' : '[Banned] ' ) ) . $req;
+        }
         $req = ( false !== $is_admin_ip ) ? $req . ' (WP Admin IP)' : $req;
         
         # create the log entry
         # set $lockdown_mode
         $this->log_request( $req, $ban_type );
-        
+
+        # Give a logged in WP Admins a pass only when posting data
         # if notification only
-        if ( false === $log_only ) return;
+        if ( false !== $this->is_wp( false, true ) || false === $log_only ) return;
         
         # add IP address or return 403 only
         if ( false === $is_admin_ip && false === $block_request ) $this->htaccessbanip( $this_ip );
@@ -222,7 +222,7 @@ class pareto_functions {
                 $short_val = strtolower( substr( $val, 0, 79 ) );
                 if ( ( false !== strpos( $short_val, "high" ) || false !== strpos( $short_val, "medium" ) ) && false === strpos( $short_val, "[blocked]" ) && false === strpos( $short_val, " safe " ) ) $x++;
             }        
-             # email every 5 entries
+            # email every 5 entries
             $ban_type = ucfirst( $ban_type );
             if ( $this->cmpstr( 'Safe', $ban_type, true ) ) return;
             $logged_count = ( string ) ( $x / 5 );
@@ -541,6 +541,7 @@ class pareto_functions {
 	 * @return void
 	 */
     public function load_lists( $blacklists = false, $injectors = false ) {
+
         if ( false !== $blacklists ) {
             $xml_lists = ( ( false !== $this->is_wp() ) ? plugin_dir_path( __FILE__ ) : dirname( __FILE__ ) ) . "/xml/lists.xml";
             if ( false !== $this->is_wp() ) $this->_datalist = wp_cache_get( 'mylists' );
@@ -710,28 +711,26 @@ class pareto_functions {
 	 * @return boolean
 	 */
     function datalist( $val, $list = 0 ) {
-
         $val = $this->cleanString( 9, $val );
         if ( !is_numeric( $val ) && empty( $val ) ) return false;
         if ( empty( $this->_datalist ) || !is_array( $this->_datalist ) ) return false;
+
         # although we try not to do this, arbitrary blacklisting of certain request variables
         # cannot be avoided. however I will attempt to keep this list short.
+
         // Remove whitespace from string
         $val            = preg_replace( "/\s+/i", '', $this->decode_code( str_replace( "'", '', ( $val ) ) ) );
-
         $_datalist_tmp = array();
         $val = $this->decode_code( $val );
         for ( $x = 0; $x < count( $this->_datalist[ ( int ) $list ] ); $x++ ) {
-
             $this_item = $this->decode_code( $this->_datalist[ ( int ) $list ][ $x ] );
-
             # Test 1: Hex test
             if ( false !== strpos( strtolower( pack( "H*", preg_replace( "/[^a-f0-9]/i", '', $val ) ) ), $this_item ) ) {
                 return true;
             }
 
             # Test 2:
-            if ( false !== strpos( strtolower( $val ), $this_item ) ) {
+            if ( false !== strpos( strtolower( $val ), $this_item ) || false !== $this->cmpstr( $val, $this_item ) ) {
                 return true;
             }
         }
@@ -930,7 +929,7 @@ class pareto_functions {
     function querystring_filter( $val, $key ) {
         $this->_get_all[] = $this->decode_code( $key, true );
         if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
-            $val = $this->decode_code( $val );
+            $val = strtolower( $this->decode_code( $val ) );
             $this->do_blacklists( $val, 1, "Request", true, "High", true, true, true );
         }
     }
