@@ -13,7 +13,7 @@ if ( class_exists( "pareto_functions" ) ):
             }
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
-            define( 'PARETO_VERSION', '2.2.8' );
+            define( 'PARETO_VERSION', '2.3.1' );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
             
@@ -198,7 +198,7 @@ if ( class_exists( "pareto_functions" ) ):
             if ( !empty( $logfile ) && false === ( bool ) $this->_hard_ban_mode ) {
                 for( $x = 0; $x < count( $logfile ); $x++ ) {
                     $this_log = strtolower( substr( $logfile[ $x ], 0, 100) );
-                    if ( ( false === strpos( $this_log, "low" ) && false === strpos( $this_log, "crawler" ) ) || false !== strpos( $this_log, PARETO_RELEASE_DATE ) ) {
+                    if ( false === strpos( $this_log, "crawler" ) || false !== strpos( $this_log, PARETO_RELEASE_DATE ) ) {
                          $tmp_logfile[] = $logfile[ $x ];
                     }
                 }
@@ -559,12 +559,11 @@ if ( class_exists( "pareto_functions" ) ):
             if ( isset( $mylogs[ $i ] ) ) {
                 $row_colour = ''; // = ( $i % 2 == 0 ) ? "#F3F3F3" : "#FFFFFF";
                 $req_var    = explode( " ", $mylogs[ $i ] );
-
                 if ( $this->cmpstr( strtolower( $req_var[ 1 ] ), "low" ) ) {
-                    if ( false === ( bool ) $this->_adv_mode ) {
-                        $i++;
-                        continue;
-                    }
+                    #if ( false === ( bool ) $this->_adv_mode ) {
+                    #    $i++;
+                    #    continue;
+                    #}
                     $text_color = "#517ecf";
                 } elseif ( $this->cmpstr( $req_var[ 1 ], "Medium" ) ) {
                     $text_color = "#e68735";
@@ -573,7 +572,6 @@ if ( class_exists( "pareto_functions" ) ):
                     $text_color   = "#e68735";
                 } else
                     $text_color = "#c72b2c";
-                if ( $this->cmpstr( $req_var[ 1 ], "Safe" ) ) $text_color = "#517ecf";
                 $mylogs_fin[ $i ] = $mylogs[ $i ];
                 $ip_addr = ( false !== $this->check_ip( $req_var[ 2 ], true ) ) ? $req_var[ 2 ] : '';
                 if ( false === $this->is_server( $req_var[ 2 ] ) ) {
