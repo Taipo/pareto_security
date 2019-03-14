@@ -148,7 +148,6 @@ class pareto_functions {
 	 * @return void
 	 */
     function karo( $req = '', $t = false, $severity = '', $log_only = false ) {
-        
         if ( $this->cmpstr( $severity, '' ) ) {
             $ban_type = 'Medium';
         } else $ban_type = $severity;
@@ -193,9 +192,11 @@ class pareto_functions {
         # Give a logged in WP Admins a pass only when posting data
         # if notification only
         if ( false !== $this->is_wp( false, true ) || false === $log_only ) return;
+        # Do not ban or block the following
+        if ( false !== $this->cmpstr( $ban_type, 'Safe' ) || false !== $is_admin_ip ) return;
         
         # add IP address or return 403 only
-        if ( false === $is_admin_ip && false === $block_request ) $this->htaccessbanip( $this_ip );
+        if ( false === $block_request ) $this->htaccessbanip( $this_ip );
         $this->send403();
     }
     function file_created() {
@@ -214,8 +215,8 @@ class pareto_functions {
         
         # set lockdown mode
         if ( false !== $this->lockdown_mode( $logfile ) ) return; // no email notifications or entries into DB
-        
-        if ( ( false !== ( bool ) $this->_hard_ban_mode ) || ( $this->cmpstr( 'medium', $ban_type, true ) || $this->cmpstr( "high", $ban_type, true ) ) ) {
+
+        if ( isset( $this->options[ 'email_report' ] ) && false !== $this->options[ 'email_report' ] || $this->cmpstr( 'medium', $ban_type, true ) || $this->cmpstr( "high", $ban_type, true ) ) {
             $x = 0;
             # count medium and high log entries
             foreach( $logfile as $key => $val ) {
@@ -224,17 +225,18 @@ class pareto_functions {
             }        
             # email every 5 entries
             $ban_type = ucfirst( $ban_type );
-            if ( $this->cmpstr( 'Safe', $ban_type, true ) ) return;
-            $logged_count = ( string ) ( $x / 5 );
-            if ( false !== ( bool ) $this->_email_report && $x != 0 && false !== ctype_digit( $logged_count ) ) {
-                $text_color = ( $this->cmpstr( 'Medium', $ban_type, true ) ) ? "#e68735" : "#c72b2c";
-                $this->email_log( "\n<tr style=\"background-color: #F3F3F3\">\n" . "    <td style=\"font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;vertical-align:top; width:100px; white-space: nowrap\">" . $this->set_timestamp( time() ) . "</td>\n
-                                         <td style=\"vertical-align:top; text-align: center; width:70px; white-space: nowrap; font-size:11px;white-space:nowrap; font-family:Verdana,Tahoma,Arial,sans-serif;font-weight: bold; color:" . $text_color . "\">" . $ban_type . "</td>\n
-                                         <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:140px; white-space: nowrap\">" . $this->get_ip() . "</td>\n
-                                         <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:50px; white-space: nowrap\">" . $_SERVER[ 'REQUEST_METHOD' ] . "</td>\n
-                                         <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:100px; white-space: nowrap\">" . $this->get_filename() . "</td>\n
-                                         <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;white-space: nowrap\"><code>" . $req_orig . "</code></td>\n
-                                    </tr>" );
+            if ( false === $this->cmpstr( 'Safe', $ban_type, true ) && false === $this->cmpstr( 'Low', $ban_type, true ) ) {
+                $logged_count = ( string ) ( $x / 5 );
+                if ( false !== ( bool ) $this->_email_report && $x != 0 && false !== ctype_digit( $logged_count ) ) {
+                    $text_color = ( $this->cmpstr( 'Medium', $ban_type, true ) ) ? "#e68735" : "#c72b2c";
+                    $this->email_log( "\n<tr style=\"background-color: #F3F3F3\">\n" . "    <td style=\"font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;vertical-align:top; width:100px; white-space: nowrap\">" . $this->set_timestamp( time() ) . "</td>\n
+                                             <td style=\"vertical-align:top; text-align: center; width:70px; white-space: nowrap; font-size:11px;white-space:nowrap; font-family:Verdana,Tahoma,Arial,sans-serif;font-weight: bold; color:" . $text_color . "\">" . $ban_type . "</td>\n
+                                             <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:140px; white-space: nowrap\">" . $this->get_ip() . "</td>\n
+                                             <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:50px; white-space: nowrap\">" . $_SERVER[ 'REQUEST_METHOD' ] . "</td>\n
+                                             <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:100px; white-space: nowrap\">" . $this->get_filename() . "</td>\n
+                                             <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;white-space: nowrap\"><code>" . $req_orig . "</code></td>\n
+                                        </tr>" );
+                }
             }
         }
         
@@ -541,7 +543,6 @@ class pareto_functions {
 	 * @return void
 	 */
     public function load_lists( $blacklists = false, $injectors = false ) {
-
         if ( false !== $blacklists ) {
             $xml_lists = ( ( false !== $this->is_wp() ) ? plugin_dir_path( __FILE__ ) : dirname( __FILE__ ) ) . "/xml/lists.xml";
             if ( false !== $this->is_wp() ) $this->_datalist = wp_cache_get( 'mylists' );
@@ -575,7 +576,6 @@ class pareto_functions {
 	 * @return boolean
 	 */
     function injectMatch( $string ) {
-       
         $string = $this->url_decoder( strtolower( $string ) );
         
         # these are the triggers to engage the rest of this function.
@@ -1403,6 +1403,7 @@ class pareto_functions {
             # Only if in Hard Ban Mode
             # xml-rpc
             if ( false === $this->_spider_bypass ) {
+                $this_ip = $this->get_ip();
                 if ( false !== ( bool ) $this->_hard_ban_mode ) {
                     if ( false !== strpos( $user_agent, 'mozilla' ) ) return;
                     # Allow unsupported user-agents for XML-RPC
@@ -1414,7 +1415,7 @@ class pareto_functions {
                         $ulist = explode( "\n", $this->host_check( $this->options[ 'safe_list' ] ) );
                         if ( is_array( $ulist ) ) {
                             foreach( $ulist as $val ) {
-                                if ( ( false !== $this->check_ip( $val, true ) ) && false !== $this->cmpstr( $val, $this->get_ip() ) ) {
+                                if ( ( false !== $this->check_ip( $val, true ) ) && false !== $this->cmpstr( $val, $this_ip ) ) {
                                     $this->karo( "Whitelisted IP address has made a request to your website " . $val, false, 'Safe', false );
                                     return;
                                 }
@@ -1422,11 +1423,12 @@ class pareto_functions {
                         }
                     }
                     # Only allow whitelisted user-agents
-                    if ( false === $this->is_server() &&
+                    $is_admin = ( isset( $this->options[ 'admin_ip' ] ) && false !== $this->cmpstr( $this_ip, $this->options[ 'admin_ip' ] ) ) ? true: false;
+                    if ( false !== $is_admin || ( false === $this->is_server() &&
                          false === $this->cmpstr( $user_agent, "''" ) &&
-                         false === ( bool ) $this->datalist( $user_agent, 4 ) ) {
+                         false === ( bool ) $this->datalist( $user_agent, 4 ) ) ) {
                          if ( ( bool ) false !== $this->_banip ) {
-                            $this->karo( " Crawler/USER-AGENT: " . $user_agent, ( ( false !== ( bool ) $this->_hard_ban_mode && false === $this->is_server( $this->get_ip() ) ) ? ( bool ) $this->_banip : false ), "Low", true );
+                            $this->karo( " Crawler/USER-AGENT: " . $user_agent, ( ( false === $is_admin && false !== ( bool ) $this->_hard_ban_mode && false === $this->is_server( $this_ip ) ) ? ( bool ) $this->_banip : false ), "Low", true );
                          }
                     } else return;
                 }
@@ -1843,8 +1845,8 @@ class pareto_functions {
             # the SERVER_NAME is an IP so check it against SERVER_ADDR
             if ( false === $this->is_server( $server_ip ) ) {
                 $req = $this->getREQUEST_URI();
-                if ( false !== $this->cmpstr( 'CONNECT', $_SERVER[ 'REQUEST_METHOD' ], true ) ) $this->karo( $server_ip . " :: Incorrect Server IP / possible proxying attempt - Should be " . $_SERVER[ 'SERVER_ADDR' ], false, 'Medium', true );
-                if ( false === $this->cmpstr( 'CONNECT', $_SERVER[ 'REQUEST_METHOD' ], true ) ) $this->karo( $server_ip . " :: Incorrect Server IP - Should be " . $_SERVER[ 'SERVER_ADDR' ], false, 'Medium', true );
+                if ( false !== $this->cmpstr( 'CONNECT', $_SERVER[ 'REQUEST_METHOD' ], true ) ) $this->karo( $server_ip . " :: Incorrect Server IP / possible proxying attempt - Should be " . $_SERVER[ 'SERVER_ADDR' ], false, 'Low', true );
+                if ( false === $this->cmpstr( 'CONNECT', $_SERVER[ 'REQUEST_METHOD' ], true ) ) $this->karo( $server_ip . " :: Incorrect Server IP - Should be " . $_SERVER[ 'SERVER_ADDR' ], false, 'Low', true );
             }
         }
         
