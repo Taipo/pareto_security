@@ -3,9 +3,9 @@ Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Donate link: https://hokioisecurity.com/donations/
 Requires at least: 4.7.2
-Tested up to: 5.0.3
+Tested up to: 5.1.1
 Requires PHP: 5.3
-Stable tag: 2.2.8
+Stable tag: 2.3.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -110,6 +110,5 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
-
-= 2.2.8 =
-* Small bug in email report that could cause "Safe" requests to be prepended.
+= 2.3.1 =
+* Fixed bug in email report
