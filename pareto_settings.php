@@ -1,7 +1,7 @@
 <?php
 if ( class_exists( "pareto_functions" ) ):
     class pareto_settings extends pareto_functions {
-        public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'email_report' => 1, 'safe_list' => '', 'admin_ip' => '' );
+        public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'email_report' => 1, 'safe_list' => '', 'admin_ip' => '', 'tor_block' => 0 );
         public $pagehook, $page_id, $settings_field, $options = array(), $logs, $time_zone, $_textdomain = 'pareto_security_settings';
         public $_ban_mode = 0;
         private $lockdown_status, $prefix = 'pareto_settings';
@@ -13,7 +13,7 @@ if ( class_exists( "pareto_functions" ) ):
             }
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
             
-            define( 'PARETO_VERSION', '2.3.1' );
+            define( 'PARETO_VERSION', '2.3.4' );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
             
@@ -37,7 +37,8 @@ if ( class_exists( "pareto_functions" ) ):
                      'hard_ban_mode' => 0,
                      'email_report' => 1,
                      'ban_mode' => 0,
-                     'admin_ip' => ''
+                     'admin_ip' => '',
+                     'tor_block' => 0
                 ) );
                 $this->options = get_option( $this->settings_field );
             }
@@ -46,11 +47,14 @@ if ( class_exists( "pareto_functions" ) ):
             $this->options[ 'email_report' ]  = ( false !== $this->check_settings( 'email_report' ) ) ? ( int ) $this->options[ 'email_report' ] : 0;
             $this->options[ 'advanced_mode' ] = ( false !== $this->check_settings( 'advanced_mode' ) ) ? ( int ) $this->options[ 'advanced_mode' ] : 0;
             $this->options[ 'hard_ban_mode' ] = ( false !== $this->check_settings( 'hard_ban_mode' ) ) ? ( int ) $this->options[ 'hard_ban_mode' ] : 0;
+            $this->options[ 'tor_block' ]     = ( false !== $this->check_settings( 'tor_block' ) ) ? ( int ) $this->options[ 'tor_block' ] : 0;
+            
             $this->_hard_ban_mode = $this->options[ 'hard_ban_mode' ];
             if ( array_key_exists( 'safe_list', $this->options ) ) {
                 $this->_domain_list = $this->get_field_value( $this->options, 'safe_list' );
                 $this->options[ 'safe_list' ] = $this->_domain_list;
             }
+            
             $this->logs = get_option( PARETO_LOG_LIST );
             # only available to logged in Admins
             if ( false !== ( bool ) $this->is_wp( true, true ) ) {
@@ -70,13 +74,16 @@ if ( class_exists( "pareto_functions" ) ):
                         if ( isset( $this_post[ $this->settings_field ][ "advanced_mode" ] ) ) {
                             $this_post[ $this->settings_field ][ "advanced_mode" ] = ( int ) $this_post[ $this->settings_field ][ "advanced_mode" ];
                             if ( !isset( $this_post[ $this->settings_field ][ "safe_list" ] ) || empty( $this_post[ $this->settings_field ][ "safe_list" ] ) ) $this_post[ $this->settings_field ][ "safe_list" ] = $this->get_http_host();
-                        }
+                        } else $this_post[ $this->settings_field ][ "advanced_mode" ] = 0;
                         if ( isset( $this_post[ $this->settings_field ][ "email_report" ] ) )
                             $this_post[ $this->settings_field ][ "email_report" ] = ( int ) $this_post[ $this->settings_field ][ "email_report" ];
                         if ( isset( $this_post[ $this->settings_field ][ "hard_ban_mode" ] ) ) {
                             $this_post[ $this->settings_field ][ "hard_ban_mode" ] = ( int ) $this_post[ $this->settings_field ][ "hard_ban_mode" ];
                             if ( false !== ( bool ) $this_post[ $this->settings_field ][ "hard_ban_mode" ] ) $this_post[ $this->settings_field ][ "advanced_mode" ] = 1;
-                        }
+                        } 
+                        if ( isset( $this_post[ $this->settings_field ][ "tor_block" ] ) ) {
+                            $this_post[ $this->settings_field ][ "tor_block" ] = ( int ) $this_post[ $this->settings_field ][ "tor_block" ];
+                        } else $this_post[ $this->settings_field ][ "tor_block" ] = 0;
                     }
                     if ( isset( $this_post[ 'save_options' ] ) && $this->cmpstr( strtolower( $this_post[ 'save_options' ] ), 'x' ) ) {
                         # Do logs
@@ -112,11 +119,12 @@ if ( class_exists( "pareto_functions" ) ):
                 ), 20 );
                 $this->ip_count = $this->count_banned_ips();
             }
-            
+
             $this->_adv_mode      = $this->get_field_value( $this->options, 'advanced_mode' );
             $this->_ban_mode      = $this->get_field_value( $this->options, 'ban_mode' );
             $this->_email_report  = $this->get_field_value( $this->options, 'email_report' );
-            
+            $this->_tor_block     = $this->get_field_value( $this->options, 'tor_block' );
+
             $this->update_logfile( $this->logs ); // set $this->logs
 
             # deal with dynamic IP addresses
@@ -496,6 +504,27 @@ if ( class_exists( "pareto_functions" ) ):
 											<div class="divAdvancedMode">&nbsp;</div>
                                             <div class="divAdvancedMode">- Ban irregular user-agent/crawlers</div>
 										</div>
+										<div class="divTableRow">
+											<div class="divAdvancedMode">
+                                                <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'tor_block' ); ?>" id="<?php echo $this->get_field_id( 'tor_block' ); ?>" value="1"
+                                  <?php if ( !isset( $this->options[ 'advanced_mode' ] ) || ( isset( $this->options[ 'advanced_mode' ] ) &&
+                                              false === ( bool ) $this->options[ 'advanced_mode' ] ) || false === ( bool ) $this->_adv_mode ) { ?>disabled="disabled"<?php } ?>
+                                              <?php
+                                              if ( isset( $this->options[ 'tor_block' ] ) &&
+                                                         isset( $this->options[ 'advanced_mode' ] ) && $this->options[ 'tor_block' ] == 1 ) { ?>checked<?php } ?> />
+                                            <span class="checkmark"></span></label></div>
+											<div class="divAdvancedMode"><label for="<?php echo $this->get_field_id( 'tor_block' ); ?>"><?php _e( '<strong>Block Tor Access</strong> WARNING: If you use Tor to access your admin, DO NOT ENABLE THIS!', $this->_textdomain ); ?></label></div>
+										</div>
+										<div class="divTableRow">
+											<div class="divAdvancedMode">&nbsp;</div>
+                                            <div class="divAdvancedMode">
+                                                <?php echo esc_html( 'Prevent Tor users from:', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( '- making log-in attempts,', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( '- making comments or using contact forms,', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( '- searching your site,', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( '- accessing XMLRPC,', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( '- accessing admin areas.', $this->_textdomain ); ?></div>
+										</div>                                        
 									</div>
 								</div>
 							</div>
