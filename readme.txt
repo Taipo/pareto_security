@@ -5,7 +5,7 @@ Donate link: https://hokioisecurity.com/donations/
 Requires at least: 4.7.2
 Tested up to: 5.1.1
 Requires PHP: 5.3
-Stable tag: 2.3.1
+Stable tag: 2.3.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -110,5 +110,18 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+= 2.3.4 =
+* Proxy attempts now medium risk
+* Option to restrict Tor users access preventing admin, logging in, and search functions
+
+= 2.3.3 =
+* Attempts to proxy through Server IP are now banned.
+* More work on addressing HTACCESS bugs
+
+= 2.3.2 =
+* Removed the Safe reference to whitelisted ip addresses
+* Repair bug in code that can corrupt the htaccess file
+
 = 2.3.1 =
 * Fixed bug in email report
