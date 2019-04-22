@@ -1,5 +1,4 @@
 === Pareto Security ===
-
 Contributors: @te_taipo
 
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
@@ -15,7 +14,6 @@ License URI: http://www.gnu.org/licenses/gpl-2.0.html
 WordPress Core Security: Secure your website with real security.
 
 == Description ==
-
 #### PARETO SECURITY FEATURES
 
 Had enough of the security theatre presented by the raft of Wordpress security plugins? Time to put a stop to the attacks!
@@ -41,6 +39,8 @@ Pareto Security class acts as a Central Security Hub checking all inputs from us
 * Pareto Security Protection dynamic IP Blacklist protects your site while reducing load.
 * Protects your site at the entry-point, disabling attack peneration of your WordPress site.
 * Extends Wordpress inbuilt security, defends your website against vulnerabilities added in via bad plugin coding.
+* Optionally prevent Tor users/bots from interacting with login forms and search functions of your site while still allowing them to *view* your site.
+* Optionally only allow standard web clients and trusted crawlers to access your website, discouraging others from doing so.
 
 #### PARETO SECURITY TOOLS
 * Monitor blocked attack attempts
@@ -83,7 +83,7 @@ The Pareto Security developers understand how PHP - the coding language in which
 
 = How will I be alerted if my site has a security problem? =
 
-Pareto Security sends attack alerts via email. Once you install Pareto Security you can enabled email notifications. You will never be flooded with notifications as Pareto Security only sends notifications of high r-sk attacks *that have been blocked*.
+Pareto Security sends attack alerts via email. Once you install Pareto Security you can enabled email notifications. You will never be flooded with notifications as Pareto Security only sends notifications of high risk attacks *that have been blocked*.
 
 = Do I need other security plugins or cloud based firewalls? =
 
