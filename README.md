@@ -4,11 +4,17 @@ Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 
 Donate link: https://hokioisecurity.com/donations/
+
 Requires at least: 4.7.2
+
 Tested up to: 5.1.1
+
 Requires PHP: 5.3
+
 Stable tag: 2.3.2
+
 License: GPLv2 or later
+
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress Core Security: Secure your website with real security.
