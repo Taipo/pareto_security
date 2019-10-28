@@ -3,9 +3,9 @@ Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Donate link: https://hokioisecurity.com/donations/
 Requires at least: 4.7.2
-Tested up to: 5.1.1
-Requires PHP: 5.3
-Stable tag: 2.3.2
+Tested up to: 5.2.4
+Requires PHP: 5.6.2
+Stable tag: 2.6.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,17 +113,10 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 2.3.4 =
-* Proxy attempts now medium risk
-* Option to restrict Tor users access preventing admin, logging in, and search functions
+= 2.6.2 =
+* Check POST variable strings for control characters (Hard Ban Mode Only)
+* Correctly print control characters in the log
 
-= 2.3.3 =
-* Attempts to proxy through Server IP are now banned.
-* More work on addressing HTACCESS bugs
-
-= 2.3.2 =
-* Removed the Safe reference to whitelisted ip addresses
-* Repair bug in code that can corrupt the htaccess file
-
-= 2.3.1 =
-* Fixed bug in email report
+= 2.6.1 =
+* Improve logging of advanced attack vectors
+* Fix IP count function
