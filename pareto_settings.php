@@ -12,20 +12,28 @@ if ( class_exists( "pareto_functions" ) ):
                 exit();
             }
             $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
-            
-            define( 'PARETO_VERSION', '2.3.4' );
+
+            define( 'PARETO_VERSION', '2.6.2' );
             define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
             define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
             
             load_plugin_textdomain( $this->_textdomain );
+            // Register style sheet
             add_action( "admin_enqueue_scripts", array( $this, 'enqueue_scripts' ) );
             $this->kickoff();
         }
         function get_ver( $file ) {
-            return filemtime( plugin_dir_path( $file, __FILE__ ) );
-        }        
-        function enqueue_scripts() {
-            wp_enqueue_style( "{$this->prefix}_style", plugins_url( 'css/style.css', __FILE__ ), NULL, $this->get_ver( 'css/style.css' ) );
+            return filemtime( PARETO_DIR );
+        }
+        /**
+         * Register style sheet.
+         */
+        function enqueue_scripts( $hook ) {
+            if ( $hook != 'toplevel_page_pareto_security_settings' ) {
+                    return;
+            }
+            wp_register_style( 'pareto-security', plugins_url( 'css/pareto_style.css' ) );
+            wp_enqueue_style( "{$this->prefix}_style", plugins_url( 'css/pareto_style.css', __FILE__ ), NULL, $this->get_ver( 'css/pareto_style.css' ) );
             wp_enqueue_script( "{$this->prefix}_js", plugins_url( 'js/hokioi.js', __FILE__ ), NULL, $this->get_ver( 'js/hokioi.js' ) );
         }
         function kickoff() {
@@ -52,6 +60,8 @@ if ( class_exists( "pareto_functions" ) ):
             $this->_hard_ban_mode = $this->options[ 'hard_ban_mode' ];
             if ( array_key_exists( 'safe_list', $this->options ) ) {
                 $this->_domain_list = $this->get_field_value( $this->options, 'safe_list' );
+                $this->_domain_list = preg_replace( '/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $this->_domain_list ); // strip out any control characters but not new lines and carriage returns
+                $this->_domain_list = preg_replace( "/[^\r\na-zA-Z0-9_\.\-]/i", '', $this->_domain_list ); // allow only alphanumeric and -_.
                 $this->options[ 'safe_list' ] = $this->_domain_list;
             }
             
@@ -184,34 +194,28 @@ if ( class_exists( "pareto_functions" ) ):
             }
             $this->logs = $final_logfile;
             update_option( PARETO_LOG_LIST, $final_logfile );
-        }
+        } 
         function count_banned_ips() {
             if ( false === $this->htapath() ) return 0;
             $mybans     = file( $this->htapath() );
-            $thisdomain = $this->cleanString( 10, $this->get_http_host() );
-            $limitstart = "# " . $thisdomain . " Pareto Security Ban\n";
-            $limitend   = "# End of " . $thisdomain . " Pareto Security Ban\n";
-            
-            $mybans_only = array();
-            if ( empty( $mybans ) || false === in_array( $limitstart, $mybans ) ) return 0;
-            $limitstart_key = ( int ) array_search( $limitstart, $mybans );
-            for ( $x = $limitstart_key; $x < count( $mybans ); $x++ ) {
-                $mybans[ $x ] = strtolower( preg_replace( "/[\r]/i", '', $mybans[ $x ] ) );
-                if ( false === strpos( $mybans[ $x ], 'deny from all' ) && false !== ( bool ) preg_match( "/^deny from \d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/i", $mybans[ $x ] ) ) $mybans_only[] = $mybans[ $x ];
-            }
-            return count( $mybans_only );
+            if ( empty( $mybans ) ) return 0;
+            $mybans_denyfrom = array();
+            $mybans_denyfrom = $this->find_in_array( "deny from ", $mybans );
+            return count( $mybans_denyfrom );         
         }
+        function find_in_array( $string, $array = array(), $makebool = false ) {       
+            foreach ( $array as $key => $value ) {
+                unset ( $array[ $key ] );
+                if ( false !== strpos( $value, $string ) ) {
+                    $array[ $key ] = $value;
+                }
+            }       
+            if ( false !== $makebool ) return !empty( $array ); // return Boolean
+            if ( false === $makebool ) return $array; // return instances of string
+        }
+        
         function update_logfile( $logfile = array() ) {
             $tmp_logfile = array();
-            if ( !empty( $logfile ) && false === ( bool ) $this->_hard_ban_mode ) {
-                for( $x = 0; $x < count( $logfile ); $x++ ) {
-                    $this_log = strtolower( substr( $logfile[ $x ], 0, 100) );
-                    if ( false === strpos( $this_log, "crawler" ) || false !== strpos( $this_log, PARETO_RELEASE_DATE ) ) {
-                         $tmp_logfile[] = $logfile[ $x ];
-                    }
-                }
-                $this->logs = $tmp_logfile;
-            }
             if ( empty( $this->logs ) ) {
                 update_option( PARETO_LOG_LIST, array(
                      0 => SETTINGS_INSTALL_LOG ) );
@@ -333,15 +337,14 @@ if ( class_exists( "pareto_functions" ) ):
                     <td><h1><?php echo esc_html( $title ); ?></h1></td>
                 </tr>
             </table>
-            <form method="post" action="options.php">
+            <form name="LogFile" method="post" action="options.php">
                 <div class="metabox-holder">
                     <div class="postbox-container" style="width: 99%;">
  <?php
             // Render metaboxes
             settings_fields( $this->settings_field );
             do_meta_boxes( $this->pagehook, 'main', null );
-            if ( isset( $wp_meta_boxes[ $this->pagehook ][ 'column2' ] ) )
-                do_meta_boxes( $this->pagehook, 'column2', null );
+            if ( isset( $wp_meta_boxes[ $this->pagehook ][ 'column2' ] ) ) do_meta_boxes( $this->pagehook, 'column2', null );
 ?>
                    </div>
                 </div>
@@ -384,13 +387,13 @@ if ( class_exists( "pareto_functions" ) ):
                  $this,
                 'save_settings' 
             ), $this->pagehook, 'main' );
-            add_meta_box( 'pareto-security-settings-logs', esc_html( 'Last 100 Incidents', $this->_textdomain ), array(
-                 $this,
-                'logfile_box' 
-            ), $this->pagehook, 'main' );
             add_meta_box( 'pareto-security-settings-donations', esc_html( 'Donations', $this->_textdomain ), array(
                  $this,
                 'donations_box' 
+            ), $this->pagehook, 'main' );
+            add_meta_box( 'pareto-security-settings-logs', esc_html( 'Last 100 Incidents', $this->_textdomain ), array(
+                 $this,
+                'logfile_box' 
             ), $this->pagehook, 'main' );
         }
         
@@ -489,6 +492,22 @@ if ( class_exists( "pareto_functions" ) ):
                                                 <br><?php echo esc_html( '- XML-RPC Flood Protection - detect and ban User/Password Cracking Attack', $this->_textdomain ); ?>
                                             </div>
 										</div>
+                                        <div class="divTableRow">
+											<div class="divAdvancedMode">
+                                                <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'tor_block' ); ?>" id="<?php echo $this->get_field_id( 'tor_block' ); ?>" value="1" <?php if ( !isset( $this->options[ 'advanced_mode' ] ) || ( isset( $this->options[ 'advanced_mode' ] ) && false === ( bool ) $this->options[ 'advanced_mode' ] ) || false === ( bool ) $this->_adv_mode ) { ?>disabled="disabled"<?php } ?>
+                                              <?php
+                                              if ( isset( $this->options[ 'tor_block' ] ) &&
+                                                   isset( $this->options[ 'advanced_mode' ] ) && $this->_tor_block == 1 ) { ?>checked<?php } ?> />
+                                            <span class="checkmark"></span></label></div>
+											<div class="divAdvancedMode"><label for="<?php echo $this->get_field_id( 'tor_block' ); ?>"><?php _e( '<strong>Block Tor Access</strong> WARNING: If you use Tor to access your admin, DO NOT ENABLE THIS!', $this->_textdomain ); ?></label></div>
+										</div>
+										<div class="divTableRow">
+											<div class="divAdvancedMode">&nbsp;</div>
+                                            <div class="divAdvancedMode">
+                                                <?php echo esc_html( 'Prevent Tor users from:', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( '- making log-in attempts, accessing XMLRPC', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( '- making comments or using contact forms, search functions', $this->_textdomain ); ?></div>
+										</div>  
 										<div class="divTableRow">
 											<div class="divAdvancedMode">
                                                 <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'hard_ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>" value="1"
@@ -504,27 +523,6 @@ if ( class_exists( "pareto_functions" ) ):
 											<div class="divAdvancedMode">&nbsp;</div>
                                             <div class="divAdvancedMode">- Ban irregular user-agent/crawlers</div>
 										</div>
-										<div class="divTableRow">
-											<div class="divAdvancedMode">
-                                                <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'tor_block' ); ?>" id="<?php echo $this->get_field_id( 'tor_block' ); ?>" value="1"
-                                  <?php if ( !isset( $this->options[ 'advanced_mode' ] ) || ( isset( $this->options[ 'advanced_mode' ] ) &&
-                                              false === ( bool ) $this->options[ 'advanced_mode' ] ) || false === ( bool ) $this->_adv_mode ) { ?>disabled="disabled"<?php } ?>
-                                              <?php
-                                              if ( isset( $this->options[ 'tor_block' ] ) &&
-                                                         isset( $this->options[ 'advanced_mode' ] ) && $this->options[ 'tor_block' ] == 1 ) { ?>checked<?php } ?> />
-                                            <span class="checkmark"></span></label></div>
-											<div class="divAdvancedMode"><label for="<?php echo $this->get_field_id( 'tor_block' ); ?>"><?php _e( '<strong>Block Tor Access</strong> WARNING: If you use Tor to access your admin, DO NOT ENABLE THIS!', $this->_textdomain ); ?></label></div>
-										</div>
-										<div class="divTableRow">
-											<div class="divAdvancedMode">&nbsp;</div>
-                                            <div class="divAdvancedMode">
-                                                <?php echo esc_html( 'Prevent Tor users from:', $this->_textdomain ); ?>
-                                            <br><?php echo esc_html( '- making log-in attempts,', $this->_textdomain ); ?>
-                                            <br><?php echo esc_html( '- making comments or using contact forms,', $this->_textdomain ); ?>
-                                            <br><?php echo esc_html( '- searching your site,', $this->_textdomain ); ?>
-                                            <br><?php echo esc_html( '- accessing XMLRPC,', $this->_textdomain ); ?>
-                                            <br><?php echo esc_html( '- accessing admin areas.', $this->_textdomain ); ?></div>
-										</div>                                        
 									</div>
 								</div>
 							</div>
@@ -541,12 +539,15 @@ if ( class_exists( "pareto_functions" ) ):
 <?php
         }
         function notes_box() {
-            $mode     = ( false === ( bool ) $this->_adv_mode ) ? esc_html( 'Standard', $this->_textdomain ) : esc_html( 'Advanced', $this->_textdomain );
+            $mode     = esc_html( 'Standard Mode', $this->_textdomain );
+            $mode     = ( false === ( bool ) $this->_adv_mode ) ? esc_html( 'Standard Mode', $this->_textdomain ) : esc_html( 'Advanced Mode', $this->_textdomain );
+            $mode     = ( false !== ( bool ) $this->_tor_block ) ? esc_html( 'Advanced Mode, Tor Block Mode', $this->_textdomain ) : esc_html( $mode, $this->_textdomain );
+            $mode     = ( false !== ( bool ) $this->_hard_ban_mode ) ? $mode . ', ' . esc_html( 'Hard Ban Mode', $this->_textdomain ) : esc_html( $mode, $this->_textdomain );
             $mode     = ( false !== $this->lockdown_status ) ? esc_html( 'Lockdown', $this->_textdomain ) : $mode;
             $ban_type = ( false !== ( bool ) $this->_adv_mode && false !== ( bool ) $this->_hard_ban_mode ) ? esc_html( 'Low, Medium and High severity requests added to banned IP list', $this->_textdomain ) : esc_html( 'Medium and High severity requests added to banned IP list', $this->_textdomain );
             ?>
     <ul>
-        <li><?php echo esc_html( '+ Status:', $this->_textdomain ); ?> <i><?php echo $mode; ?> Mode</i></li>
+        <li><?php echo esc_html( '+ Status:', $this->_textdomain ); ?> <i><?php echo $mode; ?></i></li>
         <li><?php echo esc_html( '+ Server:', $this->_textdomain ); ?> <?php echo ( strlen( $_SERVER[ "SERVER_SOFTWARE" ] ) > 14 ) ? trim( substr( $_SERVER[ "SERVER_SOFTWARE" ], 0, 14 ) ) . "..." : $_SERVER[ "SERVER_SOFTWARE" ]; ?></li>
         <?php
             if ( false !== $this->htapath() && false === $this->is_iis() ) {
@@ -561,9 +562,9 @@ if ( class_exists( "pareto_functions" ) ):
         <li><?php echo ( ( version_compare( phpversion(), '5.4', '>=' ) ) ? _e( '+ ', $this->_textdomain ) : _e( '- ', $this->_textdomain ) ) . _e( 'Your server is running PHP version ' . substr( phpversion(), 0, 3 ), $this->_textdomain ); ?>
         <?php echo ( version_compare( phpversion(), '5.4', '>=' ) ) ? _e( ' &#x2713&#x2713&#x2713; ', $this->_textdomain ) : _e( ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 5.4', $this->_textdomain ); ?></li>
     </ul>
+
        <?php }
        function logfile_box() { ?>
-       
        <table style="width: 100%; text-align: left; background-color: #C9C9C9;">
             <tr>
                 <td>
@@ -576,7 +577,8 @@ if ( class_exists( "pareto_functions" ) ):
                         <td style="padding:0px 3px 3px 3px;width:50px;color:#FFFFFF"><b><?php echo esc_html( 'Req:', $this->_textdomain ); ?></b></font></td>
                         <td style="padding:0px 3px 3px 3px;width:100px;color:#FFFFFF"><b><?php echo esc_html( 'Filename:', $this->_textdomain ); ?></b></font></td>
                         <td style="padding:0px 3px 3px 3px;color:#FFFFFF"><b><?php echo esc_html( 'Vector:', $this->_textdomain ); ?></b></font></td>
-                        <td style="padding:0px 3px 3px 3px;color:#FFFFFF;width:30px;"><b><?php echo esc_html( 'Edit:', $this->_textdomain ); ?></b></font></td>
+                        <td style="padding:0px 3px 3px 3px;color:#FFFFFF;width:30px;"><input name="multiselect" type="checkbox"  onclick="javascript:checkAll('LogFile', true);" /></td>
+                         
                       </tr>
 <?php
         $mylogs     = array();
@@ -589,10 +591,6 @@ if ( class_exists( "pareto_functions" ) ):
                 $row_colour = ''; // = ( $i % 2 == 0 ) ? "#F3F3F3" : "#FFFFFF";
                 $req_var    = explode( " ", $mylogs[ $i ] );
                 if ( $this->cmpstr( strtolower( $req_var[ 1 ] ), "low" ) ) {
-                    #if ( false === ( bool ) $this->_adv_mode ) {
-                    #    $i++;
-                    #    continue;
-                    #}
                     $text_color = "#517ecf";
                 } elseif ( $this->cmpstr( $req_var[ 1 ], "Medium" ) ) {
                     $text_color = "#e68735";
@@ -620,6 +618,7 @@ if ( class_exists( "pareto_functions" ) ):
                                       ( false !== strpos( $this_timestamp, 'AM' ) ? substr( $this_timestamp, 0, strpos( $this_timestamp, 'AM' ) ) . ' AM' : substr( $this_timestamp, 0, strpos( $this_timestamp, 'PM' ) ) . ' PM' ) : $this_timestamp ;
                 }
                 $attack_string = str_replace( '%20', " ", preg_replace( "/[\n]/i", "", stripslashes( $req_var[ 5 ] ) ) );
+                $attack_string = ( strlen( $attack_string ) > $this->_trim_log_entry ) ? substr( $attack_string, 0, ( $this->_trim_log_entry - 1 ) ) . "..." : $attack_string;
                         echo "<tr style=\"font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;color:#3E3E3E;background-color:" . $row_colour . "\">" . "
                         <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px;vertical-align:top;width:100px; white-space: nowrap\">" . $this_timestamp . "</td>" . "
                         <td title=\"Click Row to Select Log Entry\" onclick=\"checkRow(this, 'row" . $i . "');\" style=\"padding:3px 3px 3px 3px; vertical-align:top;text-align:center; width:70px; white-space: nowrap; font-weight: bold; color:" . $text_color . "\">" . $req_var[ 1 ] . "</td>" . "
@@ -631,7 +630,7 @@ if ( class_exists( "pareto_functions" ) ):
             } else
                 break;
             $i++;
-        } 
+        }
 ?>
                </table>
                 </td>
