@@ -762,7 +762,11 @@ class pareto_functions {
     function do_blacklists( $input, $list, $desc, $bantype = false, $severity = "High", $log = false, $reqmatch = false, $injectmatch = false ) {
         if ( $list > 0 && false !== $reqmatch && false !== ( bool ) $this->datalist( $input, $list ) ) $this->karo( $desc . ": " . $input, $bantype, $severity, $log );
         if ( false !== $injectmatch && false !== $this->injectMatch( $input ) ) $this->karo( "Injection "  . $desc . ": " . $input, $bantype, $severity, $log );
-        if (  false !== ( bool ) $this->_hard_ban_mode && $list == 2 && false !== $this->controlchar_exists( $input ) ) $this->karo( "Control Character Injection "  . $desc . ": " . $input, $bantype, "High", $log ); // test POST variables for control characters
+        if ( ( false !== ( bool ) $this->_hard_ban_mode ) &&
+             ( $list == 2 ) && ( !empty( $input ) ) &&
+             ( false !== $this->controlchar_exists( $input ) ) ) {
+               $this->karo( "Control Character Injection "  . $desc . ": " . $input, $bantype, "High", $log ); // test POST variables for control characters
+        }
     }
     /**
 	 * Filter REQUEST_URI
@@ -2181,9 +2185,8 @@ class pareto_functions {
         return rawurldecode( urldecode( str_replace( chr( 0 ), '', $var ) ) );
     }
     function controlchar_exists( $input ) {
-        $this_count = strlen( $input );
-        $new_count  = strlen( preg_replace( '/[^\x00-\x08\x10-x19\x0E\x0F\x1A-\x1F\xC28F\xC290\xC29D\xDFBD\xDFBE\xDFBF]/', '', $input, $results ) ); // detect null-printing control characters
-        if ( $this_count <> $new_count ) return true;
+        $new_count  = strlen( preg_replace( '/[^\x00-\x08\x10-\x19\x0E\x0F\x1A\x1B\xC28F\xC290\xC29D\xDFBD\xDFBE\xDFBF]/', '', $input ) ); // detect null-printing control characters
+        if ( $this_count > 0 ) return true;
         return false;
     }
     function htmlentities_safe( $input ) {
