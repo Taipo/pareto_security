@@ -5,7 +5,7 @@ Donate link: https://hokioisecurity.com/donations/
 Requires at least: 4.7.2
 Tested up to: 5.2.4
 Requires PHP: 5.6.2
-Stable tag: 2.6.2
+Stable tag: 2.6.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -114,9 +114,6 @@ Other contacts: https://taipo.github.io/contact/
 == Changelog ==
 
 = 2.6.2 =
-* Check POST variable strings for control characters (Hard Ban Mode Only)
+* Check POST variable strings for a specific list of control characters being exploited by attackers to cause a null-byte condition (Hard Ban Mode Only)
 * Correctly print control characters in the log
-
-= 2.6.1 =
-* Improve logging of advanced attack vectors
-* Fix IP count function
+* Update header code
