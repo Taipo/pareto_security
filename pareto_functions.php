@@ -70,6 +70,19 @@ class pareto_functions {
                 error_reporting( 6135 );
         }
     }
+    function http_status( $num ) {
+        $http = array(
+            200 => 'HTTP/1.1 200 OK',
+            403 => 'HTTP/1.1 403 Forbidden',
+            404 => 'HTTP/1.1 404 Not Found',
+        );
+        header( $http[ $num ] );
+        return
+            array(
+                'code' => $num,
+                'error' => $http[ $num ],
+            );
+    }     
 	/**
 	 * Custom 403 Access Denied
 	 *
@@ -77,16 +90,7 @@ class pareto_functions {
 	 * @return void
 	 */
     function send403() {
-        $status   = '403 Access Denied';
-        $protocol = ( isset( $_SERVER[ 'SERVER_PROTOCOL' ] ) ? substr( $_SERVER[ 'SERVER_PROTOCOL' ], 0, 8 ) : 'HTTP/1.1' ) . ' ';
-        $header   = array(
-             $protocol . $status,
-            'Status: ' . $status,
-            'Content-Length: 0'
-        );
-        foreach ( $header as $sent ) {
-            header( $sent );
-        }
+        $this->http_status( 403 );
         exit();
     }
     /**
@@ -95,17 +99,7 @@ class pareto_functions {
      * return void
      */
     function send200() {
-        error_reporting( 0 );
-        $status   = '200 OK';
-        $protocol = ( isset( $_SERVER[ 'SERVER_PROTOCOL' ] ) ? substr( $_SERVER[ 'SERVER_PROTOCOL' ], 0, 8 ) : 'HTTP/1.1' ) . ' ';
-        $header   = array(
-             $protocol . $status,
-            'Status: ' . $status 
-        );
-        
-        foreach ( $header as $sent ) {
-            header( $sent );
-        }
+        $this->http_status( 200 );
         exit();
     }
 	/**
@@ -217,7 +211,7 @@ class pareto_functions {
         $logfile = array();
         $ban_type = strtolower( $ban_type );
         $logfile = get_option( PARETO_LOG_LIST );
-        
+        $req_orig  = $this->htmlentities_safe( $req_orig );
         # set lockdown mode
         if ( false !== $this->lockdown_mode( $logfile ) ) return; // no email notifications or entries into DB
 
@@ -329,7 +323,6 @@ class pareto_functions {
         if ( false !== ( bool ) $this->_adv_mode || ( false === ( bool ) $this->_adv_mode && $ban_type != "Low" ) ) {
             if ( false === $this->is_wp() ) date_default_timezone_set( 'NZ' );
             $req             = ( strlen( $req ) > $this->_trim_log_entry ) ? substr( $req, 0, $this->_trim_log_entry ) . "..." : $req;
-            $req  = $this->htmlentities_safe( $req );
             $req  = $this->cleanString( 11, $req ); // remove control characters (being extra safe)
             $req  = str_replace( "\\", "&bsol;", $req );
             $uuid = $this->get_ulid();
@@ -1698,8 +1691,8 @@ class pareto_functions {
                          ( false === isset( $_get_server[ 'SCRIPT_FILENAME' ] ) && isset( $_get_server[ 'PHP_SELF' ] ) &&
                            false !== $this->string_prop( basename( $_get_server[ 'PHP_SELF' ] ), 1 ) ) ) ? basename( $_get_server[ 'PHP_SELF' ] ) : basename( realpath( $_get_server[ 'SCRIPT_FILENAME' ] ) );
         preg_match( "@[a-z0-9_-]+\.php@i", $filename, $matches );
-        if ( is_array( $matches ) && array_key_exists( 0, $matches ) && false !== $this->cmpstr( '.php', substr( $matches[ 0 ], -4, 4 ), true ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->get_file_perms( $matches[ 0 ], true ) ) ) {
-            $filename = $matches[ 0 ];
+        if ( is_array( $matches ) && array_key_exists( 0, $matches ) && false !== $this->cmpstr( '.php', substr( $matches[ 0 ], -4, 4 ), true ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->get_file_perms(  $matches[ 0 ], true ) ) ) {
+          $filename = $matches[ 0 ];
         }
         return $filename;
     }
@@ -2185,8 +2178,9 @@ class pareto_functions {
         return rawurldecode( urldecode( str_replace( chr( 0 ), '', $var ) ) );
     }
     function controlchar_exists( $input ) {
-        $new_count  = strlen( preg_replace( '/[^\x00-\x08\x10-\x19\x0E\x0F\x1A\x1B\xC28F\xC290\xC29D\xDFBD\xDFBE\xDFBF]/', '', $input ) ); // detect null-printing control characters
-        if ( $this_count > 0 ) return true;
+        $char_count  = strlen( preg_replace( '/[^\x00-\x08\x10-\x19]/', '', $input ) ); // detect null-printing control characters
+       #$char_count  = strlen( preg_replace( '/[^\x0E\x0F\x1A\x1B\xC29D\xDFBD\xDFBE\xDFBF]/', '', $input ) ); // This filter is causing false positives
+        if ( $char_count > 0 ) return true;
         return false;
     }
     function htmlentities_safe( $input ) {
