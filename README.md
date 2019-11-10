@@ -124,9 +124,6 @@ Other contacts: https://taipo.github.io/contact/
 == Changelog ==
 
 = 2.6.2 =
-* Check POST variable strings for control characters (Hard Ban Mode Only)
+* Check POST variable strings for a specific list of control characters being exploited by attackers to cause a null-byte condition (Hard Ban Mode Only)
 * Correctly print control characters in the log
-
-= 2.6.1 =
-* Improve logging of advanced attack vectors
-* Fix IP count function
+* Update header code
