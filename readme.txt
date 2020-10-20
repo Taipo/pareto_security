@@ -2,10 +2,10 @@
 Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Donate link: https://hokioisecurity.com/donations/
-Requires at least: 4.7.2
-Tested up to: 5.2.4
-Requires PHP: 5.6.2
-Stable tag: 2.6.2
+Requires at least: 5.2.0
+Tested up to: 5.5.1
+Requires PHP: 5.6.0
+Stable tag: 2.8.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -37,7 +37,7 @@ Pareto Security class acts as a Central Security Hub checking all inputs from us
 * Pareto Security Protection dynamic IP Blacklist protects your site while reducing load.
 * Protects your site at the entry-point, disabling attack peneration of your WordPress site.
 * Extends Wordpress inbuilt security, defends your website against vulnerabilities added in via bad plugin coding.
-* Optionally prevent Tor users/bots from interacting with login forms and search functions of your site while still allowing them to *view* your site.
+* [disabled] Optionally prevent Tor users/bots from interacting with login forms and search functions of your site while still allowing them to *view* your site.
 * Optionally only allow standard web clients and trusted crawlers to access your website, discouraging others from doing so.
 
 #### PARETO SECURITY TOOLS
@@ -113,7 +113,5 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 2.6.2 =
-* Check POST variable strings for a specific list of control characters being exploited by attackers to cause a null-byte condition (Hard Ban Mode Only)
-* Correctly print control characters in the log
-* Update header code
+== 2.8.4 ==
+* Bug fix: allow_url_fopen status now detected
