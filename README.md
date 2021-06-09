@@ -1,3 +1,7 @@
+If you wish to use this outside of Wordpress just upload the files to their own folder (example /pareto_security/* and use the following code somewhere near the top of your code execution:
+
+``require_once( 'pareto_security/pareto_security.php' );``
+
 === Pareto Security ===
 Contributors: @te_taipo
 
