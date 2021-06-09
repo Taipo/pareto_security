@@ -1,6 +1,6 @@
 <?php
 class pareto_setup {
-    const   PARETO_VERSION = '2.8.4';
+    const   PARETO_VERSION = '2.9.1';
     const   CF_URL = 'https://www.cloudflare.com/ips-v4';
     const   QC_URL = 'https://www.quic.cloud/ips';
     public  $_open_basedir = 0;
@@ -11,6 +11,7 @@ class pareto_setup {
     public  $_ban_time = 86400; // 24 hours
     public  $_hard_ban_count = 10;
     public  $_total_ips = 500;
+    public  $_log_total = 100;
     public  $_doc_root;
     public  $_datalist;
     public  $_log_file;
@@ -34,7 +35,7 @@ class pareto_setup {
     public  $_adv_mode = 0;
     public  $_safe_host = '';
     public  $_client_ip;
-    public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'email_report' => 0, 'safe_list' => '', 'admin_ip' => '', 'tor_block' => 0 );
+    public static $default_settings = array( 'advanced_mode' => 0, 'ban_mode' => 0, 'hard_ban_mode' => 0, 'safe_list' => '', 'email_report' => 0, 'safe_list' => '', 'admin_ip' => '', 'tor_block' => 0, 'server_ip' => '' );
     public  $pagehook;
     public  $page_id;
     public  $options = array();
@@ -43,9 +44,8 @@ class pareto_setup {
     public  $_textdomain = 'pareto_security_settings';
     public  $_ban_mode = 0;
     public  $lockdown_status;
-    public  $prefix = 'pareto_settings';    
+    public  $prefix = 'pareto_settings';
     public function __construct() {
         return;
     }
 }
-?>
