@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: https://hokioisecurity.com/?p=17
 Description: Core Security - Protection from a range of attacks against Content Management Systems (CMS)
 Author: Te_Taipo
-Version: 2.8.4
+Version: 2.9.1
 Requirements: Requires at least PHP version 5.2.0
 Author URI: https://hokioisecurity.com
 Donations via: https://hokioisecurity.com/donations/
@@ -34,6 +34,7 @@ if ( defined( 'WP_PLUGIN_DIR' ) && false !== function_exists( 'is_admin' ) ) {
 function pareto_security_init() {
     require_once( 'pareto_functions.php' );
     $ParetoSecurity = new pareto_functions();
+    
     if ( false !== $ParetoSecurity->is_wp() ) {
         register_activation_hook( __FILE__, array(
              $ParetoSecurity,
@@ -51,12 +52,11 @@ function pareto_security_init() {
     $ParetoSecurity->_client_ip = $ParetoSecurity->get_ip();
     # set mode
     $ParetoSecurity->advanced_mode( $ParetoSecurity->_adv_mode );
-    # do setup
-    $ParetoSecurity->do_security_settings();
     # load data from XML
     $ParetoSecurity->load_lists( true, true );
 
     # Shields Up
+    $ParetoSecurity->_TOR_SHIELD();
     $ParetoSecurity->_REQUEST_SHIELD();
     $ParetoSecurity->_QUERYSTRING_SHIELD();
     $ParetoSecurity->_POST_SHIELD();
