@@ -2,6 +2,8 @@ If you wish to use this outside of Wordpress just upload the files to their own 
 
 ``require_once( 'pareto_security/pareto_security.php' );``
 
+Note: the admin controls are only available when used in Wordpress as a plugin. To install in Wordpress just go to the plugin section and search for Pareto Security.
+
 === Pareto Security ===
 Contributors: @te_taipo
 
