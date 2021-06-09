@@ -6,10 +6,15 @@ Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command
 Donate link: https://hokioisecurity.com/donations/
 
 Requires at least: 5.2.0
+
 Tested up to: 5.7.2
+
 Requires PHP: 5.6.0
+
 Stable tag: 2.9.1
+
 License: GPLv2 or later
+
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress Core Security: Secure your website with real security.
