@@ -1,5 +1,4 @@
 === Pareto Security ===
-
 Contributors: @te_taipo
 
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
@@ -7,16 +6,15 @@ Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command
 Donate link: https://hokioisecurity.com/donations/
 
 Requires at least: 5.2.0
-Tested up to: 5.5.1
+Tested up to: 5.7.2
 Requires PHP: 5.6.0
-Stable tag: 2.8.3
+Stable tag: 2.9.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
 WordPress Core Security: Secure your website with real security.
 
 == Description ==
-
 #### PARETO SECURITY FEATURES
 
 Had enough of the security theatre presented by the raft of Wordpress security plugins? Time to put a stop to the attacks!
@@ -118,5 +116,12 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-== 2.8.4 ==
-* Bug fix: allow_url_fopen status now detected
+== 2.9.1 ==
+* Pareto Security will now ban attack attempts against wp-admin/* files (whereas prior to this it blocked such requests without banning the IP address)
+* Fixed a bug that would prevent IP addresses from being banned, leaving the request blocked only (attack is still prevented)
+* On DNS timeout of the Tor Check now redirects to the homepage
+* Update cloudflare and quic-cloud server IP lists
+
+== 2.9.0 ==
+* Add more Tor Checks
+* Improve detection of authorised users to prevent false positives
