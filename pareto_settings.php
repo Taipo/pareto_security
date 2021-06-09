@@ -2,19 +2,16 @@
 if ( class_exists( "pareto_functions" ) ):
     class pareto_settings extends pareto_functions {
         function __construct() {
-            if ( false === $this->is_wp() ) {
-                header( 'Status: 403 Forbidden' );
-                header( 'HTTP/1.1 403 Forbidden' );
-                exit();
-            }
-            $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
-            define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
-            define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
-            
-            load_plugin_textdomain( $this->_textdomain );
-            // Register style sheet
-            add_action( "admin_enqueue_scripts", array( $this, 'enqueue_scripts' ) );
-            $this->kickoff();
+            if ( false !== $this->is_wp() ) {
+                $this->time_zone = date_default_timezone_get() . get_option( 'gmt_offset' );
+                define( 'PARETO_DIR', plugin_dir_path( __FILE__ ) );
+                define( 'PARETO_URL', plugin_dir_url( __FILE__ ) );
+                
+                load_plugin_textdomain( $this->_textdomain );
+                // Register style sheet
+                add_action( "admin_enqueue_scripts", array( $this, 'enqueue_scripts' ) );
+                $this->kickoff();
+            } else return;
         }
         function get_ver( $file ) {
             return filemtime( PARETO_DIR );
@@ -122,16 +119,18 @@ if ( class_exists( "pareto_functions" ) ):
                 ), 20 );
                 $this->ip_count = $this->count_banned_ips();
             }
+            # end of only available to logged in Admins
 
             $this->_adv_mode      = $this->get_field_value( $this->options, 'advanced_mode' );
             $this->_ban_mode      = $this->get_field_value( $this->options, 'ban_mode' );
             $this->_email_report  = $this->get_field_value( $this->options, 'email_report' );
             $this->_tor_block     = $this->get_field_value( $this->options, 'tor_block' );
+            if ( isset( $this->options[ 'server_ip' ] ) ) $this->_server_ip     = $this->get_field_value( $this->options, 'server_ip' );
 
-            $this->update_logfile( $this->logs ); // set $this->logs
-
-            # deal with dynamic IP addresses
-            $this->update_admin_ip( $this->options[ 'admin_ip' ] );
+            if ( false !== $this->is_wp( false, true, false ) ) { // if is an admin
+                $this->update_logfile( $this->logs ); // set $this->logs
+                $this->update_admin_ip( $this->get_ip() ); // Prevents the banning of admin IP addresses
+            } else $this->options[ 'admin_ip' ] = '';
         }
         function define_plugin_settings() {
             $basename = plugin_basename( __FILE__ );
@@ -220,8 +219,11 @@ if ( class_exists( "pareto_functions" ) ):
             $final_log = strtolower( substr( $this->logs[ count( $this->logs ) - 1 ], 0, 50 ) );
 
             # make sure install log remains
-            if ( count( $this->logs ) < 100 && false === strpos( $final_log, 'safe' ) ) {
+            #if ( count( $this->logs ) < 100 && false === strpos( $final_log, 'safe' ) ) {
+            if ( count( $this->logs ) >= 99 && false === in_array( SETTINGS_INSTALL_LOG, $this->logs ) ) {
+                array_pop( $this->logs );
                 array_push( $this->logs, SETTINGS_INSTALL_LOG );
+                update_option( PARETO_LOG_LIST, $this->logs );
             }
             return;
         }
@@ -397,7 +399,7 @@ if ( class_exists( "pareto_functions" ) ):
             $http      = ( false !== $is_https ) ? 'https://' : 'http://';
             $url       = str_replace( 'www.', '', $this->get_http_host() );
             $hsts_url  = 'https://hstspreload.org/?domain=' . $url;
-            $hsts_link = '<a target="_blank" href="' . $hsts_url . '">' . $hsts_url . '</a>';
+            $hsts_link = '<a title="Register your domain with Google Chromes preload list" target="_blank" href="' . $hsts_url . '">' . $hsts_url . '</a>';
 ?>
            <table style="text-align: left;">
                 <tr>
@@ -423,12 +425,12 @@ if ( class_exists( "pareto_functions" ) ):
            <table style="text-align: left;">
                 <tr>
                     <td><strong><?php echo esc_html( 'Version:', $this->_textdomain ); ?></strong> <?php echo self::PARETO_VERSION; ?> <?php echo '&middot;'; ?> <strong><?php esc_html( 'Released:', $this->_textdomain ); ?></strong><?php echo PARETO_RELEASE_DATE; ?> ( <?php echo $this->time_zone; ?> )</td>
-                    <td><strong><?php echo esc_html( 'Author:', $this->_textdomain ); ?></strong> <a target="_blank" href="https://twitter.com/te_taipo">@te_taipo</a></td>
-                    <td><strong><?php echo esc_html( 'Web:', $this->_textdomain ); ?></strong> <a target="_blank" href="https://hokioisecurity.com">https://hokioisecurity.com</a></td>
+                    <td><strong><?php echo esc_html( 'Author:', $this->_textdomain ); ?></strong> <a title="Authors Twitter Account" target="_blank" href="https://twitter.com/te_taipo">@te_taipo</a></td>
+                    <td><strong><?php echo esc_html( 'Web:', $this->_textdomain ); ?></strong> <a title="Authors Website" target="_blank" href="https://hokioisecurity.com">https://hokioisecurity.com</a></td>
                     <td><strong><?php echo esc_html( 'Email:', $this->_textdomain ); ?></strong> pareto-security@hokioisecurity.com</td>
                 </tr>
                 <tr>
-                    <td colspan=3><strong><?php echo esc_html( 'Rate This Plugin:', $this->_textdomain ); ?></strong> <a href="https://wordpress.org/support/plugin/pareto-security/reviews/" target="_blank"><?php echo esc_html( 'Rate this plugin 5 stars on WordPress.org', $this->_textdomain ); ?></a>
+                    <td colspan=3><strong><?php echo esc_html( 'Rate This Plugin:', $this->_textdomain ); ?></strong> <a title="Rate this plugin" href="https://wordpress.org/support/plugin/pareto-security/reviews/" target="_blank"><?php echo esc_html( 'Rate this plugin 5 stars on WordPress.org', $this->_textdomain ); ?></a>
                     </td>
                 </tr>
             </table>
@@ -436,8 +438,13 @@ if ( class_exists( "pareto_functions" ) ):
         }
         
         function donations_box() {
-?>
-        <p><strong>Go to</strong> <a href="https://hokioisecurity.com/donations/" target="_blank">https://hokioisecurity.com/donations/</a></p>
+?>      <p>This plugin will always be completely free. If you feel it is beneficial to your website you can help in its upkeep by making a micro-donation below<br />
+        <ul>
+            <li><a title="Donate by supporting my patreon" href="https://patreon.com/te_taipo" target="_blank">https://patreon.com/te_taipo</a></li>
+            <li><a title="Buy me a cup of coffee" href="https://ko-fi.com/te_taipo" target="_blank">https://ko-fi.com/te_taipo</a></li>
+        </ul>
+</p>
+        <p><strong>Go to</strong> <a title="Other ways to support the development and maintenance of this plugin" href="https://hokioisecurity.com/donations/" target="_blank">https://hokioisecurity.com/donations/</a> to see more ways to support</p>
 <?php
         }
         function condition_box() {
@@ -485,7 +492,7 @@ if ( class_exists( "pareto_functions" ) ):
                                                 <br><?php echo esc_html( '- Domain Name Safe List', $this->_textdomain ); ?>
                                             </div>
 										</div>
-                                        <?php /* ?>
+                                        <?php ?>
                                         <div class="divTableRow">
 											<div class="divAdvancedMode">
                                                 <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'tor_block' ); ?>" id="<?php echo $this->get_field_id( 'tor_block' ); ?>" value="1"
@@ -501,9 +508,10 @@ if ( class_exists( "pareto_functions" ) ):
                                             <div class="divAdvancedMode">
                                                 <?php echo esc_html( 'Prevent Tor users from:', $this->_textdomain ); ?>
                                             <br><?php echo esc_html( '- making log-in attempts, accessing XMLRPC', $this->_textdomain ); ?>
-                                            <br><?php echo esc_html( '- making comments or using contact forms, search functions', $this->_textdomain ); ?></div>
+                                            <br><?php echo esc_html( '- making comments, using contact forms, and search functions', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( 'Redirect users back to domain name', $this->_textdomain ); ?></div>
 										</div>
-										<?php */ ?>
+										<?php ?>
 										<div class="divTableRow">
 											<div class="divAdvancedMode">
                                                 <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'hard_ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>" value="1"
@@ -558,6 +566,7 @@ if ( class_exists( "pareto_functions" ) ):
         <?php } ?>
         <li><?php echo ( ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( '+ ', $this->_textdomain ) : _e( '- ', $this->_textdomain ) ) . _e( 'Your server is running PHP version ' . substr( phpversion(), 0, 3 ), $this->_textdomain ); ?>
         <?php echo ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( ' &#x2713&#x2713&#x2713; ', $this->_textdomain ) : _e( ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 7.0', $this->_textdomain ); ?></li>
+        <li><?php echo _e( '+ <a title="Smoke tests are performed shortly after Pareto Security is updated. If the smoke test site returns an error, please check again in a few days." target="_blank" href="https://plugintests.com/plugins/wporg/pareto-security/' . self::PARETO_VERSION . '">Click here</a> to view a smoke test was performed on Pareto Security version ' . self::PARETO_VERSION, $this->_textdomain ); ?></li>
     </ul>
 
        <?php }
@@ -583,7 +592,7 @@ if ( class_exists( "pareto_functions" ) ):
         $mylogs     = $this->logs;
         $i          = 0;
         $text_color = "#e68735";       
-        while ( $i <= 99 ) {
+        while ( $i <= $this->_log_total ) {
             if ( isset( $mylogs[ $i ] ) ) {
                 $row_colour = ''; // = ( $i % 2 == 0 ) ? "#F3F3F3" : "#FFFFFF";
                 $req_var    = explode( " ", $mylogs[ $i ] );
