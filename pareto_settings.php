@@ -189,7 +189,9 @@ if ( class_exists( "pareto_functions" ) ):
         } 
         function count_banned_ips() {
             if ( false === $this->htapath() ) return 0;
-            $mybans     = file( $this->htapath() );
+            if ( file_exists( $this->htapath() ) ) {
+                $mybans = file( $this->htapath() );
+            } else return 0;
             if ( empty( $mybans ) ) return 0;
             $mybans_denyfrom = array();
             $mybans_denyfrom = $this->find_in_array( "deny from ", $mybans );
@@ -563,7 +565,10 @@ if ( class_exists( "pareto_functions" ) ):
         <?php if ( false !== $is_nginx ) { ?><li><?php echo _e( '+ NGINX does not use .htaccess to ban IP addresses. Pareto Security will still block all attack vectors.', $this->_textdomain ); ?></li><?php } ?>
         <?php if ( false === $is_nginx ) { ?><li><?php echo esc_html( '- Hard Ban:', $this->_textdomain ); ?> <?php echo $ban_type; ?></li><?php } ?>
         <?php } ?>
-        <?php } ?>
+        <?php } else { ?>
+        <li>+ <?php if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT !== false ) { echo _e( 'DISALLOW_FILE_EDIT is set to true, preventing writing to .htaccess', $this->_textdomain ); ?>
+        <?php }
+        } ?>
         <li><?php echo ( ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( '+ ', $this->_textdomain ) : _e( '- ', $this->_textdomain ) ) . _e( 'Your server is running PHP version ' . substr( phpversion(), 0, 3 ), $this->_textdomain ); ?>
         <?php echo ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( ' &#x2713&#x2713&#x2713; ', $this->_textdomain ) : _e( ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 7.0', $this->_textdomain ); ?></li>
         <li><?php echo _e( '+ <a title="Smoke tests are performed shortly after Pareto Security is updated. If the smoke test site returns an error, please check again in a few days." target="_blank" href="https://plugintests.com/plugins/wporg/pareto-security/' . self::PARETO_VERSION . '">Click here</a> to view a smoke test was performed on Pareto Security version ' . self::PARETO_VERSION, $this->_textdomain ); ?></li>
