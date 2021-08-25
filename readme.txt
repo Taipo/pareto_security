@@ -3,9 +3,9 @@ Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Donate link: https://hokioisecurity.com/donations/
 Requires at least: 5.2.0
-Tested up to: 5.7.2
+Tested up to: 5.8
 Requires PHP: 5.6.0
-Stable tag: 2.9.1
+Stable tag: 2.9.4
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -112,6 +112,16 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+== 2.9.4 ==
+* Improve htaccess formatting
+
+== 2.9.3 ==
+* Improve the cleanup when PS is deactivated
+
+== 2.9.2 ==
+* Fixed issues when using multisites and the TOR Check
+* FIxed issue where Tor_Check was incorrectly triggered
 
 == 2.9.1 ==
 * Pareto Security will now ban attack attempts against wp-admin/* files (whereas prior to this it blocked such requests without banning the IP address)
