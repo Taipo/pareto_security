@@ -2308,7 +2308,11 @@ class pareto_functions extends pareto_setup {
     function is_cf( $this_ip ) {
         error_reporting( 0 );
         if ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ||
-             isset( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) || isset( $_get_server[ 'HTTP_X_FORWARDED_FOR' ] ) ) {
+             isset( $_get_server[ 'HTTP_CDN_LOOP' ] ) ||
+             isset( $_get_server[ 'HTTP_CF_VISITOR' ] ) ||
+             isset( $_get_server[ 'HTTP_CF_RAY' ] ) ||
+             isset( $_get_server[ 'HTTP_CF_IPCOUNTRY' ] ) ) {
+            # Cloudflare is enabled
             # Harden IP Check against spoofing of CF IPs
             $cf_ipv4_ranges = '';
             /*$cf_ipv4_ranges = $this->get_url_content( self::CF_URL_IPV4 );
@@ -2370,9 +2374,9 @@ class pareto_functions extends pareto_setup {
              if ( false !== $valid_cf_req ) {
                 error_reporting( 6135 );
                 if ( isset( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) && $this->check_ip( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) ) {
-                    $this_cf_ip = $_get_server[ 'HTTP_TRUE_CLIENT_IP' ];
+                    if ( false === $this->get_serverip() ) $this_cf_ip = $_get_server[ 'HTTP_TRUE_CLIENT_IP' ];
                 } elseif ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) && $this->check_ip( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ) {
-                    $this_cf_ip = $_get_server[ 'HTTP_CF_CONNECTING_IP' ];
+                    if ( false === $this->get_serverip() ) $this_cf_ip = $_get_server[ 'HTTP_CF_CONNECTING_IP' ];
                 }
                 # these are server ips within the Cloudflare CDN, so do not ban
                 return $this_cf_ip;
