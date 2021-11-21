@@ -37,18 +37,21 @@ if ( class_exists( "pareto_functions" ) ):
                      'email_report' => 0,
                      'ban_mode' => 0,
                      'admin_ip' => '',
-                     'tor_block' => 0
+                     'tor_block' => 0,
+                     'disable_htaccess' => 0,
+                     'silent_mode' => 0
                 ) );
                 $this->options = get_option( $this->settings_field );
             }
             
-            $this->options[ 'ban_mode' ]      = ( false !== $this->check_settings( 'ban_mode' ) ) ? ( int ) $this->options[ 'ban_mode' ] : 0;
-            $this->options[ 'email_report' ]  = ( false !== $this->check_settings( 'email_report' ) ) ? ( int ) $this->options[ 'email_report' ] : 0;
-            $this->options[ 'advanced_mode' ] = ( false !== $this->check_settings( 'advanced_mode' ) ) ? ( int ) $this->options[ 'advanced_mode' ] : 0;
-            $this->options[ 'hard_ban_mode' ] = ( false !== $this->check_settings( 'hard_ban_mode' ) ) ? ( int ) $this->options[ 'hard_ban_mode' ] : 0;
-            $this->options[ 'tor_block' ]     = ( false !== $this->check_settings( 'tor_block' ) ) ? ( int ) $this->options[ 'tor_block' ] : 0;
-            
-            $this->_hard_ban_mode = $this->options[ 'hard_ban_mode' ];
+            $this->options[ 'ban_mode' ]            = ( false !== $this->check_settings( 'ban_mode' ) ) ? ( int ) $this->options[ 'ban_mode' ] : 0;
+            $this->options[ 'email_report' ]        = ( false !== $this->check_settings( 'email_report' ) ) ? ( int ) $this->options[ 'email_report' ] : 0;
+            $this->options[ 'advanced_mode' ]       = ( false !== $this->check_settings( 'advanced_mode' ) ) ? ( int ) $this->options[ 'advanced_mode' ] : 0;
+            $this->options[ 'hard_ban_mode' ]       = ( false !== $this->check_settings( 'hard_ban_mode' ) ) ? ( int ) $this->options[ 'hard_ban_mode' ] : 0;
+            $this->options[ 'tor_block' ]           = ( false !== $this->check_settings( 'tor_block' ) ) ? ( int ) $this->options[ 'tor_block' ] : 0;
+            $this->options[ 'disable_htaccess' ]    = ( false !== $this->check_settings( 'disable_htaccess' ) ) ? ( int ) $this->options[ 'disable_htaccess' ] : 0;
+            $this->options[ 'silent_mode' ]         = ( false !== $this->check_settings( 'silent_mode' ) ) ? ( int ) $this->options[ 'silent_mode' ] : 0;
+
             if ( array_key_exists( 'safe_list', $this->options ) ) {
                 $this->_domain_list = $this->get_field_value( $this->options, 'safe_list' );
                 $this->_domain_list = preg_replace( '/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $this->_domain_list ); // strip out any control characters but not new lines and carriage returns
@@ -84,6 +87,30 @@ if ( class_exists( "pareto_functions" ) ):
                         if ( isset( $this_post[ $this->settings_field ][ "tor_block" ] ) ) {
                             $this_post[ $this->settings_field ][ "tor_block" ] = ( int ) $this_post[ $this->settings_field ][ "tor_block" ];
                         } else $this_post[ $this->settings_field ][ "tor_block" ] = 0;
+                        if ( isset( $this_post[ $this->settings_field ][ "disable_htaccess" ] ) ) {
+                            $this_post[ $this->settings_field ][ "disable_htaccess" ] = ( int ) $this_post[ $this->settings_field ][ "disable_htaccess" ];
+                        } else $this_post[ $this->settings_field ][ "disable_htaccess" ] = 0;
+                        if ( isset( $this_post[ $this->settings_field ][ "silent_mode" ] ) ) {
+                            $this_post[ $this->settings_field ][ "silent_mode" ] = ( int ) $this_post[ $this->settings_field ][ "silent_mode" ];
+                            #if ( !isset( $this->options[ 'silent_mode' ] ) ) {
+                            #    update_option( $this->settings_field, array( 'silent_mode' => 1 ) );              
+                            #}                             
+                        } else {
+                            #if ( !isset( $this->options[ 'silent_mode' ] ) ) {
+                            #    update_option( $this->settings_field, array( 'silent_mode' => 0 ) );              
+                            #}                             
+                            $this_post[ $this->settings_field ][ "silent_mode" ] = 0;
+                        }
+                        #update_option( $this->settings_field, array( // set defaults
+                        #     'advanced_mode' => $this_post[ $this->settings_field ][ "advanced_mode" ],
+                        #     'hard_ban_mode' => $this_post[ $this->settings_field ][ "hard_ban_mode" ],
+                        #     'email_report' => $this_post[ $this->settings_field ][ "email_report" ],
+                        #     'ban_mode' => $this_post[ $this->settings_field ][ "ban_mode" ],
+                        #     'admin_ip' => $this_post[ $this->settings_field ][ "admin_ip" ],
+                        #     'tor_block' => $this_post[ $this->settings_field ][ "tor_block" ],
+                        #     'disable_htaccess' => $this_post[ $this->settings_field ][ "disable_htaccess" ],
+                        #     'silent_mode' => $this_post[ $this->settings_field ][ "silent_mode" ]
+                        #) );                        
                     }
                     if ( isset( $this_post[ 'save_options' ] ) && $this->cmpstr( strtolower( $this_post[ 'save_options' ] ), 'x' ) ) {
                         # Do logs
@@ -121,16 +148,41 @@ if ( class_exists( "pareto_functions" ) ):
             }
             # end of only available to logged in Admins
 
-            $this->_adv_mode      = $this->get_field_value( $this->options, 'advanced_mode' );
-            $this->_ban_mode      = $this->get_field_value( $this->options, 'ban_mode' );
-            $this->_email_report  = $this->get_field_value( $this->options, 'email_report' );
-            $this->_tor_block     = $this->get_field_value( $this->options, 'tor_block' );
+            $this->_adv_mode            = $this->get_field_value( $this->options, 'advanced_mode' );
+            $this->_ban_mode            = $this->get_field_value( $this->options, 'ban_mode' );
+            $this->_tor_block           = $this->get_field_value( $this->options, 'tor_block' );
+            $this->_disable_htaccess    = $this->get_field_value( $this->options, 'disable_htaccess' );
+            $this->_silent_mode         = $this->get_field_value( $this->options, 'silent_mode' );
+            $this->_email_report        = ( false !== ( bool ) $this->_silent_mode ) ? 0 : $this->get_field_value( $this->options, 'email_report' );
+            $this->_admin_ip            = '';
+
+            $this->_hard_ban_mode = $this->options[ 'hard_ban_mode' ];
+            if ( false !== ( bool ) $this->_hard_ban_mode ) {
+                $this->options[ 'advanced_mode' ] = 1;
+                $this->_advanced_mode = 1;
+                $this->update_setting( 1, 1 );                
+            }
+            
             if ( isset( $this->options[ 'server_ip' ] ) ) $this->_server_ip     = $this->get_field_value( $this->options, 'server_ip' );
 
             if ( false !== $this->is_wp( false, true, false ) ) { // if is an admin
                 $this->update_logfile( $this->logs ); // set $this->logs
                 $this->update_admin_ip( $this->get_ip() ); // Prevents the banning of admin IP addresses
+                $this->_admin_ip = $this->get_ip();
             } else $this->options[ 'admin_ip' ] = '';
+        }
+        function update_setting( $option = 0, $setting = "" ) {
+            update_option( $this->settings_field, array( // set defaults
+                 'advanced_mode' => ( $option == 1 ) ? $setting : $this->_adv_mode,               // 1
+                 'hard_ban_mode' => ( $option == 2 ) ? $setting : $this->_ban_mode,               // 2
+                 'email_report' => ( $option == 3 ) ? $setting : $this->_email_report,            // 3
+                 'ban_mode' => ( $option == 4 ) ? $setting : $this->_ban_mode,                    // 4
+                 'admin_ip' => ( $option == 5 ) ? $setting : $this->_admin_ip,                    // 5
+                 'tor_block' => ( $option == 6 ) ? $setting : $this->_tor_block,                  // 6
+                 'disable_htaccess' => ( $option == 7 ) ? $setting : $this->_disable_htaccess,    // 7
+                 'silent_mode' => ( $option == 8 ) ? $setting : $this->_silent_mode               // 8
+            ) );
+            $this->options = get_option( $this->settings_field );
         }
         function define_plugin_settings() {
             $basename = plugin_basename( __FILE__ );
@@ -388,10 +440,14 @@ if ( class_exists( "pareto_functions" ) ):
                  $this,
                 'donations_box' 
             ), $this->pagehook, 'main' );
-            add_meta_box( 'pareto-security-settings-logs', esc_html( 'Last 100 Incidents', $this->_textdomain ), array(
-                 $this,
-                'logfile_box' 
-            ), $this->pagehook, 'main' );
+            if ( ( isset( $this->options[ 'silent_mode' ] ) &&
+                                                      false === ( bool ) $this->options[ 'silent_mode' ] ) ||
+                                                      false === ( bool ) $this->_silent_mode ) {
+                add_meta_box( 'pareto-security-settings-logs', esc_html( 'Last 100 Incidents', $this->_textdomain ), array(
+                     $this,
+                    'logfile_box' 
+                ), $this->pagehook, 'main' );
+            }
         }
         
         function safelist_box() {
@@ -471,20 +527,50 @@ if ( class_exists( "pareto_functions" ) ):
                                     <dt>&nbsp;&nbsp;- <?php echo esc_html( 'Lockdown Mode: Auto Detect Denial of Service Attack', $this->_textdomain ); ?></dt>
                                     <dt>&nbsp;&nbsp;- <?php echo esc_html( 'Advanced POST Filtering', $this->_textdomain ); ?></dt>
                                     <dt>&nbsp;&nbsp;- <?php echo esc_html( 'Filter login attempts :: detect and ban User/Password Cracking Attack', $this->_textdomain ); ?></dt>
-                                    <dt>&nbsp;&nbsp;- <?php echo esc_html( 'XML-RPC Flood Protection - detect and ban User/Password Cracking Attack', $this->_textdomain ); ?></dt>                                  
+                                    <dt>&nbsp;&nbsp;- <?php echo esc_html( 'XML-RPC Flood Protection :: detect and ban User/Password Cracking Attack', $this->_textdomain ); ?></dt>                                  
 								</dl>
-							</div>
+                                <div class="divTableRow">
+                                    <div class="divAdvancedMode">
+                                        <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'disable_htaccess' ); ?>" id="<?php echo $this->get_field_id( 'disable_htaccess' ); ?>" value="1"
+                                        <?php if ( ( isset( $this->options[ 'disable_htaccess' ] ) &&
+                                                              false !== ( bool ) $this->options[ 'disable_htaccess' ] ) ||
+                                                              false !== ( bool ) $this->_disable_htaccess ) { ?>checked<?php } ?> />
+                                        <span class="checkmark"></span></label>
+                                    </div>
+                                    <div class="divAdvancedMode"><label for="<?php echo $this->get_field_id( 'disable_htaccess' ); ?>"><?php _e( '<strong>Disable IP Banning</strong> Prevent writing IP addresses to .htaccess.<br />
+                                                                                                                                                             (Attack requests will still be blocked regardless whether enabled or not).', $this->_textdomain ); ?></label>
+                                    </div>
+                                </div>
+                                <div class="divTableRow">
+                                    <div class="divAdvancedMode">
+                                        <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'silent_mode' ); ?>" id="<?php echo $this->get_field_id( 'silent_mode' ); ?>" value="1"
+                                        <?php
+        
+                                        if ( ( isset( $this->options[ 'silent_mode' ] ) &&
+                                                              false !== ( bool ) $this->options[ 'silent_mode' ] ) ||
+                                                              false !== ( bool ) $this->_silent_mode ) { ?>checked<?php }
+                                        ?> />
+                                        <span class="checkmark"></span></label>
+                                    </div>
+                                    <div class="divAdvancedMode">
+                                        <label for="<?php echo $this->get_field_id( 'silent_mode' ); ?>"><?php _e( '<strong>Run in Silent Mode</strong> This is the way Pareto Security was originally invisaged to run.<br />
+                                                                                                                                            - No logfiles<br />
+                                                                                                                                            - No database records<br />
+                                                                                                                                            - No notifications.', $this->_textdomain ); ?></label>
+                                    </div>
+                                </div>
+                            </div>
 							<div class="divTableCell">
 								<div class="divTable">
 									<div class="divTableBody">
 										<div class="divTableRow">
 											<div class="divAdvancedMode"><input type="hidden" name="<?php echo $this->get_field_name( 'ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'ban_mode' ); ?>" value="1" />
-                                            <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="1" <?php
+                                            <label class="container">
+                                                <input type="checkbox" name="<?php echo $this->get_field_name( 'advanced_mode' ); ?>" id="<?php echo $this->get_field_id( 'advanced_mode' ); ?>" value="1" <?php
                                               if ( ( isset( $this->options[ 'advanced_mode' ] ) &&
                                                       false !== ( bool ) $this->options[ 'advanced_mode' ] ) ||
                                                       false !== ( bool ) $this->_adv_mode ) { ?>checked<?php } ?> />
-                                            <span class="checkmark"></span></label>
-                                            </div>
+                                            <span class="checkmark"></span></label></div>
 											<div class="divAdvancedMode"><label for="<?php echo $this->get_field_id( 'advanced_mode' ); ?>"><?php _e( '<b>Set Advanced Mode</b>', $this->_textdomain ); ?></label></div>
 										</div>
 										<div class="divTableRow">
@@ -511,13 +597,14 @@ if ( class_exists( "pareto_functions" ) ):
                                                 <?php echo esc_html( 'Prevent Tor users from:', $this->_textdomain ); ?>
                                             <br><?php echo esc_html( '- making log-in attempts, accessing XMLRPC', $this->_textdomain ); ?>
                                             <br><?php echo esc_html( '- making comments, using contact forms, and search functions', $this->_textdomain ); ?>
-                                            <br><?php echo esc_html( 'Redirect users back to domain name', $this->_textdomain ); ?></div>
+                                            <br><?php echo esc_html( '- redirect users back to domain name', $this->_textdomain ); ?>
+                                            <br><?php echo esc_html( 'Warning: Experimental Feature.', $this->_textdomain ); ?></div>
 										</div>
 										<?php ?>
 										<div class="divTableRow">
 											<div class="divAdvancedMode">
-                                                <label class="container"><input type="checkbox" name="<?php echo $this->get_field_name( 'hard_ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>" value="1"
-
+                                              <label class="container">
+                                              <input type="checkbox" name="<?php echo $this->get_field_name( 'hard_ban_mode' ); ?>" id="<?php echo $this->get_field_id( 'hard_ban_mode' ); ?>" value="1"
                                               <?php if ( isset( $this->options[ 'hard_ban_mode' ] ) &&
                                                          false !== ( bool ) $this->_hard_ban_mode ) { ?>checked<?php } ?> />
                                             <span class="checkmark"></span></label></div>
@@ -525,7 +612,10 @@ if ( class_exists( "pareto_functions" ) ):
 										</div>
 										<div class="divTableRow">
 											<div class="divAdvancedMode">&nbsp;</div>
-                                            <div class="divAdvancedMode">- Ban irregular user-agent/crawlers</div>
+                                            <div class="divAdvancedMode">
+                                            <?php echo esc_html( '- Ban irregular user-agent/crawlers', $this->_textdomain ); ?><br>
+                                            <?php echo esc_html( '- Ban irregular input strings', $this->_textdomain ); ?><br>
+                                            <?php echo esc_html( '- Ban control characters/escape from user inputs', $this->_textdomain ); ?></div>
 										</div>
 									</div>
 								</div>
@@ -538,28 +628,35 @@ if ( class_exists( "pareto_functions" ) ):
 	</div>
 </div>
 <br>
-<label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo _e( '<b>Email Notification:</b> Receive periodic notifications (every 5 events) of high/medium severity attacks', $this->_textdomain ); ?>
-<input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="1" <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label>
+<label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo ( false !== ( bool ) $this->_silent_mode ) ? _e( '<i>Email Notification: Notifications are disabled because Silent Mode is enabled</i>', $this->_textdomain ) : _e( '<b>Email Notification:</b> Receive periodic notifications (every 5 events) of high/medium severity attacks', $this->_textdomain ) ; ?>
+<input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="<?php echo ( false !== ( bool ) $this->_silent_mode ) ? 0 : 1; ?>" <?php if ( false !== ( bool ) $this->_silent_mode ) echo "disabled"; ?> <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label>
 <?php
         }
         function notes_box() {
-            $mode     = esc_html( 'Standard Mode', $this->_textdomain );
-            $mode     = ( false === ( bool ) $this->_adv_mode ) ? esc_html( 'Standard Mode', $this->_textdomain ) : esc_html( 'Advanced Mode', $this->_textdomain );
-            $mode     = ( false !== ( bool ) $this->_tor_block ) ? esc_html( 'Advanced Mode, Tor Block Mode', $this->_textdomain ) : esc_html( $mode, $this->_textdomain );
-            $mode     = ( false !== ( bool ) $this->_hard_ban_mode ) ? $mode . ', ' . esc_html( 'Hard Ban Mode', $this->_textdomain ) : esc_html( $mode, $this->_textdomain );
-            $mode     = ( false !== $this->lockdown_status ) ? esc_html( 'Lockdown', $this->_textdomain ) : $mode;
-            $ban_type = ( false !== ( bool ) $this->_adv_mode && false !== ( bool ) $this->_hard_ban_mode ) ? esc_html( 'Low, Medium and High severity requests added to banned IP list', $this->_textdomain ) : esc_html( 'Medium and High severity requests added to banned IP list', $this->_textdomain );
+            $mode     = esc_html( 'Standard', $this->_textdomain );
+            #$mode     = ( false === ( bool ) $this->_adv_mode ) ? esc_html( 'Standard', $this->_textdomain ): esc_html( $mode, $this->_textdomain );
+            $mode     = ( false !== ( bool ) $this->_adv_mode ) ? esc_html( 'Advanced', $this->_textdomain ) . "," : esc_html( $mode, $this->_textdomain );
+            $mode     = ( false !== ( bool ) $this->_tor_block ) ? esc_html( $mode . ' Tor Block', $this->_textdomain ) . "," : esc_html( $mode, $this->_textdomain );
+            $mode     = ( false !== ( bool ) $this->_hard_ban_mode ) ? esc_html( $mode . ' Hard Ban', $this->_textdomain ) . "," : esc_html( $mode, $this->_textdomain );
+            $mode     = ( false !== $this->lockdown_status ) ? esc_html( $mode . ' Lockdown', $this->_textdomain ) . "," : esc_html( $mode, $this->_textdomain );
+            $ban_type = ( false !== ( bool ) $this->_adv_mode && false !== ( bool ) $this->_hard_ban_mode ) ? esc_html( 'Low, Medium and High severity requests added to banned IP list', $this->_textdomain ) : esc_html( 'Medium and High severity requests added to banned IP list', $this->_textdomain ) . ",";
             $is_nginx = ( false === strpos( strtolower( $_SERVER[ "SERVER_SOFTWARE" ] ), "nginx" ) ) ? false : true;
             ?>
     <ul>
         <li><?php echo esc_html( '+ Status:', $this->_textdomain ); ?> <i><?php echo $mode; ?></i></li>
         <li><?php echo esc_html( '+ Server:', $this->_textdomain ); ?> <?php echo ( strlen( $_SERVER[ "SERVER_SOFTWARE" ] ) > 14 ) ? trim( substr( $_SERVER[ "SERVER_SOFTWARE" ], 0, 14 ) ) . "..." : $_SERVER[ "SERVER_SOFTWARE" ]; ?></li>
+        <li><?php echo esc_html( '+ Mode:', $this->_textdomain ); ?> <?php echo ( false === ( bool ) $this->_silent_mode ) ? _e( "Normal Mode", $this->_textdomain ) : _e( "Silent Mode", $this->_textdomain ); ?></li>
         <?php
             if ( false !== $this->htapath() && false === $this->is_iis() ) {
         ?>
         <?php if ( false === $is_nginx ) { ?><li><?php echo _e( '+ Your <code>.htaccess</code> is configured correctly in <code>' . $this->get_dir() . '</code>', $this->_textdomain ); ?></li>
         <li><?php echo _e( '+ There ' . ( ( $this->cmpstr( $this->ip_count, 1 ) ) ? 'is' : 'are' ) . ' currently [ ' . ( empty( $this->ip_count ) ? 0 : $this->ip_count ) . ' ] unique IP addresses banned by Pareto Security', $this->_textdomain ); ?></li>
-        <li>+ <?php echo ( $this->_adv_mode ) ? esc_html( 'Hard Ban', $this->_textdomain ) : esc_html( 'Soft Ban', $this->_textdomain ); ?>: <?php echo $ban_type; ?></li>
+        <li>+ <?php
+              if ( false === ( bool ) $this->_disable_htaccess ) {
+                echo ( false !== ( bool ) $this->_adv_mode ) ? esc_html( 'Ban Type : Hard Ban. ' . $ban_type, $this->_textdomain ) : esc_html( 'Ban Type : Soft Ban. ' . $ban_type, $this->_textdomain );
+              } else {
+                echo esc_html( 'Ban Type', $this->_textdomain ); ?> : <?php echo 'Blocking Only. Adding IP addresses to the .htaccess has been disabled, however all attack request are still blocked.'; ?></li>
+        <?php } ?>
         <?php } else { ?>
         <?php if ( false === $is_nginx ) { ?><li><?php echo _e( '- Your <code>.htaccess</code> file cannot be written to in <code>' . $this->get_dir() . '</code> Pareto Security will still soft ban attack vectors.', $this->_textdomain ); ?></li><?php } ?>
         <?php if ( false !== $is_nginx ) { ?><li><?php echo _e( '+ NGINX does not use .htaccess to ban IP addresses. Pareto Security will still block all attack vectors.', $this->_textdomain ); ?></li><?php } ?>
@@ -575,7 +672,9 @@ if ( class_exists( "pareto_functions" ) ):
     </ul>
 
        <?php }
-       function logfile_box() { ?>
+       function logfile_box() {
+             if ( false !== ( bool ) $this->_silent_mode ) return;
+       ?>
        <table style="width: 100%; text-align: left; background-color: #C9C9C9;">
             <tr>
                 <td>
