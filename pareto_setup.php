@@ -1,6 +1,7 @@
 <?php
 class pareto_setup {
-    const   CF_URL = 'https://www.cloudflare.com/ips-v4';
+    const   CF_URL_IPV4 = 'https://www.cloudflare.com/ips-v4';
+    const   CF_URL_IPV6 = 'https://www.cloudflare.com/ips-v6';
     const   QC_URL = 'https://www.quic.cloud/ips';
     public  $_open_basedir = 0;
     public  $_banip = 0;
