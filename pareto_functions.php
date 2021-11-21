@@ -2,7 +2,7 @@
 require "pareto_setup.php";
 
 class pareto_functions extends pareto_setup {
-
+    const   PARETO_VERSION = '2.9.7.1';
 	/**
 	 * Pareto Security constructor.
 	 *
@@ -10,7 +10,7 @@ class pareto_functions extends pareto_setup {
     public function __construct() {
         # do setup
         $this->do_security_settings();        
-        $this->_client_ip = $this->get_ip();
+        $this->_client_ip = $this->controlchar_filter( $this->get_ip() );
         if ( false !== $this->is_wp() ) {
             if ( !isset( $this->_time_offset ) ) $this->_time_offset = ( int ) get_option( 'gmt_offset' );
             $unix_time = $this->file_created();
@@ -103,6 +103,8 @@ class pareto_functions extends pareto_setup {
              'email_report' => 0,
              'ban_mode' => 0,
              'tor_block' => 0,
+             'disable_htaccess' => 0,
+             'silent_mode' => 0,
              'server_ip' => $this->get_serverip()
         ) );
         update_option( $this->ip_hash_list, array() );
@@ -122,6 +124,7 @@ class pareto_functions extends pareto_setup {
         update_option( $this->settings_field, "" );
         update_option( $this->ip_hash_list, array() );
     }
+ 
 	/**
 	 * Prevent page execution
 	 * Trigger logging
@@ -130,6 +133,10 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */
     function karo( $req = '', $t = false, $severity = '', $log_only = false, $safelist_url = '' ) {
+        if ( empty( $this->options ) || !isset( $this->_disable_htaccess ) ) {
+            $this->options = get_option( $this->settings_field );
+            $this->_disable_htaccess = ( isset( $this->options[ 'disable_htaccess' ] ) ? $this->options[ 'disable_htaccess' ] : 0 );
+        }
         if ( $this->cmpstr( $severity, '' ) ) {
             $ban_type = 'Medium';
         } else $ban_type = $severity;
@@ -155,17 +162,17 @@ class pareto_functions extends pareto_setup {
         }
         $block_request = ( false !== $this->is_iis() ||
                   false === ( bool ) $t ||
-                  false !== $this->is_server( $this_ip ) ||
-                  false !== $this->_bypassbanip ||
-                  false !== $is_admin_ip ) ? true : false;
+                  false !== $this->is_server( $this->_client_ip ) ||
+                  false !== ( bool ) $this->_bypassbanip ||
+                  false !== ( bool ) $is_admin_ip ) ? true : false;
         $is_registered = false;
-        
-        if ( false !== $this->is_tor() ) $req = "Attempted attack via the Tor Network :: " . $req;
-        
+        if ( false !== ( bool ) $this->_tor_block && false !== $this->is_tor() ) {
+            $req = "Attempted attack via the Tor Network :: " . $req;
+        }
         # if users have set DISALLOW_FILE_EDIT and set it to true then do not allow editing of the .htaccess
         # Pareto Security will instead return a 403 without banning if this constant is set
         # Users can manually set this if they wish to not use a ban list via htaccess
-        if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT !== false || ( false === $this->htapath ) ) {
+        if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT !== false || ( false === $this->htapath() ) ) {
             $block_request = true;
         }
         
@@ -175,25 +182,25 @@ class pareto_functions extends pareto_setup {
                 $is_registered = true;
                 $this_user = $this->get_wp_current_user();
                 if ( strlen( $this_user ) > 0 ) $req = ( false !== $is_registered ) ? 'User: ' . $this_user . ' :: ' . $req : $req;
-                if ( false === $log_only || false !== $is_admin_ip || ( $this->is_server( $this_ip ) && $this->cmpstr( 'wp-cron.php', $this->get_filename() ) ) ) {
+                if ( false === $log_only || false !== ( bool ) $is_admin_ip || ( false !== $this->is_server( $this->_client_ip ) && $this->cmpstr( 'wp-cron.php', $this->get_filename() ) ) ) {
                     #$req = '[Notice] ' . $req . ' (WP Admin IP)';
                     $ban_type = 'Safe';
-                } elseif ( false === $block_request ) {
-                    $req = ' [Banned] '. $req;
-                } elseif ( false !== $block_request ) {
+                } elseif ( false !== ( bool ) $block_request || false !== ( bool ) $this->_disable_htaccess ) {
                     $req = ' [Blocked] '  . $req;
+                } elseif ( false === ( bool ) $block_request ) {
+                    $req = ' [Banned] '. $req;                    
                 }
-            } elseif ( false === $block_request ) {
-                    $req = ' [Banned] ' . $req;
-            } elseif ( false !== $block_request ) {
+            } elseif ( false !== ( bool ) $block_request || false !== ( bool ) $this->_disable_htaccess ) {
                 $req = ' [Blocked] '  . $req;
+            } elseif ( false === ( bool ) $block_request ) {
+                    $req = ' [Banned] ' . $req;
             }
         }
 
         # create the log entry
         # set $lockdown_mode
-        $this->log_request( $req, $ban_type, $this_ip );
-       
+        if ( false === $this->silent_mode ) $this->log_request( $req, $ban_type, $this->_client_ip );
+
         # Give a logged in WP Admins, editors and authors a pass
         # if notification only
         if ( false !== $this->is_wp( false, true, true ) || false === $log_only ) {
@@ -201,10 +208,12 @@ class pareto_functions extends pareto_setup {
         }
 
         # Do not ban or block the following
-        if ( false !== $this->cmpstr( $ban_type, 'Safe' ) || false !== $is_admin_ip ) return;
-               
+        if ( false !== $this->cmpstr( $ban_type, 'Safe' ) || false !== ( bool ) $is_admin_ip ) return;
+
         # add IP address or return 403 only
-        if ( false === $block_request ) $this->htaccessbanip( $this_ip );
+        if ( false === ( bool ) $block_request && false === ( bool ) $this->_disable_htaccess ) {
+            $this->htaccessbanip( $this->_client_ip );
+        }
         $this->send403();
     }
     function file_created() {
@@ -241,7 +250,7 @@ class pareto_functions extends pareto_setup {
                         $this->email_log( "\n<tr style=\"background-color: #F3F3F3\">\n" . "    <td style=\"font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;vertical-align:top; width:100px; white-space: nowrap\">" . $this->set_timestamp( time() ) . "</td>\n
                                                  <td style=\"vertical-align:top; text-align: center; width:70px; white-space: nowrap; font-size:11px;white-space:nowrap; font-family:Verdana,Tahoma,Arial,sans-serif;font-weight: bold; color:" . $text_color . "\">" . $ban_type . "</td>\n
                                                  <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:140px; white-space: nowrap\">" . $this->_client_ip . "</td>\n
-                                                 <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:50px; white-space: nowrap\">" . $_SERVER[ 'REQUEST_METHOD' ] . "</td>\n
+                                                 <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:50px; white-space: nowrap\">" . $this->controlchar_filter( $_SERVER[ 'REQUEST_METHOD' ] ) . "</td>\n
                                                  <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;width:100px; white-space: nowrap\">" . $this->get_filename() . "</td>\n
                                                  <td style=\"vertical-align:top; font-size:11px;font-family:Verdana,Tahoma,Arial,sans-serif;white-space: nowrap\">" . $req_orig . "</td>\n
                                             </tr>" );
@@ -304,16 +313,6 @@ class pareto_functions extends pareto_setup {
             $fp = fopen( $logfile, 'a' );
             fwrite( $fp, $req );
             fclose( $fp );
-            $mylogs_tmp = array_reverse( file( $logfile ) );
-            $mylogs     = array();
-            $log_total  = ( ( $l_count = count( $mylogs_tmp ) ) >= $this->_log_total ) ? 99 : $l_count;
-            for ( $x = 0; ( $x <= $log_total && !empty( $mylogs_tmp[ $x ] ) ); $x++ ) {
-                $mylogs[ $x ] = $mylogs_tmp[ $x ];
-            }
-            $fp = fopen( $logfile, 'w' );
-            fwrite( $fp, implode( array_reverse( $mylogs ), "" ) );
-            fclose( $fp );
-            chmod( $logfile, 0644 );
         }
     }
 	/**
@@ -342,7 +341,7 @@ class pareto_functions extends pareto_setup {
             $req             = time() . " " .
                                $ban_type . " " .
                                $this_ip . " " .
-                               $_SERVER[ 'REQUEST_METHOD' ] . " " .
+                               $this->controlchar_filter( $_SERVER[ 'REQUEST_METHOD' ] ). " " .
                                $this->get_filename() . " " .
                                str_replace( " ", "%20", $req ) . " " .
                                $uuid;
@@ -766,13 +765,9 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */
     function do_blacklists( $input, $list, $desc, $bantype = false, $severity = "High", $log = false, $reqmatch = false, $injectmatch = false ) {
+        $input = $this->controlchar_filter( $input );
         if ( $list > 0 && false !== $reqmatch && false !== ( bool ) $this->datalist( $input, $list ) ) $this->karo( $desc . ": " . $this->htmlentities_safe( $input ), $bantype, $severity, $log );
         if ( false !== $injectmatch && false !== $this->injectMatch( $input ) ) $this->karo( "Injection "  . $desc . ": " . $this->htmlentities_safe( $input ), $bantype, $severity, $log );
-        if ( ( false !== ( bool ) $this->_hard_ban_mode ) &&
-             ( $list == 2 ) && ( !empty( $input ) ) &&
-             ( false !== $this->controlchar_exists( $input ) ) ) {
-               $this->karo( "Control Character Injection "  . $desc . ": " . $this->htmlentities_safe( $input ), $bantype, "High", $log ); // test POST variables for control characters
-        }
     }
     /**
 	 * Filter REQUEST_URI
@@ -945,7 +940,7 @@ class pareto_functions extends pareto_setup {
         }
         # this occurence of these many slashes etc are always an attack attempt
         $limit = 25;
-        if ( ( substr_count( $req, '/' ) > $limit ) || ( substr_count( $req, '\\' ) > $limit ) || ( substr_count( $req, '|' ) > $limit ) ) {
+        if ( ( substr_count( $req, chr(47) ) > $limit ) || ( substr_count( $req, chr(92) ) > $limit ) || ( substr_count( $req, chr(124) ) > $limit ) ) {
             $this->karo( "Irregular Request: " . $this->htmlentities_safe( $req ), false, 'Low', true );
         }
 
@@ -979,9 +974,11 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */
     function querystring_filter( $val, $key ) {
+        $key = $this->controlchar_filter( $key );
+        $val = $this->controlchar_filter( $val );
         $this->_get_all[] = $this->decode_code( $key, true );
         if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
-            $val = strtolower( $this->decode_code( $val ) );
+            $val = $this->controlchar_filter( strtolower( $this->decode_code( $val ) ) );
             $this->do_blacklists( $val, 1, "Request", true, "High", true, true, true );
         }
     }
@@ -1008,6 +1005,9 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */
     function post_filter( $val, $key ) {
+        # filter control chars
+        $key = $this->controlchar_filter( $key );
+        $val = $this->controlchar_filter( $val );
         # catch attempts to insert malware
         if ( false !== strpos( $val, $this->htmlentities_decode_safe( 'array&lowbar;diff&lowbar;' ) ) && ( false !== strpos( $val, "system" ) ||
              false !== strpos( $val, "cmd" ) ) && $this->substri_count( $val, "array(" ) > 1 )
@@ -1078,12 +1078,22 @@ class pareto_functions extends pareto_setup {
         }
         $matches = array();
         
-        preg_match_all( "/(?:script|type|text|javascript|http|pastebin)/i", $val, $matches );
+        $this_val = preg_replace( "/[\s\r\n]/i", '', strtolower( $val ) );
+        preg_match_all( "/script|type|text|javascript|http|pastebin/i", $this_val, $matches );
         $this_match = count( array_unique( $matches[ 0 ] ) );
         if ( $this->cmpstr( $this_match, 6 ) ) {
-            $trimval = trim( substr( $val, 0, 20 ) );
+            $trimval = trim( substr( $this_val, 0, 20 ) );
             $this->karo( "Malware Inject: Attempt to inject malware via Pastebin " . $this->htmlentities_safe( $trimval ), true, "High", true );
         }
+        $matches = array();
+        
+        # Malware Inject: Exploit CVE-2021-26084
+        $this_val = preg_replace( "/[\s\r\n]/i", '', strtolower( $val ) );
+        preg_match_all( "/script|javax|scriptenginemanager|newinstance\(|processbuilder|bufferedreader|null|getproperty\(/i", $this_val, $matches );
+        $this_match = count( array_unique( $matches[ 0 ] ) );
+        if ( $this_match >= 6 ) {
+            $this->karo( "Malware Inject: Exploit CVE-2021-26084 " . $this->htmlentities_safe( $this_val ), true, "High", true );
+        }        
 
         # Load the keys into an array
         $this->_post_all[] = strtolower( $this->decode_code( $key, true ) );
@@ -1247,14 +1257,16 @@ class pareto_functions extends pareto_setup {
     function update_admin_ip( $ip ) {
         if ( false === $this->is_wp() ) return;
         update_option( $this->settings_field, array( // set defaults
-                 'advanced_mode' => $this->_adv_mode,
-                 'hard_ban_mode' => $this->_hard_ban_mode,
-                 'tor_block'     => $this->_tor_block,
-                 'email_report'  => $this->_email_report,
-                 'ban_mode'      => $this->_ban_mode,
-                 'safe_list'     => ( isset( $this->_domain_list ) ? $this->_domain_list : '' ),
-                 'admin_ip'      => $ip,
-                 'server_ip'     => $this->get_serverip()
+                 'advanced_mode'    => $this->_adv_mode,
+                 'hard_ban_mode'    => $this->_hard_ban_mode,
+                 'tor_block'        => $this->_tor_block,
+                 'disable_htaccess' => $this->_disable_htaccess,
+                 'silent_mode'      => $this->_silent_mode,
+                 'email_report'     => $this->_email_report,
+                 'ban_mode'         => $this->_ban_mode,
+                 'safe_list'        => ( isset( $this->_domain_list ) ? $this->_domain_list : '' ),
+                 'admin_ip'         => $ip,
+                 'server_ip'        => $this->get_serverip()
         ) );
         $this->options = get_option( $this->settings_field );
     }
@@ -1428,7 +1440,7 @@ class pareto_functions extends pareto_setup {
 	 */ 
     public function _HTTPHOST_SHIELD() {
         if ( isset( $_SERVER[ 'HTTP_HOST' ] ) ) {
-            $this_http_host = trim( strtolower( $_SERVER[ 'HTTP_HOST' ] ) );
+            $this_http_host = $this->controlchar_filter( trim( strtolower( $_SERVER[ 'HTTP_HOST' ] ) ) );
             
             # while not optimal, there is nothing below
             # that can right this issue
@@ -1508,10 +1520,11 @@ class pareto_functions extends pareto_setup {
                         $safelist_url[] = $this_sname;
                     }
                 }
-                $this->_safe_host = $safelist_url[ 0 ];
+                $this->_safe_host = $this->controlchar_filter( $safelist_url[ 0 ] );
             }
     }
     function ip_filter( $ip ) {
+        $ip = $this->controlchar_filter( $ip );
         $ip_port_pattern = '^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.)
                             {3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]):(?:
                             6553[0-5]|655[0-2][0-9]|65[0-4][0-9]{2}|6[0-4][0-9]{3}
@@ -1540,6 +1553,8 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */ 
     function cookie_filter( $val, $key ) {
+        $key = $this->controlchar_filter( $key );
+        $val = $this->controlchar_filter( $val );
         $this->do_blacklists( $this->decode_code( $key ), 1, "Cookie", true, "High", true, true, true );
         $this->do_blacklists( $this->decode_code( $val ), 1, "Cookie", true, "High", true, true, true );
     }
@@ -1562,7 +1577,7 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */ 
     public function _SPIDER_SHIELD() {
-        $user_agent = strtolower( $this->decode_code( $_SERVER[ 'HTTP_USER_AGENT' ], true ) );
+        $user_agent = strtolower( $this->decode_code( $this->controlchar_filter( $_SERVER[ 'HTTP_USER_AGENT' ] ), true ) );
         if ( false !== ( bool ) $this->string_prop( $user_agent, 1 ) ) {
             # Shellshock
             preg_match_all( "/echo|\(\)|\;\}\;|\/bin\/bash|-c|uname|-i|>|md5sum/i", $user_agent, $matches );
@@ -1721,6 +1736,9 @@ class pareto_functions extends pareto_setup {
             }
     }
     function is_tor(): bool {
+        if ( false === ( bool ) $this->_tor_block ) {
+            return false; // only execute a tor test if 'Block Tor Access' is enabled in settings
+        }
         require_once( 'lib/pareto_detect_tor.php' );
         $istor = ( TorDNSEL::isTor( $this->_client_ip ) ) ? true : false;
         return $istor;
@@ -1854,6 +1872,7 @@ class pareto_functions extends pareto_setup {
         if ( is_array( $matches ) && array_key_exists( 0, $matches ) && false !== $this->cmpstr( '.php', substr( $matches[ 0 ], -4, 4 ), true ) && ( false !== $this->checkfilename( $matches[ 0 ] ) ) && ( $this->get_file_perms(  $matches[ 0 ], true ) ) ) {
           $filename = $matches[ 0 ];
         }
+        $filename = $this->controlchar_filter( $filename );
         return $filename;
     }
     /**
@@ -1872,7 +1891,7 @@ class pareto_functions extends pareto_setup {
                 return preg_replace( "/[^\s{}a-z0-9_?,()=@%:{}\/\.\-]/i", ' ', $s );
                 break;
             case ( 2 ):
-                return preg_replace( "/[^\s{}a-z0-9_?,=@%:{}\/\.\-]/i", ' ', $s );
+                return preg_replace( "/[^\s{}a-z0-9_?,=@%:\/\.\-]/i", ' ', $s );
                 break;
             case ( 3 ):
                 return preg_replace( "/[^\s=a-z0-9]/i", ' ', $s );
@@ -1916,6 +1935,7 @@ class pareto_functions extends pareto_setup {
 	 * @return array
 	 */
     function do_htaccess( $mybans, $newline, $thisdomain, $limitstart, $limitend ) {
+        error_reporting( 0 );
         $final_htaccess = array();
         $mybansips = array();
         # collect all current entries
@@ -1991,6 +2011,7 @@ class pareto_functions extends pareto_setup {
         return $htaccess;
     }
     function remove_empty_lines( $array ) {
+        error_reporting( 0 );
         for ( $i = 0; $i <= count( $array ); $i++ ) {
             if ( strlen( $array[ $i ] ) == 1 && strlen( $array[ ( $i - 1 ) ] ) == 1 ) {
                 unset( $array[ $i ] );
@@ -2000,6 +2021,7 @@ class pareto_functions extends pareto_setup {
         return $array;
     }
     function add_carriage( $array ) {
+        error_reporting( 0 );
         for ( $i = 0; $i <= count( $array ); $i++ ) {
             if ( false === strpos( $array[ $i ], "\n" ) ) {
                 $array[ $i ] = $array[ $i ] . "\n";
@@ -2020,9 +2042,12 @@ class pareto_functions extends pareto_setup {
 	 */
     function htaccessbanip( $banip ) {
         # if IP is empty or too short, or .htaccess is not read/write
+        $is_server = ( false !== $this->is_server( $this->get_ip( true ) ) ) ? true : false;
         if ( false !== empty( $banip ) || ( strlen( $banip ) < 7 ) || ( false === $this->htapath() ) ||
-           false !== $this->is_admin_ip() ) {
+            false !== $this->is_admin_ip() ) {
             return $this->karo( "[Notice]", false, "safe", true );
+        } elseif ( false !== $is_server ) {
+            return $this->karo( "[Blocked]", false, "low", true );
         } else {
             $this->set_safe_domain();
             $mybans     = file( $this->htapath() );
@@ -2278,6 +2303,181 @@ class pareto_functions extends pareto_setup {
             return $_get_server[ 'DOCUMENT_ROOT' ];
         } else return $get_root;
     }
+    function is_cf( $this_ip ) {
+        error_reporting( 0 );
+        if ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ||
+             isset( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) || isset( $_get_server[ 'HTTP_X_FORWARDED_FOR' ] ) ) {
+            # Harden IP Check against spoofing of CF IPs
+            $cf_ip_ranges = '';
+            $cf_ip_ranges = $this->get_url_content( self::CF_URL );
+            if ( ( empty( $cf_ip_ranges ) || false === $cf_ip_ranges ) && function_exists( 'curl_get_file_contents' ) ) $cf_ip_ranges = curl_get_file_contents( self::CF_URL );
+            $cf_ip_ranges = explode( "\n", $cf_ip_ranges );
+            if ( !empty( $cf_ip_ranges ) && strlen( $cf_ip_ranges[ count( $cf_ip_ranges ) - 1 ] ) < 1 ) {
+                array_pop( $cf_ip_ranges );
+            } elseif ( empty( $cf_ip_ranges ) || false === $cf_ip_ranges ) $cf_ip_ranges = array(
+                                                        '173.245.48.0/20',
+                                                        '103.21.244.0/22',
+                                                        '103.22.200.0/22',
+                                                        '103.31.4.0/22',
+                                                        '141.101.64.0/18',
+                                                        '108.162.192.0/18',
+                                                        '190.93.240.0/20',
+                                                        '188.114.96.0/20',
+                                                        '197.234.240.0/22',
+                                                        '198.41.128.0/17',
+                                                        '162.158.0.0/15',
+                                                        '172.64.0.0/13',
+                                                        '131.0.72.0/22',
+                                                        '104.16.0.0/13',
+                                                        '104.24.0.0/14'
+                                                        );
+
+             $valid_cf_req = false;
+             foreach( $cf_ip_ranges as $range ) {
+                if ( $this->ip_inrange( $this_ip, $range ) ) {
+                    $valid_cf_req = true;
+                    break;
+                }
+             }
+             $this_cf_ip = '';
+             if ( false !== $valid_cf_req ) {
+                error_reporting( 6135 );
+                if ( isset( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) && $this->check_ip( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) ) {
+                    $this_cf_ip = $_get_server[ 'HTTP_TRUE_CLIENT_IP' ];
+                } elseif ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) && $this->check_ip( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ) {
+                    $this_cf_ip = $_get_server[ 'HTTP_CF_CONNECTING_IP' ];
+                }
+                # these are server ips within the Cloudflare CDN, so do not ban
+                return $this_cf_ip;
+             } else return false;
+        } else return false;
+    }
+    function is_qc( $this_ip ) {
+            error_reporting( 0 );
+            # Harden IP Check against spoofing of Quick Cloud IPs
+            $qc_ip_ranges = '';
+            $qc_ip_ranges = $this->get_url_content( self::QC_URL );
+
+            if ( ( empty( $qc_ip_ranges ) || false === $qc_ip_ranges ) && function_exists( 'curl_get_file_contents' ) ) {
+                $qc_ip_ranges = str_replace( "<br />", "\n", $this->curl_get_file_contents( self::QC_URL ) );
+            } elseif ( false !== $qc_ip_ranges ) $qc_ip_ranges = str_replace( "<br />", "\n", $qc_ip_ranges );
+            $qc_ip_ranges = explode( "\n", $qc_ip_ranges );
+            if ( !empty( $qc_ip_ranges ) && strlen( $qc_ip_ranges[ count( $qc_ip_ranges ) - 1 ] ) < 1 ) {
+                array_pop( $qc_ip_ranges );
+            } elseif ( empty( $qc_ip_ranges ) || false === $qc_ip_ranges ) $qc_ip_ranges = array(
+                                                                                                '102.129.254.77',
+                                                                                                '102.221.36.98',
+                                                                                                '102.221.36.99',
+                                                                                                '103.13.113.249',
+                                                                                                '103.152.118.219',
+                                                                                                '103.152.118.72',
+                                                                                                '103.164.203.163',
+                                                                                                '103.199.16.151',
+                                                                                                '103.236.150.198',
+                                                                                                '103.236.150.223',
+                                                                                                '103.28.90.190',
+                                                                                                '104.225.142.116',
+                                                                                                '109.248.43.212',
+                                                                                                '124.150.139.239',
+                                                                                                '135.148.120.32',
+                                                                                                '135.148.148.230',
+                                                                                                '137.220.36.137',
+                                                                                                '139.162.89.149',
+                                                                                                '139.59.21.152',
+                                                                                                '141.164.38.65',
+                                                                                                '146.59.17.163',
+                                                                                                '146.88.239.197',
+                                                                                                '147.135.115.64',
+                                                                                                '149.28.11.90',
+                                                                                                '152.228.171.66',
+                                                                                                '154.16.57.184',
+                                                                                                '156.67.209.151',
+                                                                                                '163.182.174.161',
+                                                                                                '163.47.20.24',
+                                                                                                '163.47.21.168',
+                                                                                                '164.52.202.100',
+                                                                                                '165.227.116.222',
+                                                                                                '172.104.44.18',
+                                                                                                '178.17.171.177',
+                                                                                                '18.192.146.200',
+                                                                                                '181.215.183.135',
+                                                                                                '185.108.129.52',
+                                                                                                '185.116.60.231',
+                                                                                                '185.116.60.232',
+                                                                                                '185.126.236.167',
+                                                                                                '185.126.237.129',
+                                                                                                '185.205.187.233',
+                                                                                                '185.228.26.40',
+                                                                                                '185.243.215.148',
+                                                                                                '185.53.57.40',
+                                                                                                '185.53.57.89',
+                                                                                                '192.99.38.117',
+                                                                                                '193.203.202.215',
+                                                                                                '194.36.144.221',
+                                                                                                '195.231.17.141',
+                                                                                                '199.59.247.242',
+                                                                                                '2.58.28.32',
+                                                                                                '200.58.127.145',
+                                                                                                '204.10.163.237',
+                                                                                                '207.246.71.239',
+                                                                                                '209.208.26.218',
+                                                                                                '213.159.1.75',
+                                                                                                '213.183.51.224',
+                                                                                                '213.184.87.75',
+                                                                                                '216.250.96.181',
+                                                                                                '27.131.75.40',
+                                                                                                '27.131.75.41',
+                                                                                                '31.131.4.244',
+                                                                                                '31.22.115.186',
+                                                                                                '31.220.111.172',
+                                                                                                '37.120.131.40',
+                                                                                                '37.143.128.237',
+                                                                                                '38.129.107.18',
+                                                                                                '41.185.29.210',
+                                                                                                '41.223.53.163',
+                                                                                                '43.231.0.46',
+                                                                                                '45.124.65.86',
+                                                                                                '45.132.244.92',
+                                                                                                '45.248.77.61',
+                                                                                                '45.32.210.159',
+                                                                                                '45.56.77.123',
+                                                                                                '45.76.17.119',
+                                                                                                '45.9.249.220',
+                                                                                                '46.250.220.133',
+                                                                                                '49.12.102.29',
+                                                                                                '5.134.119.103',
+                                                                                                '5.134.119.194',
+                                                                                                '5.188.183.13',
+                                                                                                '51.81.186.219',
+                                                                                                '51.81.33.156',
+                                                                                                '54.162.162.165',
+                                                                                                '54.36.103.97',
+                                                                                                '62.141.42.38',
+                                                                                                '64.225.34.246',
+                                                                                                '64.227.16.93',
+                                                                                                '65.21.81.50',
+                                                                                                '65.21.81.51',
+                                                                                                '74.3.163.74',
+                                                                                                '79.172.239.249',
+                                                                                                '81.31.156.246',
+                                                                                                '83.229.71.151',
+                                                                                                '86.105.14.231',
+                                                                                                '86.105.14.232',
+                                                                                                '91.201.67.57',
+                                                                                                '91.228.7.67',
+                                                                                                '91.239.234.48',
+                                                                                                '92.223.105.192',
+                                                                                                '92.38.139.226',
+                                                                                                '93.95.227.66',
+                                                                                                '94.26.84.39',
+                                                                                                '94.75.232.90',
+                                                                                                '95.217.200.8'
+                                                        );
+            error_reporting( 6135 );
+            if ( in_array( $this_ip, $qc_ip_ranges ) ) {
+                return true; // this will prevent Quick.cloud from being IP banned
+            } else return false;    
+    }
     /**
 	 * check the ip address is not the server
 	 *
@@ -2296,11 +2496,18 @@ class pareto_functions extends pareto_setup {
             }
         }
         if ( $this->cmpstr( strlen( $ip ), 0 ) ) $ip = $this->_client_ip;
-        if ( false !== $this->cmpstr( $ip, $this->get_serverip() ) ) {
+        
+        if ( false !== $this->is_cf( $ip ) ) {
+            return true;
+        } elseif (false !== $this->is_qc( $ip ) ) {
+            return true;
+        } elseif ( false !== $this->cmpstr( $ip, $this->get_serverip() ) ) {
             return true;
         } elseif ( ( false !== $localhost ) &&  $this->cmpstr( '127.0.0.', substr( $ip, 0, 8 ) ) ) {    
             return true;
-        } elseif ( isset( $this->options[ 'server_ip' ] ) && $this->cmpstr( $ip, $this->options[ 'server_ip' ] ) ) return true; // this is the ip address that was registered when the plugin was first enabled
+        } elseif ( isset( $this->options[ 'server_ip' ] ) && $this->cmpstr( $ip, $this->options[ 'server_ip' ] ) ) {
+            return true; // this is the ip address that was registered when the plugin was first enabled
+        }
         return false;
     }
     /**
@@ -2324,10 +2531,12 @@ class pareto_functions extends pareto_setup {
             empty( ini_get( 'allow_url_fopen' ) ) ||
             ini_get( 'allow_url_fopen' ) == 0 ) return;
         $fp = fopen( $url, 'r' );
-        stream_set_blocking( $fp, 0 );
-        $data = fread( $fp, 8192 );
-        fclose( $fp );
-        return $data;
+        if ( is_resource( $fp ) ) {
+            stream_set_blocking( $fp, 0 );
+            $data = fread( $fp, 8192 );
+            fclose( $fp );
+            return $data;
+        } else return false;
     }    
     /**
      * get_ip()
@@ -2343,153 +2552,11 @@ class pareto_functions extends pareto_setup {
         
         # do the full depth IP check only if banning or blocking an ip address
         if ( false !== $full ) {
-            if ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ||
-                 isset( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) || isset( $_get_server[ 'HTTP_X_FORWARDED_FOR' ] ) ) {
-                # Harden IP Check against spoofing of CF IPs
-                $cf_ip_ranges = '';
-                $cf_ip_ranges = $this->get_url_content( self::CF_URL );
-                if ( ( empty( $cf_ip_ranges ) || false === $cf_ip_ranges ) && function_exists( 'curl_get_file_contents' ) ) $cf_ip_ranges = curl_get_file_contents( self::CF_URL );
-                $cf_ip_ranges = explode( "\n", $cf_ip_ranges );
-                if ( !empty( $cf_ip_ranges ) && strlen( $cf_ip_ranges[ count( $cf_ip_ranges ) - 1 ] ) < 1 ) {
-                    array_pop( $cf_ip_ranges );
-                } elseif ( empty( $cf_ip_ranges ) || false === $cf_ip_ranges ) $cf_ip_ranges = array(
-                                                            '173.245.48.0/20',
-                                                            '103.21.244.0/22',
-                                                            '103.22.200.0/22',
-                                                            '103.31.4.0/22',
-                                                            '141.101.64.0/18',
-                                                            '108.162.192.0/18',
-                                                            '190.93.240.0/20',
-                                                            '188.114.96.0/20',
-                                                            '197.234.240.0/22',
-                                                            '198.41.128.0/17',
-                                                            '162.158.0.0/15',
-                                                            '172.64.0.0/13',
-                                                            '131.0.72.0/22',
-                                                            '104.16.0.0/13',
-                                                            '104.24.0.0/14'
-                                                            );
-
-                 $valid_cf_req = false;
-                 foreach( $cf_ip_ranges as $range ) {
-                    if ( $this->ip_inrange( $this_ip, $range ) ) {
-                        $valid_cf_req = true;
-                        break;
-                    }
-                 }
-                 if( false !== $valid_cf_req ) {
-                    if ( isset( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) && $this->check_ip( $_get_server[ 'HTTP_TRUE_CLIENT_IP' ] ) ) {
-                        $this_ip = $_get_server[ 'HTTP_TRUE_CLIENT_IP' ];
-                    } elseif ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) && $this->check_ip( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ) {
-                        $this_ip = $_get_server[ 'HTTP_CF_CONNECTING_IP' ];
-                    }
-                    # these are server ips within the Cloudflare CDN, so do not ban
-                    $this->_bypassbanip = true;
-                 }
+            if ( false !== $this->is_cf( $this_ip ) ) { // is_cf returns ip or false
+                   $this_ip = $this->is_cf( $this_ip );
+                   $this->_bypassbanip = true;
             }
-            # Harden IP Check against spoofing of Quick Cloud IPs
-            $qc_ip_ranges = '';
-            $qc_ip_ranges = $this->get_url_content( self::QC_URL );
-            if ( false !== $qc_ip_ranges ) $qc_ip_ranges = str_replace( "<br />", "\n", $qc_ip_ranges );
-            if ( ( empty( $qc_ip_ranges ) || false === $qc_ip_ranges ) && function_exists( 'curl_get_file_contents' ) ) $qc_ip_ranges = str_replace( "<br />", "\n", $this->curl_get_file_contents( self::QC_URL ) );
-            $qc_ip_ranges = explode( "\n", $qc_ip_ranges );
-            if ( !empty( $qc_ip_ranges ) && strlen( $qc_ip_ranges[ count( $qc_ip_ranges ) - 1 ] ) < 1 ) {
-                array_pop( $qc_ip_ranges );
-            } elseif ( empty( $qc_ip_ranges ) || false === $qc_ip_ranges ) $qc_ip_ranges = array(
-                                                        '101.53.132.52',
-                                                        '102.129.254.77',
-                                                        '102.221.36.98',
-                                                        '102.221.36.99',
-                                                        '103.101.225.15',
-                                                        '103.199.16.151',
-                                                        '103.28.90.190',
-                                                        '104.225.142.116',
-                                                        '109.248.43.212',
-                                                        '124.150.139.239',
-                                                        '135.148.120.32',
-                                                        '137.220.36.137',
-                                                        '139.162.89.149',
-                                                        '139.59.21.152',
-                                                        '141.164.38.65',
-                                                        '146.59.17.163',
-                                                        '146.88.239.197',
-                                                        '147.135.115.64',
-                                                        '149.28.11.90',
-                                                        '15.185.175.134',
-                                                        '152.228.171.66',
-                                                        '156.67.209.151',
-                                                        '162.221.207.44',
-                                                        '163.47.20.24',
-                                                        '163.47.21.168',
-                                                        '164.52.202.100',
-                                                        '165.227.116.222',
-                                                        '172.104.44.18',
-                                                        '178.17.171.177',
-                                                        '18.192.146.200',
-                                                        '181.215.183.135',
-                                                        '182.16.101.103',
-                                                        '185.108.129.52',
-                                                        '185.142.239.161',
-                                                        '185.205.187.233',
-                                                        '185.228.26.40',
-                                                        '185.243.215.148',
-                                                        '185.25.204.8',
-                                                        '185.53.57.40',
-                                                        '185.53.57.89',
-                                                        '192.99.38.117',
-                                                        '193.203.202.215',
-                                                        '194.36.144.221',
-                                                        '197.189.253.162',
-                                                        '199.59.247.242',
-                                                        '2.58.28.32',
-                                                        '200.58.127.145',
-                                                        '204.10.163.237',
-                                                        '209.208.26.218',
-                                                        '213.159.1.75',
-                                                        '213.183.51.224',
-                                                        '213.184.87.75',
-                                                        '27.131.75.40',
-                                                        '27.131.75.41',
-                                                        '31.22.115.186',
-                                                        '31.220.21.249',
-                                                        '37.120.131.40',
-                                                        '37.143.128.237',
-                                                        '38.129.107.18',
-                                                        '41.223.53.163',
-                                                        '45.124.65.86',
-                                                        '45.132.244.92',
-                                                        '45.248.77.61',
-                                                        '45.32.210.159',
-                                                        '45.56.77.123',
-                                                        '45.76.17.119',
-                                                        '45.9.249.220',
-                                                        '46.250.220.133',
-                                                        '49.12.102.29',
-                                                        '5.134.119.103',
-                                                        '5.134.119.194',
-                                                        '51.222.28.21',
-                                                        '51.68.231.18',
-                                                        '51.81.186.219',
-                                                        '54.162.162.165',
-                                                        '62.141.42.38',
-                                                        '64.225.34.246',
-                                                        '64.227.16.93',
-                                                        '65.21.81.50',
-                                                        '79.172.239.249',
-                                                        '83.229.71.151',
-                                                        '91.132.139.43',
-                                                        '91.195.99.133',
-                                                        '91.201.67.57',
-                                                        '91.228.7.67',
-                                                        '92.223.105.192',
-                                                        '92.38.132.176',
-                                                        '92.38.139.226',
-                                                        '93.95.227.66',
-                                                        '94.26.84.39',
-                                                        '94.75.232.90',
-                                                        '95.217.200.8'
-                                                        );
-            if ( in_array( $this_ip, $qc_ip_ranges ) ) {
+            if ( $this->is_qc( $this_ip ) ) {
                 $this->_bypassbanip = true; // this will prevent Quick.cloud from being IP banned
             }
         }
@@ -2560,7 +2627,6 @@ class pareto_functions extends pareto_setup {
         $header = array(
             "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload",
             "access-control-allow-methods: GET, POST, HEAD",
-            "X-Frame-Options: SAMEORIGIN",
             "X-Content-Type-Options: nosniff",
             "X-Xss-Protection: 1; mode=block",
             "X-download-options: noopen",
@@ -2605,10 +2671,22 @@ class pareto_functions extends pareto_setup {
         return rawurldecode( urldecode( str_replace( chr( 0 ), '', $var ) ) );
     }
     function controlchar_exists( $input ) {
-        $char_count  = strlen( preg_replace( '/[^\x00-\x08\x10-\x19]/', '', $input ) ); // detect null-printing control characters
-        if ( $char_count > 0 ) return true;
+        if ( substr_count( $input, chr(92) ) > 3 ) {
+            $input = strtolower( $input );
+            preg_match_all( "/xd(?:[0-9])|x(?:[0-9])a|xd(?:[a-f])|x(?:[0-9])f|xc(?:[0-9])|xac|x0(?:[a-f])|x(?:[a-f])f|xc(?:[0-9])|xf(?:[0-9])|xc(?:[0-9])/i", $input, $matches );
+            $char_count  = ( isset( $matches[ 0 ] ) ) ? count( $matches[ 0 ] ) : count( $matches ); // detect null-printing control characters
+            if ( $char_count > 3 ) return true;
+        }
         return false;
     }
+    function controlchar_filter( $input ) {
+        if ( ( false !== ( bool ) $this->_hard_ban_mode ) &&
+             ( !empty( $input ) ) &&
+             ( false !== $this->controlchar_exists( $input ) ) ) {
+               $this->karo( "Control Character Injection "  . $desc . ": " . $this->htmlentities_safe( $input ), true, "High", true );
+        }
+        return $input;
+    }      
     function htmlentities_decode_safe( $input ) {
         $input        = str_replace( 'script', 'sc ript', $this->url_decoder( $input ) );
         $input        = str_replace( 'prompt', 'pro mpt', $input );
