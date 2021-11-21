@@ -11,9 +11,9 @@ Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
 Donate link: https://hokioisecurity.com/donations/
 Requires at least: 5.2.0
-Tested up to: 5.8
+Tested up to: 5.8.1
 Requires PHP: 5.6.0
-Stable tag: 2.9.4
+Stable tag: 2.9.7.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -120,6 +120,25 @@ Email me at pareto-security@hokioisecurity.com
 Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
+
+== 2.9.7.1
+* Bug fix for when either Cloudflare or Quick Cloud are unable to be reached, causing logfile errors
+* Added IPv6 support for Cloudflare ip addresses
+
+== 2.9.7 ==
+* Added extra protection to prevent server ip address bans
+* Updated QuicCloud ip list
+* Added function to manually disable writing ip addresses to the htaccess file
+
+== 2.9.6 ==
+* added post filters for reverse powershell injection code
+* added post filters for exploit CVE-2021-26084
+* small bug causing PS to detect Tor when the tor switch was not enabled in settings
+
+== 2.9.5 ==
+* Filter for new controlcharacter attacks
+* Trim down the non-wp logging function
+* Removed SAMEORIGIN from X-Frame-Options header 
 
 == 2.9.4 ==
 * Improve htaccess formatting
