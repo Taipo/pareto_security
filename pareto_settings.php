@@ -538,7 +538,7 @@ if ( class_exists( "pareto_functions" ) ):
                                         <span class="checkmark"></span></label>
                                     </div>
                                     <div class="divAdvancedMode"><label for="<?php echo $this->get_field_id( 'disable_htaccess' ); ?>"><?php _e( '<strong>Disable IP Banning</strong> Prevent writing IP addresses to .htaccess.<br />
-                                                                                                                                                             (Attack requests will still be blocked regardless whether enabled or not).', $this->_textdomain ); ?></label>
+                                                                                                                                                             (Attack requests will still be blocked. Recommended for Cloudflare and Quic Cloud users).', $this->_textdomain ); ?></label>
                                     </div>
                                 </div>
                                 <div class="divTableRow">
