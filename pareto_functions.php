@@ -199,7 +199,9 @@ class pareto_functions extends pareto_setup {
 
         # create the log entry
         # set $lockdown_mode
-        if ( false === $this->silent_mode ) $this->log_request( $req, $ban_type, $this->_client_ip );
+        if ( false === ( bool ) $this->silent_mode ) {
+            $this->log_request( $req, $ban_type, $this->_client_ip );
+        }
 
         # Give a logged in WP Admins, editors and authors a pass
         # if notification only
