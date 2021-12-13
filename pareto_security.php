@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: https://hokioisecurity.com/?p=17
 Description: Core Security - Protection from a range of attacks against Content Management Systems (CMS)
 Author: Te_Taipo
-Version: 3.0.2.1
+Version: 3.0.2
 Requirements: Requires at least PHP version 5.2.0
 Author URI: https://hokioisecurity.com
 Donations via: https://hokioisecurity.com/donations/
