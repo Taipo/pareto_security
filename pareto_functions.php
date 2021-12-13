@@ -2,7 +2,7 @@
 require "pareto_setup.php";
 
 class pareto_functions extends pareto_setup {
-    const   PARETO_VERSION = '3.0.2.1';
+    const   PARETO_VERSION = '3.0.2';
 	/**
 	 * Pareto Security constructor.
 	 *
