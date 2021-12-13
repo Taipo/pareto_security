@@ -651,11 +651,11 @@ if ( class_exists( "pareto_functions" ) ):
         ?>
         <?php if ( false === $is_nginx ) { ?><li><?php echo _e( '+ Your <code>.htaccess</code> is configured correctly in <code>' . $this->get_dir() . '</code>', $this->_textdomain ); ?></li>
         <li><?php echo _e( '+ There ' . ( ( $this->cmpstr( $this->ip_count, 1 ) ) ? 'is' : 'are' ) . ' currently [ ' . ( empty( $this->ip_count ) ? 0 : $this->ip_count ) . ' ] unique IP addresses banned by Pareto Security', $this->_textdomain ); ?></li>
-        <li>+ <?php
+        <li><?php
               if ( false === ( bool ) $this->_disable_htaccess ) {
-                echo ( false !== ( bool ) $this->_adv_mode ) ? esc_html( 'Ban Type : Hard Ban. ' . $ban_type, $this->_textdomain ) : esc_html( 'Ban Type : Soft Ban. ' . $ban_type, $this->_textdomain );
+                echo ( false !== ( bool ) $this->_adv_mode ) ? esc_html( '+ Ban Type : Hard Ban. ' . $ban_type, $this->_textdomain ) : esc_html( '+ Ban Type : Soft Ban. ' . $ban_type, $this->_textdomain );
               } else {
-                echo esc_html( 'Ban Type', $this->_textdomain ); ?> : <?php echo 'Blocking Only. Adding IP addresses to the .htaccess has been disabled, however all attack request are still blocked.'; ?></li>
+                echo esc_html( '+ Ban Type', $this->_textdomain ); ?> : <?php echo 'Blocking Only. Adding IP addresses to the .htaccess has been disabled, however all attack request are still blocked.'; ?></li>
         <?php } ?>
         <?php } else { ?>
         <?php if ( false === $is_nginx ) { ?><li><?php echo _e( '- Your <code>.htaccess</code> file cannot be written to in <code>' . $this->get_dir() . '</code> Pareto Security will still soft ban attack vectors.', $this->_textdomain ); ?></li><?php } ?>
@@ -663,11 +663,12 @@ if ( class_exists( "pareto_functions" ) ):
         <?php if ( false === $is_nginx ) { ?><li><?php echo esc_html( '- Hard Ban:', $this->_textdomain ); ?> <?php echo $ban_type; ?></li><?php } ?>
         <?php } ?>
         <?php } else { ?>
-        <li>+ <?php if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT !== false ) { echo _e( 'DISALLOW_FILE_EDIT is set to true, preventing writing to .htaccess', $this->_textdomain ); ?>
+        <li><?php if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT !== false ) { echo _e( '+ DISALLOW_FILE_EDIT is set to true, preventing writing to .htaccess', $this->_textdomain ); ?>
         <?php }
         } ?>
         <li><?php echo ( ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( '+ ', $this->_textdomain ) : _e( '- ', $this->_textdomain ) ) . _e( 'Your server is running PHP version ' . substr( phpversion(), 0, 3 ), $this->_textdomain ); ?>
         <?php echo ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( ' &#x2713&#x2713&#x2713; ', $this->_textdomain ) : _e( ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 7.0', $this->_textdomain ); ?></li>
+        <li>+ Admin IP Address: <i><?php echo $this->_admin_ip; ?></i></li>
         <li><?php echo _e( '+ <a title="Smoke tests are performed shortly after Pareto Security is updated. If the smoke test site returns an error, please check again in a few days." target="_blank" href="https://plugintests.com/plugins/wporg/pareto-security/' . self::PARETO_VERSION . '">Click here</a> to view a smoke test was performed on Pareto Security version ' . self::PARETO_VERSION, $this->_textdomain ); ?></li>
     </ul>
 

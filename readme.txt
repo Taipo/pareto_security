@@ -5,7 +5,7 @@ Donate link: https://hokioisecurity.com/donations/
 Requires at least: 5.2.0
 Tested up to: 5.8.1
 Requires PHP: 5.6.0
-Stable tag: 2.9.7.1
+Stable tag: 3.0.2.1
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,41 +113,23 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-== 2.9.7.1
-* Bug fix for when either Cloudflare or Quick Cloud are unable to be reached, causing logfile errors
-* Added IPv6 support for Cloudflare ip addresses
+= 3.0.3
+* Further work on Cloudflare detection
 
-== 2.9.7 ==
-* Added extra protection to prevent server ip address bans
-* Updated QuicCloud ip list
-* Added function to manually disable writing ip addresses to the htaccess file
+== 3.0.2 ==
+* Added log4shell filter class to every input rather than just the user-agent
+* Updated filtering to better identify the signature of the log4shell attack
 
-== 2.9.6 ==
-* added post filters for reverse powershell injection code
-* added post filters for exploit CVE-2021-26084
-* small bug causing PS to detect Tor when the tor switch was not enabled in settings
+== 3.0.1 ==
+* Bugfix in log4j filter
+* Preparing Pareto Security for PHP 8
+* Bugfix for Cloudflare detection
 
-== 2.9.5 ==
-* Filter for new controlcharacter attacks
-* Trim down the non-wp logging function
-* Removed SAMEORIGIN from X-Frame-Options header 
+== 3.0.0 ==
+* Fix issue in setting when htaccess is not present
+* Fixed coding in Spider Shield
+* Added extra filtering to detect obfuscated versions of LogJam CVE-2021-44228
 
-== 2.9.4 ==
-* Improve htaccess formatting
-
-== 2.9.3 ==
-* Improve the cleanup when PS is deactivated
-
-== 2.9.2 ==
-* Fixed issues when using multisites and the TOR Check
-* FIxed issue where Tor_Check was incorrectly triggered
-
-== 2.9.1 ==
-* Pareto Security will now ban attack attempts against wp-admin/* files (whereas prior to this it blocked such requests without banning the IP address)
-* Fixed a bug that would prevent IP addresses from being banned, leaving the request blocked only (attack is still prevented)
-* On DNS timeout of the Tor Check now redirects to the homepage
-* Update cloudflare and quic-cloud server IP lists
-
-== 2.9.0 ==
-* Add more Tor Checks
-* Improve detection of authorised users to prevent false positives
+== 2.9.9
+* Improve IP Address Filtering
+* Added filter to detect and block attempts to exploit CVE-2021-44228

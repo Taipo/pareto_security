@@ -2,7 +2,7 @@
 require "pareto_setup.php";
 
 class pareto_functions extends pareto_setup {
-    const   PARETO_VERSION = '2.9.7.1';
+    const   PARETO_VERSION = '3.0.2.1';
 	/**
 	 * Pareto Security constructor.
 	 *
@@ -14,12 +14,12 @@ class pareto_functions extends pareto_setup {
         if ( false !== $this->is_wp() ) {
             if ( !isset( $this->_time_offset ) ) $this->_time_offset = ( int ) get_option( 'gmt_offset' );
             $unix_time = $this->file_created();
-            define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
-            define( 'SETTINGS_INSTALL_LOG', str_replace( ' ', '%20', PARETO_RELEASE_DATE ) . " Safe " . $this->get_serverip() . " GET plugins.php Pareto%20Security%20Installed/Updated" );
+            if ( !defined( 'PARETO_RELEASE_DATE' ) ) define( 'PARETO_RELEASE_DATE', date_i18n( 'F j, Y', $unix_time ) );
+            if ( !defined( 'SETTINGS_INSTALL_LOG' ) ) define( 'SETTINGS_INSTALL_LOG', str_replace( ' ', '%20', PARETO_RELEASE_DATE ) . " Safe " . $this->get_serverip() . " GET plugins.php Pareto%20Security%20Installed/Updated" );
             $this->do_filters();
-            define( 'PARETO_LOG_LIST', 'pareto_security_log_list' );
+            if ( !defined( 'PARETO_LOG_LIST' ) ) define( 'PARETO_LOG_LIST', 'pareto_security_log_list' );
         } else {
-            define( 'PARETO_LOGS', __DIR__ . "/logs/" );
+            if ( !defined( 'PARETO_LOGS' ) ) define( 'PARETO_LOGS', __DIR__ . "/logs/" );
             $this->set_crypto_key_file();
         }
     }
@@ -39,7 +39,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function _set_error_level() {
+    function _set_error_level( $val = 0 ) {
         $val = ( false !== $this->integ_prop( $this->_quietscript ) ) ? ( int ) $this->_quietscript : 0;
         @ini_set( 'display_errors', 0 );
         switch ( ( int ) $val ) {
@@ -199,7 +199,7 @@ class pareto_functions extends pareto_setup {
 
         # create the log entry
         # set $lockdown_mode
-        if ( false === ( bool ) $this->silent_mode ) {
+        if ( false === ( bool ) $this->_silent_mode ) {
             $this->log_request( $req, $ban_type, $this->_client_ip );
         }
 
@@ -227,7 +227,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function write_log( $req = "", $req_orig = "", $ban_type ) {
+    function write_log( $req = "", $req_orig = "", $ban_type = "" ) {
         $logfile    = array();
         $ban_type   = strtolower( $ban_type );
         #if ( !defined( 'PARETO_LOG_LIST' ) ) define( 'PARETO_LOG_LIST', 'pareto_security_log_list' );
@@ -307,9 +307,9 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function write_log_non_wp( $req = "", $htpath ) {
+    function write_log_non_wp( $req = "", $htpath = "" ) {
         $req = $this->htmlentities_decode_safe( $req );
-        $logfile = PARETO_LOGS . $this->_log_file;
+        $logfile = self::PARETO_LOGS . $this->_log_file;
         if ( file_exists( $logfile ) ) {
             @chmod( $logfile, 0666 );
             $fp = fopen( $logfile, 'a' );
@@ -379,7 +379,7 @@ class pareto_functions extends pareto_setup {
 	 */
     function logfile_name() {
         if ( false !== $this->logfile_exists() ) {
-            $key_array = file( PARETO_LOGS . $this->_log_file_key );
+            $key_array = file( self::PARETO_LOGS . $this->_log_file_key );
         } else
             return false;
         $filename = substr( hash( 'sha256', $key_array[ 0 ], false ), 0, 32 ) . "_request.log";
@@ -391,15 +391,15 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */    
     function logfile_cleanup() {
-        $filelist = scandir( PARETO_LOGS );
+        $filelist = scandir( self::PARETO_LOGS );
         foreach ( $filelist as $key => $filename ) {
             if ( strlen( $filename ) > 20 && false === $this->cmpstr( $filename, $this->_log_file, true ) && $this->cmpstr( '_request.log', substr( $filename, -12, 12 ), true ) ) {
-                $logfilename = PARETO_LOGS . $filename;
+                $logfilename = self::PARETO_LOGS . $filename;
                 if ( false === strpos( $logfilename, 'img' ) )
-                    unlink( PARETO_LOGS . $filename );
+                    unlink( self::PARETO_LOGS . $filename );
             }
             if ( strlen( $filename ) > 20 && false === $this->cmpstr( $filename, $this->_log_file_key, true ) && $this->cmpstr( '_request.key', substr( $filename, -12, 12 ), true ) ) {
-                unlink( PARETO_LOGS . $filename );
+                unlink( self::PARETO_LOGS . $filename );
             }
         }
     }
@@ -409,7 +409,7 @@ class pareto_functions extends pareto_setup {
 	 * @return boolean
 	 */
     function logfile_exists() {
-        return ( bool ) ( file_exists( PARETO_LOGS . ".htaccess" ) || file_exists( PARETO_LOGS . $this->_log_file_key ) );
+        return ( bool ) ( file_exists( self::PARETO_LOGS . ".htaccess" ) || file_exists( self::PARETO_LOGS . $this->_log_file_key ) );
     }
     /**
 	 * Create unique string
@@ -436,11 +436,11 @@ class pareto_functions extends pareto_setup {
     function create_fileset() {
         $htlog_content = 'Options -Indexes' . "\n" . 'Options +SymLinksIfOwnerMatch' . "\n" . 'ServerSignature off' . "\n" . '<Files ~ "^.*\_([Rr][Ee][Qq][Uu][Ee][Ss][Tt]\.)">' . "\n" . 'order allow,deny' . "\n" . 'deny from all' . "\n" . 'satisfy all' . "\n" . '</Files>' . "\n";
         
-        if ( false === is_dir( PARETO_LOGS ) )
-            @mkdir( PARETO_LOGS, 0755 );
+        if ( false === is_dir( self::PARETO_LOGS ) )
+            @mkdir( self::PARETO_LOGS, 0755 );
         
         # Create key
-        $crypto_key_file = PARETO_LOGS . $this->_log_file_key;
+        $crypto_key_file = self::PARETO_LOGS . $this->_log_file_key;
         $hash_string     = ( $this->is_wp() ) ? $this->get_wp_key() : $this->get_uuid();
         $key             = $this->do_bcrypt( $hash_string, 12 );
         $fp              = fopen( $crypto_key_file, 'w' );
@@ -449,22 +449,22 @@ class pareto_functions extends pareto_setup {
         
         $this->_log_file = $this->logfile_name();
         
-        $logfile = PARETO_LOGS . $this->_log_file;
+        $logfile = self::PARETO_LOGS . $this->_log_file;
         # Create logfile
         $fp      = fopen( $logfile, 'c' );
         fwrite( $fp, "" );
         fclose( $fp );
         
         # Create HTACCESS
-        $fp = fopen( PARETO_LOGS . ".htaccess", 'w' );
+        $fp = fopen( self::PARETO_LOGS . ".htaccess", 'w' );
         fwrite( $fp, $htlog_content );
         fclose( $fp );
         
         # remove any older logs
         if ( false !== $this->is_wp() )
             $this->logfile_cleanup();
-        @chmod( PARETO_LOGS, 0755 );
-        @chmod( PARETO_LOGS . ".htaccess", 0644 );
+        @chmod( self::PARETO_LOGS, 0755 );
+        @chmod( self::PARETO_LOGS . ".htaccess", 0644 );
         @chmod( $logfile, 0644 );
         @chmod( $crypto_key, 0644 );
     }
@@ -804,6 +804,10 @@ class pareto_functions extends pareto_setup {
             }
             $this->karo( "Apache Struts2 RCE: " . $this->htmlentities_safe( $results ), true, "Medium", true );
         }
+        # log4shell attack
+        if ( false !== $this->is_log4shell( $q_str ) ) {
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $q_str ), ( bool ) $this->_banip, "High", true );
+        }         
         //@im\port'\ja\vasc\ript:alert("XSS")';
         if ( false !== $q_str ) {
             # SQLMAP Prevention
@@ -815,7 +819,6 @@ class pareto_functions extends pareto_setup {
                     $this->karo( "SQLMAP Injection Attempt: " . $this->htmlentities_safe( $q_str ), true, "Medium", true );
                 }
             }        
-            
             # Reflected File Download Attack
             $file_injects = ( string ) $this->_injectors[ 4 ];
             
@@ -962,7 +965,6 @@ class pareto_functions extends pareto_setup {
                 $req_type = "OpinionStage Version 2.5.0 [Depreciated] Plugin " . $req_type;
             }
         }
-        
         # finally run the black lists one more time
         $rem_slash_req = str_replace( '\\', '', $req );
 
@@ -979,6 +981,10 @@ class pareto_functions extends pareto_setup {
         $key = $this->controlchar_filter( $key );
         $val = $this->controlchar_filter( $val );
         $this->_get_all[] = $this->decode_code( $key, true );
+        # log4shell attack
+        if ( false !== $this->is_log4shell( $key ) || false !== $this->is_log4shell( $val ) ) {
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), ( bool ) $this->_banip, "High", true );
+        }         
         if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
             $val = $this->controlchar_filter( strtolower( $this->decode_code( $val ) ) );
             $this->do_blacklists( $val, 1, "Request", true, "High", true, true, true );
@@ -1095,8 +1101,11 @@ class pareto_functions extends pareto_setup {
         $this_match = count( array_unique( $matches[ 0 ] ) );
         if ( $this_match >= 6 ) {
             $this->karo( "Malware Inject: Exploit CVE-2021-26084 " . $this->htmlentities_safe( $this_val ), true, "High", true );
-        }        
-
+        }
+        # log4shell attack
+        if ( false !== $this->is_log4shell( $key ) || false !== $this->is_log4shell( $val ) ) {
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), ( bool ) $this->_banip, "High", true );
+        } 
         # Load the keys into an array
         $this->_post_all[] = strtolower( $this->decode_code( $key, true ) );
         
@@ -1169,7 +1178,7 @@ class pareto_functions extends pareto_setup {
                             if ( !empty( $plugin_data) ) {
                                 $infinitewp_version = $plugin_data[ 0 ];
                                 if ( false !== version_compare( $infinitewp_version, '1.9.4.5', '<' ) ) {
-                                        $this->karo( "InfiniteWP Client Plugin Authentication Bypass Attempt - upgrade IMMEDIATELY to version 1.9.4.5 or higher!!!", true, "High", true );
+                                        $this->karo( "InfiniteWP Client Plugin Authentication Bypass Attempt - upgrade IMMEDIATELY to the latest version", true, "High", true );
                                 }
                             }
                         # if no plugin installed but raw POST request made in the blind
@@ -1387,7 +1396,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */ 
-    function flood_check( $ip, $uname = '', $type = '', $threshold, $hard_ban ) {
+    function flood_check( $ip, $uname = '', $type = '', $threshold = 0, $hard_ban = 0 ) {
          $uname = esc_html( $uname );
          if ( empty( $ip ) ) $ip = $this->_client_ip;
          $iphash = sha1( $ip ); // hash the ip
@@ -1443,7 +1452,9 @@ class pareto_functions extends pareto_setup {
     public function _HTTPHOST_SHIELD() {
         if ( isset( $_SERVER[ 'HTTP_HOST' ] ) ) {
             $this_http_host = $this->controlchar_filter( trim( strtolower( $_SERVER[ 'HTTP_HOST' ] ) ) );
-            
+            if ( false !== $this->is_log4shell( $this_http_host ) ) {
+                     $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $this_http_host ), ( bool ) $this->_banip, "High", true );
+            }              
             # while not optimal, there is nothing below
             # that can right this issue
             if ( empty( $this_http_host ) ) return;
@@ -1466,6 +1477,7 @@ class pareto_functions extends pareto_setup {
                     }
                 }
             }
+           
             # Get URL from safe list
             if ( empty( $safelist_url ) ) return;
             # Set safe domain
@@ -1538,16 +1550,21 @@ class pareto_functions extends pareto_setup {
         return $ip;
     }
     function is_ip_address( $ip ) {
+        $is_ip = false;
         $ip_pattern      = '^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.)
                             {3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])$';                            
         $ip_pattern = preg_replace( "/[\s\r\n]/i", '', $ip_pattern );
-        
-        $test_ip_chars = preg_replace( "/\.|:/i", '', $ip ); // leave numeric only
-        
+        $ip = preg_replace( "/[\r\n\s]/i", '', $ip );
+        $test_ip_chars = preg_replace( "/[\r\n\s]/i", '', $ip ); // leave numeric only
+        $test_ip_chars = preg_replace( "/\.|:/i", '', $test_ip_chars ); // leave numeric only
         if ( false !== is_numeric( $test_ip_chars ) && false !== ( bool ) preg_match( "/$ip_pattern/i", $ip ) ) {
-                return true;
-        }
-        return false;
+            if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_IP' ) ) {
+                    if ( false !== filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+                        $is_ip = true;
+                    } else $is_ip = false;
+            }
+        } else $is_ip = false;
+        return $is_ip;
     }
     /**
 	 * Filter array
@@ -1557,6 +1574,9 @@ class pareto_functions extends pareto_setup {
     function cookie_filter( $val, $key ) {
         $key = $this->controlchar_filter( $key );
         $val = $this->controlchar_filter( $val );
+        if ( false !== $this->is_log4shell( $key ) || false !== $this->is_log4shell( $val ) ) {
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), ( bool ) $this->_banip, "High", true );
+        }        
         $this->do_blacklists( $this->decode_code( $key ), 1, "Cookie", true, "High", true, true, true );
         $this->do_blacklists( $this->decode_code( $val ), 1, "Cookie", true, "High", true, true, true );
     }
@@ -1579,7 +1599,8 @@ class pareto_functions extends pareto_setup {
 	 * @return void
 	 */ 
     public function _SPIDER_SHIELD() {
-        $user_agent = strtolower( $this->decode_code( $this->controlchar_filter( $_SERVER[ 'HTTP_USER_AGENT' ] ), true ) );
+        $user_agent = ( isset( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ? strtolower( $this->decode_code( $this->controlchar_filter( $_SERVER[ 'HTTP_USER_AGENT' ] ), true ) ) : '';
+        # Do not filter empty strings
         if ( false !== ( bool ) $this->string_prop( $user_agent, 1 ) ) {
             # Shellshock
             preg_match_all( "/echo|\(\)|\;\}\;|\/bin\/bash|-c|uname|-i|>|md5sum/i", $user_agent, $matches );
@@ -1592,10 +1613,17 @@ class pareto_functions extends pareto_setup {
                     $this->karo( "USER-AGENT (Shellshock): " . $this->htmlentities_safe( $user_agent ), true, "High", true );
                 }
             }
-
+            # Attempts to exploit CVE-2021-44228
+            # Standard
+            # - ${jndi:ldap://,${jndi:rmi://,${jndi:ldaps://,${jndi:dns://
+            # - ${${::-j}${::-n}${::-d}${::-i}:${::-l}${::-d}${::-a}${::-p}://${hostname}
+            # - ${jndi:${lower:l}${lower:d}a${lower:p}://[subdomain]${upper:a}[domain]:80/callback}   
+            if ( false !== $this->is_log4shell( $user_agent ) ) {
+                     $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $user_agent ), ( bool ) $this->_banip, "High", true );
+            }
             # Mandatory filtering
             $this->do_blacklists( $user_agent, 3, "USER-AGENT", true, 'Medium', true, true, true );
-
+    
             # Only if in Hard Ban Mode
             # xml-rpc
             if ( false === $this->_spider_bypass ) {
@@ -1745,7 +1773,11 @@ class pareto_functions extends pareto_setup {
         $istor = ( TorDNSEL::isTor( $this->_client_ip ) ) ? true : false;
         return $istor;
     }
-
+    function is_log4shell( $input = '' ): bool {
+        require_once( 'lib/pareto_detect_log4shell.php' );
+        $Logjam_Filter = new Logjam_Filter();        
+        return Logjam_Filter::logjam_check( $input, 'bool' );
+    }
     function flatten( $array, $prefix = '' ) {
         $result = array();
         foreach( $array as $key => $value ) {
@@ -1945,10 +1977,20 @@ class pareto_functions extends pareto_setup {
             if ( false === strpos( $mybans[ $i ], "deny from all" ) && false !== strpos( $mybans[ $i ], "deny from" ) ) {
                 $mybansips[] = $mybans[ $i ];
             }
-        }
+        }        
         #remove any duplicates
         $mybansips = array_unique( $mybansips );
-
+        $this_ban_array = array();
+        
+        foreach( $mybansips as $k => $bans) {
+            $this_ban_array = explode( " ", $bans );
+            if ( false === strpos( $bans, "deny" ) ||
+                 false === strpos( $bans, "from" ) ||
+                 strlen( $bans ) < 17 ||
+                 empty( $this_ban_array ) ||
+                 count( $this_ban_array ) < 2 ||
+                 false === $this->is_ip_address( $this_ban_array[ 2 ] ) ) unset( $mybansips[ $k ] );
+        }        
         # limit to 500 or $this->_total_ips
         if ( count( $mybansips ) >= ( $this->_total_ips ) ) {
             $mybansips = array_reverse( $mybansips );
@@ -2306,7 +2348,8 @@ class pareto_functions extends pareto_setup {
         } else return $get_root;
     }
     function is_cf( $this_ip ) {
-        error_reporting( 0 );
+
+        $_get_server = $_SERVER;
         if ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ||
              isset( $_get_server[ 'HTTP_CDN_LOOP' ] ) ||
              isset( $_get_server[ 'HTTP_CF_VISITOR' ] ) ||
@@ -2315,49 +2358,41 @@ class pareto_functions extends pareto_setup {
             # Cloudflare is enabled
             # Harden IP Check against spoofing of CF IPs
             $cf_ipv4_ranges = '';
-            /*$cf_ipv4_ranges = $this->get_url_content( self::CF_URL_IPV4 );
-            if ( ( empty( $cf_ipv4_ranges ) || false === $cf_ipv4_ranges ) && function_exists( 'curl_get_file_contents' ) ) $cf_ipv4_ranges = curl_get_file_contents( self::CF_URL_IPV4 );
-            $cf_ipv4_ranges = explode( "\n", $cf_ipv4_ranges );
-            if ( !empty( $cf_ipv4_ranges ) && strlen( $cf_ipv4_ranges[ count( $cf_ipv4_ranges ) - 1 ] ) < 1 ) {
-                array_pop( $cf_ipv4_ranges );
-            } elseif ( empty( $cf_ipv4_ranges ) || false === $cf_ipv4_ranges )
-            */
-                $cf_ipv4_ranges = array(
-                                    '173.245.48.0/20',
-                                    '103.21.244.0/22',
-                                    '103.22.200.0/22',
-                                    '103.31.4.0/22',
-                                    '141.101.64.0/18',
-                                    '108.162.192.0/18',
-                                    '190.93.240.0/20',
-                                    '188.114.96.0/20',
-                                    '197.234.240.0/22',
-                                    '198.41.128.0/17',
-                                    '162.158.0.0/15',
-                                    '172.64.0.0/13',
-                                    '131.0.72.0/22',
-                                    '104.16.0.0/13',
-                                    '104.24.0.0/14'
-                                    );
+            $cf_ipv4_ranges = array(
+                                '173.245.48.0/20',
+                                '103.21.244.0/22',
+                                '103.22.200.0/22',
+                                '103.31.4.0/22',
+                                '141.101.64.0/18',
+                                '108.162.192.0/18',
+                                '190.93.240.0/20',
+                                '188.114.96.0/20',
+                                '197.234.240.0/22',
+                                '198.41.128.0/17',
+                                '162.158.0.0/15',
+                                '172.64.0.0/13',
+                                '131.0.72.0/22',
+                                '104.16.0.0/13',
+                                '104.24.0.0/14'
+                                );
             $cf_ipv6_ranges = '';
-            /*
-            $cf_ipv6_ranges = $this->get_url_content( self::CF_URL_IPV6 );
-            if ( ( empty( $cf_ipv6_ranges ) || false === $cf_ipv6_ranges ) && function_exists( 'curl_get_file_contents' ) ) $cf_ipv6_ranges = curl_get_file_contents( self::CF_URL_IPV6 );
-            $cf_ipv6_ranges = explode( "\n", $cf_ipv6_ranges );
-            if ( !empty( $cf_ipv6_ranges ) && strlen( $cf_ipv6_ranges[ count( $cf_ipv6_ranges ) - 1 ] ) < 1 ) {
-                array_pop( $cf_ipv6_ranges );
-            } elseif ( empty( $cf_ipv6_ranges ) || false === $cf_ipv6_ranges ) */
-                $cf_ipv6_ranges = array(
-                                    '2400:cb00::/32',
-                                    '2606:4700::/32',
-                                    '2803:f800::/32',
-                                    '2405:b500::/32',
-                                    '2405:8100::/32',
-                                    '2a06:98c0::/29',
-                                    '2c0f:f248::/32'
-                                    );
+            $cf_ipv6_ranges = array(
+                                '2400:cb00::/32',
+                                '2606:4700::/32',
+                                '2803:f800::/32',
+                                '2405:b500::/32',
+                                '2405:8100::/32',
+                                '2a06:98c0::/29',
+                                '2c0f:f248::/32'
+                                );
             
              $valid_cf_req = false;
+             # Unfortunately when using ip2long
+             # can result in error messages
+             error_reporting( 0 );
+             ini_set( 'display_errors', 0 );
+             if ( false !== $this->is_wp() ) add_filter( 'wp_fatal_error_handler_enabled', '__return_false', PHP_INT_MAX );
+             
              foreach( $cf_ipv4_ranges as $range ) {
                 if ( $this->ip_inrange( $this_ip, $range ) ) {
                     $valid_cf_req = true;
@@ -2385,17 +2420,8 @@ class pareto_functions extends pareto_setup {
     }
     function is_qc( $this_ip ) {
             error_reporting( 0 );
+            ini_set( 'display_errors', 0 );
             # Harden IP Check against spoofing of Quick Cloud IPs
-            $qc_ip_ranges = '';
-            $qc_ip_ranges = $this->get_url_content( self::QC_URL );
-/*
-            if ( ( empty( $qc_ip_ranges ) || false === $qc_ip_ranges ) && function_exists( 'curl_get_file_contents' ) ) {
-                $qc_ip_ranges = str_replace( "<br />", "\n", $this->curl_get_file_contents( self::QC_URL ) );
-            } elseif ( false !== $qc_ip_ranges ) $qc_ip_ranges = str_replace( "<br />", "\n", $qc_ip_ranges );
-            $qc_ip_ranges = explode( "\n", $qc_ip_ranges );
-            if ( !empty( $qc_ip_ranges ) && strlen( $qc_ip_ranges[ count( $qc_ip_ranges ) - 1 ] ) < 1 ) {
-                array_pop( $qc_ip_ranges );
-            } elseif ( empty( $qc_ip_ranges ) || false === $qc_ip_ranges ) */
             $qc_ip_ranges = array(
                             '102.129.254.77',
                             '102.221.36.98',
@@ -2616,10 +2642,12 @@ class pareto_functions extends pareto_setup {
         else return FALSE;
     }    
     function ip_inrange( $ip, $range ) {
+        $ip = trim( $ip );
+        $range = trim( $range );
         if ( false !== strpos( $range, '/' ) ) {
             list( $range, $nmask ) = explode( '/', $range, 2 );
             if ( false !== strpos( $nmask, '.' ) ) {
-                $nmask = str_replace( '*', '0', $nmask );
+                $nmask = trim( str_replace( '*', '0', $nmask ) );
                 $nmask_dec = ip2long( $nmask );
                 return ( ( ip2long( $ip ) & $nmask_dec ) == ( ip2long( $range ) & $nmask_dec ) );
             } else {
@@ -2635,8 +2663,8 @@ class pareto_functions extends pareto_setup {
             }
         } else {
             if ( false !== strpos( $range, '*' ) ) {
-                $lower = str_replace( '*', '0', $range );
-                $upper = str_replace( '*', '255', $range );
+                $lower = trim( str_replace( '*', '0', $range ) );
+                $upper = trim( str_replace( '*', '255', $range ) );
                 $range = "$lower-$upper";
             }
             
@@ -2815,8 +2843,15 @@ class pareto_functions extends pareto_setup {
         $dir_path = NULL;
         if ( false !== $this->is_wp() ) {
             include_once( ABSPATH . 'wp-admin/includes/file.php' );
-            if ( false !== $this->get_file_perms( ( get_home_path() . '.htaccess' ), TRUE, TRUE ) ) {
-                $dir_path = get_home_path() . '.htaccess';
+            $htpath = get_home_path() . '.htaccess';
+            if ( false !== $this->get_file_perms( ( $htpath ), TRUE, TRUE ) ) {
+                $dir_path = $htpath;
+            } else {
+                # htaccess does not exist
+                $handle = file_put_contents( $htpath );
+                if ( false !== $this->get_file_perms( $htpath, TRUE, TRUE ) ) {
+                    $dir_path = $htpath;
+                } else $dir_path = '';
             }
             # if users have set DISALLOW_FILE_EDIT and set it to true then do not allow editing of the .htaccess
             # Pareto Security will instead return a 403 without banning if this constant is set
@@ -2841,7 +2876,6 @@ class pareto_functions extends pareto_setup {
             $x++;
         }
         $dir_path = ( false !== is_null( $dir_path ) && false === $this->is_wp() ) ? $this->get_dir() . '/.htaccess' : $dir_path;
-                
         if ( false === is_null( $root_path ) ) {
             return $root_path;
         } elseif ( false !== $this->get_file_perms( $dir_path, TRUE, TRUE ) ) {
