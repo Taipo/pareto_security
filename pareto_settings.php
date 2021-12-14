@@ -553,7 +553,7 @@ if ( class_exists( "pareto_functions" ) ):
                                         <span class="checkmark"></span></label>
                                     </div>
                                     <div class="divAdvancedMode">
-                                        <label for="<?php echo $this->get_field_id( 'silent_mode' ); ?>"><?php _e( '<strong>Run in Silent Mode</strong> This is the way Pareto Security was originally invisaged to run.<br />
+                                        <label for="<?php echo $this->get_field_id( 'silent_mode' ); ?>"><?php _e( '<strong>Run in Stealth Mode</strong> This is the way Pareto Security was originally invisaged to run.<br />
                                                                                                                                             - No logfiles<br />
                                                                                                                                             - No database records<br />
                                                                                                                                             - No notifications.', $this->_textdomain ); ?></label>
@@ -628,7 +628,7 @@ if ( class_exists( "pareto_functions" ) ):
 	</div>
 </div>
 <br>
-<label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo ( false !== ( bool ) $this->_silent_mode ) ? _e( '<i>Email Notification: Notifications are disabled because Silent Mode is enabled</i>', $this->_textdomain ) : _e( '<b>Email Notification:</b> Receive periodic notifications (every 5 events) of high/medium severity attacks', $this->_textdomain ) ; ?>
+<label for="<?php echo $this->get_field_id( 'email_report' ); ?>" class="container"><?php echo ( false !== ( bool ) $this->_silent_mode ) ? _e( '<i>Email Notification: Notifications are disabled because Stealth Mode is enabled</i>', $this->_textdomain ) : _e( '<b>Email Notification:</b> Receive periodic notifications (every 5 events) of high/medium severity attacks', $this->_textdomain ) ; ?>
 <input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="<?php echo ( false !== ( bool ) $this->_silent_mode ) ? 0 : 1; ?>" <?php if ( false !== ( bool ) $this->_silent_mode ) echo "disabled"; ?> <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label>
 <?php
         }
@@ -645,7 +645,7 @@ if ( class_exists( "pareto_functions" ) ):
     <ul>
         <li><?php echo esc_html( '+ Status:', $this->_textdomain ); ?> <i><?php echo $mode; ?></i></li>
         <li><?php echo esc_html( '+ Server:', $this->_textdomain ); ?> <?php echo ( strlen( $_SERVER[ "SERVER_SOFTWARE" ] ) > 14 ) ? trim( substr( $_SERVER[ "SERVER_SOFTWARE" ], 0, 14 ) ) . "..." : $_SERVER[ "SERVER_SOFTWARE" ]; ?></li>
-        <li><?php echo esc_html( '+ Mode:', $this->_textdomain ); ?> <?php echo ( false === ( bool ) $this->_silent_mode ) ? _e( "Normal Mode", $this->_textdomain ) : _e( "Silent Mode", $this->_textdomain ); ?></li>
+        <li><?php echo esc_html( '+ Mode:', $this->_textdomain ); ?> <?php echo ( false === ( bool ) $this->_silent_mode ) ? _e( "Normal Mode", $this->_textdomain ) : _e( "Stealth Mode", $this->_textdomain ); ?></li>
         <?php
             if ( false !== $this->htapath() && false === $this->is_iis() ) {
         ?>
