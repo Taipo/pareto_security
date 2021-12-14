@@ -2,7 +2,7 @@
 require "pareto_setup.php";
 
 class pareto_functions extends pareto_setup {
-    const   PARETO_VERSION = '3.0.2';
+    const   PARETO_VERSION = '3.0.2.2';
 	/**
 	 * Pareto Security constructor.
 	 *
@@ -1769,6 +1769,11 @@ class pareto_functions extends pareto_setup {
         if ( false === ( bool ) $this->_tor_block ) {
             return false; // only execute a tor test if 'Block Tor Access' is enabled in settings
         }
+        # unfortunately we are subject to external servers
+        # so we have to disable error messages
+        error_reporting( 0 );
+        ini_set( 'display_errors', 0 );
+        if ( false !== $this->is_wp() ) add_filter( 'wp_fatal_error_handler_enabled', '__return_false', PHP_INT_MAX );        
         require_once( 'lib/pareto_detect_tor.php' );
         $istor = ( TorDNSEL::isTor( $this->_client_ip ) ) ? true : false;
         return $istor;
@@ -2387,24 +2392,29 @@ class pareto_functions extends pareto_setup {
                                 );
             
              $valid_cf_req = false;
+             
              # Unfortunately when using ip2long
              # can result in error messages
              error_reporting( 0 );
-             ini_set( 'display_errors', 0 );
-             if ( false !== $this->is_wp() ) add_filter( 'wp_fatal_error_handler_enabled', '__return_false', PHP_INT_MAX );
+             ini_set( 'display_errors', 0 );     
              
-             foreach( $cf_ipv4_ranges as $range ) {
-                if ( $this->ip_inrange( $this_ip, $range ) ) {
-                    $valid_cf_req = true;
-                    break;
+             if ( false !== $this->is_wp() ) add_filter( 'wp_fatal_error_handler_enabled', '__return_false', PHP_INT_MAX );
+             if( filter_var( $this_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {  
+                foreach( $cf_ipv4_ranges as $range ) {
+                   if ( $this->ipv4_inrange( $this_ip, $range ) ) {
+                       $valid_cf_req = true;
+                       break;
+                   }
                 }
              }
-             foreach( $cf_ipv6_ranges as $range ) {
-                if ( $this->ip_inrange( $this_ip, $range ) ) {
-                    $valid_cf_req = true;
-                    break;
+             if( filter_var( $this_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6 ) ) {
+                foreach( $cf_ipv6_ranges as $range ) {
+                   if ( $this->ipv6_inrange( $this_ip, $range ) ) {
+                       $valid_cf_req = true;
+                       break;
+                   }
                 }
-             }             
+             }
              $this_cf_ip = '';
              if ( false !== $valid_cf_req ) {
                 error_reporting( 6135 );
@@ -2640,8 +2650,68 @@ class pareto_functions extends pareto_setup {
 
         if ( $contents ) return $contents;
         else return FALSE;
-    }    
-    function ip_inrange( $ip, $range ) {
+    }
+    function ipv6_numeric( $ip ) {
+        $binNum = '';
+        foreach ( unpack( 'C*', inet_pton( $ip ) ) as $byte ) {
+            $binNum .= str_pad( decbin( $byte ), 8, "0", STR_PAD_LEFT );
+        }
+        return base_convert(ltrim($binNum, '0'), 2, 10);
+    }
+    function ipv6_range_tester( $prefix = '' ) {
+        list( $firstaddrstr, $prefixlen ) = explode( '/', $prefix );
+        
+        $firstaddrbin = inet_pton( $firstaddrstr );
+        
+        $firstaddrhex = reset( unpack( 'H*', $firstaddrbin ) );
+        
+        $firstaddrstr = inet_ntop( $firstaddrbin );
+        
+        $flexbits = 128 - $prefixlen;
+        
+        $lastaddrhex = $firstaddrhex;
+        
+        $pos = 31;
+        while ( $flexbits > 0 ) {
+          $orig = substr( $lastaddrhex, $pos, 1 );
+        
+          $origval = hexdec( $orig );
+        
+          $newval = $origval | ( pow( 2, min( 4, $flexbits ) ) - 1 );
+        
+          $new = dechex( $newval );
+        
+          $lastaddrhex = substr_replace( $lastaddrhex, $new, $pos, 1 );
+        
+          $flexbits -= 4;
+          $pos -= 1;
+        }
+        
+        $lastaddrbin = pack( 'H*', $lastaddrhex );
+        
+        $lastaddrstr = inet_ntop( $lastaddrbin );
+        
+        $ranger = array();
+        
+        $ranger[] = $prefix;
+        $ranger[ 'lower' ] = $firstaddrstr;
+        $ranger[ 'upper' ] = $lastaddrstr;
+        return $ranger;
+    }
+    function ipv6_inrange( $ip = '', $range = '' ) {
+        # PHP_INT_MAX
+        # 2400:cb00::/32
+        $ip = trim( $ip );
+        $range = trim( $range );
+        $ranger = $array = array();
+        $ranger = $this->ipv6_range_tester( $range );
+        $ip_dec = $this->ipv6_numeric( $ip );
+        $lower_dec = $this->ipv6_numeric( $ranger[ 'lower' ] );
+        $upper_dec = $this->ipv6_numeric( $ranger[ 'upper' ] );
+        return ( ( $ip_dec >= $lower_dec ) && ( $ip_dec <= $upper_dec ) );
+    }
+    function ipv4_inrange( $ip, $range = array() ) {
+        # PHP_INT_MAX
         $ip = trim( $ip );
         $range = trim( $range );
         if ( false !== strpos( $range, '/' ) ) {
