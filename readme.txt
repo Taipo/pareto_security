@@ -5,7 +5,7 @@ Donate link: https://hokioisecurity.com/donations/
 Requires at least: 5.2.0
 Tested up to: 5.8.1
 Requires PHP: 5.6.0
-Stable tag: 3.0.2
+Stable tag: 3.0.2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -114,7 +114,8 @@ Other contacts: https://taipo.github.io/contact/
 == Changelog ==
 
 = 3.0.3
-* Further work on Cloudflare detection
+* Further work on Cloudflare detection including testing of ipv6 ranges
+* Prevent wp_fatal_error_handler reporting when doing Tor exit node Lookups
 
 == 3.0.2 ==
 * Added log4shell filter class to every input rather than just the user-agent
