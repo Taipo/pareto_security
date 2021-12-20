@@ -116,6 +116,10 @@ Other contacts: https://taipo.github.io/contact/
 = 3.0.3
 * Further work on Cloudflare detection including testing of ipv6 ranges
 * Prevent wp_fatal_error_handler reporting when doing Tor exit node Lookups
+* Further turning of the log4shell filter
+* Further preparation for PHP 8
+* Improve host name detection
+* Will now accept cyrillic domain names
 
 == 3.0.2 ==
 * Added log4shell filter class to every input rather than just the user-agent
