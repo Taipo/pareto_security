@@ -57,7 +57,7 @@ class pareto_functions extends pareto_setup {
                 error_reporting( 6135 );
         }
     }
-    function http_status( $num ) {
+    function http_status( $num = 0 ) {
         $http = array(
             200 => 'HTTP/1.1 200 OK',
             403 => 'HTTP/1.1 403 Forbidden',
@@ -144,7 +144,7 @@ class pareto_functions extends pareto_setup {
         # do full ip test
         $this_ip = $this->get_ip( true );
         $this->_client_ip = $this_ip;
-        
+
         $is_wp = $this->is_wp();
         $req      = ( $this->cmpstr( substr( $req, 0, 2 ), "/?" ) ) ? substr( $req, 2 ) : $req;
         $req      = ( $this->cmpstr( substr( $req, 0, 1 ), "/" ) ) ? substr( $req, 1 ) : $req;
@@ -166,16 +166,16 @@ class pareto_functions extends pareto_setup {
                   false !== ( bool ) $this->_bypassbanip ||
                   false !== ( bool ) $is_admin_ip ) ? true : false;
         $is_registered = false;
-        if ( false !== ( bool ) $this->_tor_block && false !== $this->is_tor() ) {
-            $req = "Attempted attack via the Tor Network :: " . $req;
-        }
+ 
         # if users have set DISALLOW_FILE_EDIT and set it to true then do not allow editing of the .htaccess
         # Pareto Security will instead return a 403 without banning if this constant is set
         # Users can manually set this if they wish to not use a ban list via htaccess
         if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT !== false || ( false === $this->htapath() ) ) {
             $block_request = true;
         }
-        
+        if ( false !== ( bool ) $this->_tor_block && false !== $this->is_tor() ) {
+            $req = "Attempted attack via the Tor Network :: " . $req;
+        }                
         if ( false !== $is_wp ) {
             # checks if visitor is a registered user, author, editor or admin
             if ( false !== $this->is_wp( false, true, true, false ) ) {
@@ -187,16 +187,15 @@ class pareto_functions extends pareto_setup {
                     $ban_type = 'Safe';
                 } elseif ( false !== ( bool ) $block_request || false !== ( bool ) $this->_disable_htaccess ) {
                     $req = ' [Blocked] '  . $req;
-                } elseif ( false === ( bool ) $block_request ) {
+                } elseif ( false === ( bool ) $block_request && false === ( bool ) $this->_disable_htaccess ) {
                     $req = ' [Banned] '. $req;                    
                 }
             } elseif ( false !== ( bool ) $block_request || false !== ( bool ) $this->_disable_htaccess ) {
                 $req = ' [Blocked] '  . $req;
-            } elseif ( false === ( bool ) $block_request ) {
+            } elseif ( false === ( bool ) $block_request && false === ( bool ) $this->_disable_htaccess ) {
                     $req = ' [Banned] ' . $req;
             }
         }
-
         # create the log entry
         # set $lockdown_mode
         if ( false === ( bool ) $this->_silent_mode ) {
@@ -278,7 +277,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function lockdown_mode( $logfile ) {
+    function lockdown_mode( $logfile = array() ) {
         if ( empty( $logfile ) || 10 > count( $logfile ) ) return false;
         $timestamps = array();
         # only testing the last 10 timestamps.
@@ -332,7 +331,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function log_request( $req, $ban_type, $this_ip ) {
+    function log_request( $req = '', $ban_type = '', $this_ip = '' ) {
         #if ( false !== ( bool ) $this->_adv_mode || ( false === ( bool ) $this->_adv_mode && $ban_type != "Low" ) ) {
             if ( false === $this->is_wp() ) date_default_timezone_set( 'NZ' );
             $req             = ( strlen( $req ) > $this->_trim_log_entry ) ? substr( $req, 0, $this->_trim_log_entry ) . "..." : $req;
@@ -360,7 +359,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return string
 	 */
-    function dirfile_perms( $path ) {
+    function dirfile_perms( $path = '' ) {
         $length = strlen( decoct( fileperms( $path ) ) ) - 3;
         return substr( decoct( fileperms( $path ) ), $length );
     }
@@ -416,7 +415,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return string
 	 */
-    function do_bcrypt( $string, $cost = 5 ) {
+    function do_bcrypt( $string = '', $cost = 5 ) {
         $salt  = ( function_exists( 'random_bytes' ) ) ? substr( strtr( base64_encode( random_bytes( 32 ) ), '+', '.' ), 0, 22 ) : substr( base64_encode( openssl_random_pseudo_bytes( 32 ) ), 0, 22 );
         $salt  = str_replace( "+", ".", $salt );
         $param = '$' . implode( '$', array(
@@ -538,7 +537,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return string
 	 */
-    function updated( $unixtime, $offset ) {
+    function updated( $unixtime = 0, $offset = 0 ) {
         if ( false !== $this->integ_prop( $offset ) ) {
             if ( $offset > 0 && $offset < 14 ) {
                 return $unixtime + ( $offset * 3600 );
@@ -588,7 +587,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return boolean
 	 */
-    function injectMatch( $string ) {
+    function injectMatch( $string = '' ) {
         $string = $this->url_decoder( strtolower( $string ) );
         
         $matches1 = array();
@@ -729,7 +728,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return boolean
 	 */
-    function datalist( $val, $list = 0 ) {
+    function datalist( $val = 0, $list = 0 ) {
         $val = $this->cleanString( 9, $val );
         if ( !is_numeric( $val ) && empty( $val ) ) return false;
         if ( empty( $this->_datalist ) || !is_array( $this->_datalist ) ) return false;
@@ -766,7 +765,7 @@ class pareto_functions extends pareto_setup {
 	 *         $injectmatch = boolean	 *         
 	 * @return void
 	 */
-    function do_blacklists( $input, $list, $desc, $bantype = false, $severity = "High", $log = false, $reqmatch = false, $injectmatch = false ) {
+    function do_blacklists( $input = '', $list = 0, $desc = '', $bantype = false, $severity = "High", $log = false, $reqmatch = false, $injectmatch = false ) {
         $input = $this->controlchar_filter( $input );
         if ( $list > 0 && false !== $reqmatch && false !== ( bool ) $this->datalist( $input, $list ) ) $this->karo( $desc . ": " . $this->htmlentities_safe( $input ), $bantype, $severity, $log );
         if ( false !== $injectmatch && false !== $this->injectMatch( $input ) ) $this->karo( "Injection "  . $desc . ": " . $this->htmlentities_safe( $input ), $bantype, $severity, $log );
@@ -806,7 +805,7 @@ class pareto_functions extends pareto_setup {
         }
         # log4shell attack
         if ( false !== $this->is_log4shell( $q_str ) ) {
-                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $q_str ), ( bool ) $this->_banip, "High", true );
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $q_str ), true, "High", true );
         }         
         //@im\port'\ja\vasc\ript:alert("XSS")';
         if ( false !== $q_str ) {
@@ -977,13 +976,13 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function querystring_filter( $val, $key ) {
+    function querystring_filter( $val = '', $key = '' ) {
         $key = $this->controlchar_filter( $key );
         $val = $this->controlchar_filter( $val );
         $this->_get_all[] = $this->decode_code( $key, true );
         # log4shell attack
         if ( false !== $this->is_log4shell( $key ) || false !== $this->is_log4shell( $val ) ) {
-                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), ( bool ) $this->_banip, "High", true );
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), true, "High", true );
         }         
         if ( false !== ( bool ) $this->string_prop( $val, 1 ) ) {
             $val = $this->controlchar_filter( strtolower( $this->decode_code( $val ) ) );
@@ -1012,7 +1011,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function post_filter( $val, $key ) {
+    function post_filter( $val = '', $key = '' ) {
         # filter control chars
         $key = $this->controlchar_filter( $key );
         $val = $this->controlchar_filter( $val );
@@ -1104,7 +1103,7 @@ class pareto_functions extends pareto_setup {
         }
         # log4shell attack
         if ( false !== $this->is_log4shell( $key ) || false !== $this->is_log4shell( $val ) ) {
-                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), ( bool ) $this->_banip, "High", true );
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), true, "High", true );
         } 
         # Load the keys into an array
         $this->_post_all[] = strtolower( $this->decode_code( $key, true ) );
@@ -1117,7 +1116,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return string
 	 */
-    function remove_comments( $str ) {
+    function remove_comments( $str = '' ) {
         while( strpos( $str, "/*" ) ) {
              $s       = strpos( $str, "/*" );
              $f       = strpos( $str, "*/" );
@@ -1220,7 +1219,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return boolean
 	 */
-    function pass_check( $check, $password, $hash, $user_id ) {
+    function pass_check( $check = false, $password = '', $hash = '', $user_id = '' ) {
         if ( false === $check ) {
             if ( isset( $_POST[ 'log' ] ) ) {
                 $this_user = $_POST[ 'log' ];
@@ -1265,7 +1264,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function update_admin_ip( $ip ) {
+    function update_admin_ip( $ip = '' ) {
         if ( false === $this->is_wp() ) return;
         update_option( $this->settings_field, array( // set defaults
                  'advanced_mode'    => $this->_adv_mode,
@@ -1286,7 +1285,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return boolean
 	 */
-    function check_usernames( $this_user  ) {
+    function check_usernames( $this_user = ''  ) {
         $get_users = array();
         $blogusers     = get_users( array(
              'fields' => array(
@@ -1331,7 +1330,7 @@ class pareto_functions extends pareto_setup {
 	 *
 	 * @return array
 	 */
-    function check_filenames( $file ) {
+    function check_filenames( $file = '' ) {
         $file_path = $this->get_dir() . 'wp-content' . DIRECTORY_SEPARATOR . 'uploads';
         if ( false === strpos( $file, $file_path ) ) {
             if ( false === $this->is_wp( false, true, true ) ) $this->karo( "Arbitrary File Deletion Attempt: " . $this->htmlentities_safe( $file ), true, 'Medium', true );
@@ -1396,7 +1395,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */ 
-    function flood_check( $ip, $uname = '', $type = '', $threshold = 0, $hard_ban = 0 ) {
+    function flood_check( $ip = '', $uname = '', $type = '', $threshold = 0, $hard_ban = 0 ) {
          $uname = esc_html( $uname );
          if ( empty( $ip ) ) $ip = $this->_client_ip;
          $iphash = sha1( $ip ); // hash the ip
@@ -1453,12 +1452,12 @@ class pareto_functions extends pareto_setup {
         if ( isset( $_SERVER[ 'HTTP_HOST' ] ) ) {
             $this_http_host = $this->controlchar_filter( trim( strtolower( $_SERVER[ 'HTTP_HOST' ] ) ) );
             if ( false !== $this->is_log4shell( $this_http_host ) ) {
-                     $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $this_http_host ), ( bool ) $this->_banip, "High", true );
+                     $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $this_http_host ), true, "High", true );
             }              
             # while not optimal, there is nothing below
             # that can right this issue
             if ( empty( $this_http_host ) ) return;
-            
+
             # check for injections via HTTP_HOST
             $this->do_blacklists( $this_http_host, 0, "HOST", true, "High", true, false, true );
             
@@ -1478,42 +1477,20 @@ class pareto_functions extends pareto_setup {
                 }
             }
            
-            # Get URL from safe list
-            if ( empty( $safelist_url ) ) return;
-            # Set safe domain
+            # Set safe domain $this->_safe_host
             $this->set_safe_domain();
 
             # if IPaddress:port, strip the port number
-            $this_http_host = $this->ip_filter( $this_http_host );
-            if( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_IP' ) ) {
-                if ( false !== filter_var( $this_http_host, FILTER_VALIDATE_IP ) ) {
+            $this_ip_host = $this->ip_filter( $this_http_host );
+            
+            if ( false !== $this->is_ip_address( $this_ip_host ) ) {
+                if ( false !== $this->check_ip( $this_ip_host ) ) {
                     # the SERVER_NAME is an IP so check it against SERVER_ADDR
-                    if ( false === $this->is_server( $this_http_host ) ) {
-                        $req = $this->getREQUEST_URI();
+                    if ( false === $this->is_server( $this_ip_host ) ) {
                         // TODO: need to check if there is a domain name
                         if ( false !== $this->cmpstr( 'CONNECT', $_SERVER[ 'REQUEST_METHOD' ], true ) ) {
-                            $this->karo( $server_ip . " :: Incorrect Server IP / possible proxying attempt - Should be " . $this->htmlentities_safe( $this->get_serverip() ), true, 'Medium', true, ( isset( $this->_safe_host ) ? $this->_safe_host : $this_http_host ) );
+                            $this->karo( $this_ip_host . " :: Incorrect Server IP / possible proxying attempt - Should be " . $this->htmlentities_safe( $this->get_serverip() ), true, 'Medium', true, ( isset( $this->_safe_host ) ? $this->_safe_host : $this_ip_host ) );
                         }
-                    }
-                } else {
-                    # check HTTP HOST against the safe list
-                    # to prevent DNS rebinding
-                    $n = false;
-                    foreach( $safelist_url as $url ) {
-                        # check against whitelist
-                        $url = trim( $url );
-                        if ( strpos( $url, $this_http_host ) || ( false !== $this->cmpstr( $url, substr( $this_http_host , - strlen( $url ) ), true ) ) ) {
-                            $n = true;
-                            break;
-                        }
-                        # check if is server ip
-                        if ( false !== $this->is_server( $this_http_host ) ) {
-                            $n = true;
-                            break;
-                        }
-                    }
-                    if ( !in_array( $this_http_host, $safelist_url ) && $n === false ) {
-                        if ( false !== $this->cmpstr( 'HEAD', $_SERVER[ 'REQUEST_METHOD' ], true ) ) $this->karo( $this_http_host . " :: DNS rebinding attempt - Should be " . $this->htmlentities_safe( $this->_safe_host ) . '</code> or ' . $this->get_serverip(), false, 'Medium', true, $this->_safe_host );
                     }
                 }
             }
@@ -1537,7 +1514,7 @@ class pareto_functions extends pareto_setup {
                 $this->_safe_host = $this->controlchar_filter( $safelist_url[ 0 ] );
             }
     }
-    function ip_filter( $ip ) {
+    function ip_filter( $ip = '' ) {
         $ip = $this->controlchar_filter( $ip );
         $ip_port_pattern = '^(?:(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9])\.)
                             {3}(?:25[0-5]|2[0-4][0-9]|1[0-9][0-9]|[1-9]?[0-9]):(?:
@@ -1558,11 +1535,9 @@ class pareto_functions extends pareto_setup {
         $test_ip_chars = preg_replace( "/[\r\n\s]/i", '', $ip ); // leave numeric only
         $test_ip_chars = preg_replace( "/\.|:/i", '', $test_ip_chars ); // leave numeric only
         if ( false !== is_numeric( $test_ip_chars ) && false !== ( bool ) preg_match( "/$ip_pattern/i", $ip ) ) {
-            if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_IP' ) ) {
-                    if ( false !== filter_var( $ip, FILTER_VALIDATE_IP ) ) {
+                    if ( false !== $this->check_ip( $ip ) ) {
                         $is_ip = true;
                     } else $is_ip = false;
-            }
         } else $is_ip = false;
         return $is_ip;
     }
@@ -1575,7 +1550,7 @@ class pareto_functions extends pareto_setup {
         $key = $this->controlchar_filter( $key );
         $val = $this->controlchar_filter( $val );
         if ( false !== $this->is_log4shell( $key ) || false !== $this->is_log4shell( $val ) ) {
-                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), ( bool ) $this->_banip, "High", true );
+                 $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $key . ' ' . $val ), true, "High", true );
         }        
         $this->do_blacklists( $this->decode_code( $key ), 1, "Cookie", true, "High", true, true, true );
         $this->do_blacklists( $this->decode_code( $val ), 1, "Cookie", true, "High", true, true, true );
@@ -1602,6 +1577,7 @@ class pareto_functions extends pareto_setup {
         $user_agent = ( isset( $_SERVER[ 'HTTP_USER_AGENT' ] ) ) ? strtolower( $this->decode_code( $this->controlchar_filter( $_SERVER[ 'HTTP_USER_AGENT' ] ), true ) ) : '';
         # Do not filter empty strings
         if ( false !== ( bool ) $this->string_prop( $user_agent, 1 ) ) {
+            ## Mandatory filtering
             # Shellshock
             preg_match_all( "/echo|\(\)|\;\}\;|\/bin\/bash|-c|uname|-i|>|md5sum/i", $user_agent, $matches );
             if ( is_array( $matches[ 0 ] ) ) {
@@ -1614,16 +1590,13 @@ class pareto_functions extends pareto_setup {
                 }
             }
             # Attempts to exploit CVE-2021-44228
-            # Standard
-            # - ${jndi:ldap://,${jndi:rmi://,${jndi:ldaps://,${jndi:dns://
-            # - ${${::-j}${::-n}${::-d}${::-i}:${::-l}${::-d}${::-a}${::-p}://${hostname}
-            # - ${jndi:${lower:l}${lower:d}a${lower:p}://[subdomain]${upper:a}[domain]:80/callback}   
             if ( false !== $this->is_log4shell( $user_agent ) ) {
-                     $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $user_agent ), ( bool ) $this->_banip, "High", true );
+                     $this->karo( "Log4Shell Attempt: " . $this->htmlentities_safe( $user_agent ), true, "High", true );
             }
-            # Mandatory filtering
+            # Check against blacklists
             $this->do_blacklists( $user_agent, 3, "USER-AGENT", true, 'Medium', true, true, true );
-    
+            
+            ##
             # Only if in Hard Ban Mode
             # xml-rpc
             if ( false === $this->_spider_bypass ) {
@@ -1772,7 +1745,7 @@ class pareto_functions extends pareto_setup {
         # unfortunately we are subject to external servers
         # so we have to disable error messages
         error_reporting( 0 );
-        ini_set( 'display_errors', 0 );
+        @ini_set( 'display_errors', 0 );
         if ( false !== $this->is_wp() ) add_filter( 'wp_fatal_error_handler_enabled', '__return_false', PHP_INT_MAX );        
         require_once( 'lib/pareto_detect_tor.php' );
         $istor = ( TorDNSEL::isTor( $this->_client_ip ) ) ? true : false;
@@ -1800,7 +1773,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return string
 	 */
-    function remove_ports( $host ) {
+    function remove_ports( $host = '' ) {
         $url_parts =  parse_url( $host );
         if ( isset( $url_parts[ 'host' ] ) && strlen( $url_parts[ 'host' ] ) > 4 && isset( $url_parts[ 'port' ] ) && strlen( $url_parts[ 'port' ] ) > 0 ) {
             return $url_parts[ 'host' ];
@@ -1808,16 +1781,16 @@ class pareto_functions extends pareto_setup {
     }
     /**
 	 * strip scheme from array variables
-	 * @param $host_array
+	 * @param $http_host
 	 * @return array
 	 */
-    function fix_hosts( $host_array ) {
+    function fix_hosts( $http_host = array() ) {
         $updated_host = array();
-        if ( !is_array( $host_array ) ) {
-           return preg_replace( "/https|http|:\/\//i", "", $this->remove_ports( $host_array ) );
+        if ( !is_array( $http_host ) ) {
+           return preg_replace( "/https|http|:\/\//i", "", $this->remove_ports( $http_host ) );
         }
-        for ( $x = 0; $x < count( $host_array ); $x++ ) {
-                $a = $host_array[ $x ];
+        for ( $x = 0; $x < count( $http_host ); $x++ ) {
+                $a = $http_host[ $x ];
                 $a = str_replace( 'https://', '', $a );
                 $a = str_replace( 'http://', '', $a );
                 if ( $this->cmpstr( strlen( $a ), 4 ) && $this->cmpstr( $a, 'www.', true ) ) $a = '';
@@ -1831,16 +1804,64 @@ class pareto_functions extends pareto_setup {
 	 * @return mixed
 	 */
     function host_check( $domain_list ) {
-        $checked_list = '';
+        $check_list = array();
         $checked_list = array();
-        if ( is_array( $domain_list ) ) {
-            for ( $x = 0; $x < count( $domain_list ); $x++ ) {
-                    $y = $domain_list[ $x ];
-                    if ( false !== filter_var( $y, FILTER_SANITIZE_URL ) ) $y = filter_var( $y, FILTER_SANITIZE_URL );
-                    if ( false !== $this->check_ip( $y, true ) ) $y = filter_var( $y, FILTER_VALIDATE_IP );
-            }
+
+        if ( !is_array( $domain_list ) ) {
+            $check_list = explode( "\n", $domain_list );
+        } else {
+            $check_list = $domain_list;
         }
-         $domain_list = $this->fix_hosts( $domain_list );
+        // remove empty elements
+        
+        $check_list = array_filter( $check_list );
+        if ( is_array( $check_list ) ) {
+            $y = '';
+            $r = '';
+            for ( $x = 0; $x < count( $check_list ); $x++ ) {
+                $y = $check_list[ $x ];
+                // check for cyrillic
+                if ( false !== preg_match( '/[А-Яа-яЁё]/u', $y ) ) {
+                    preg_match_all( '/[А-Яа-яЁё]/u', $y, $matches );
+                    // this method of detecting cyrillic is not the best
+                    // and can result in false positives
+                    if ( count( $matches[ 0 ] ) >= 3 ) {
+                        // if PHP International then convert to
+                        // idn and test
+                        if ( function_exists( 'idn_to_ascii' ) ) {
+                            // default variant is now  INTL_IDNA_VARIANT_UTS46 
+                            $idn_domain = idn_to_ascii( $y );
+                            $ascii_idn_domain = idn_to_utf8( $idn_domain );
+                            if ( false !== filter_var( $ascii_idn_domain, FILTER_VALIDATE_URL) ) {
+                                // at some point we need to test
+                                // for injections here
+                                $this->do_blacklists( $ascii_idn_domain, 1, "Host", true, "High", true, true, true );
+                            }
+                        } else {
+                            if ( false === $this->cmpstr( mb_detect_encoding( $y ), 'UTF-8' ) ) {
+                                // at some point we need to test
+                                // for injections here
+                                $this->do_blacklists( mb_convert_encoding( $y, 'UTF-8', mb_detect_encoding( $y ) ) , 1, "Host", true, "High", true, true, true );
+                            }
+                        }
+                        $y = ( false !== $this->cmpstr( mb_detect_encoding( $y ), 'UTF-8' ) ) ? mb_convert_encoding( $y, 'UTF-8', mb_detect_encoding( $y ) ) : $y;
+                    }
+                    // While it is not preferred to give cyrillic domain names a pass
+                    // like this, they will always test false against FILTER_SANITIZE_URL
+                    // which incorrectly filters cyrillic urls
+                } else {
+                    if ( false !== filter_var( $y, FILTER_SANITIZE_URL ) ) {
+                        $y = filter_var( $y, FILTER_SANITIZE_URL );
+                    }
+                    if ( false !== $this->check_ip( $y, true ) ) {
+                        $y = filter_var( $y, FILTER_VALIDATE_IP );
+                    }
+                }
+                if ( false !== $y || strlen( $y ) >= 4 ) $checked_list[] = $y;
+            }
+            $domain_list = $checked_list;
+        }
+        $domain_list = $this->fix_hosts( $domain_list );
          if ( is_array( $domain_list ) ) {
             return implode( "\n", $domain_list );
          } else return $domain_list;
@@ -1850,7 +1871,7 @@ class pareto_functions extends pareto_setup {
 	 * @param $string
 	 * @return array
 	 */
-    function instr_url( $string, $domain_only = true ) {
+    function instr_url( $string = '', $domain_only = true ) {
         $urls = array();
         $dlist = ( false !== $domain_only ) ? explode( "\n", $string ) : $string;
         foreach ( $dlist as $domain ) {
@@ -1875,13 +1896,13 @@ class pareto_functions extends pareto_setup {
 	 * @param $fname
 	 * @return boolean
 	 */
-    function checkfilename( $fname ) {
+    function checkfilename( $fname = '' ) {
         if ( false === empty( $fname ) && ( $this->cmpstr( $this->substri_count( $fname, '.php' ), 1 ) && false !== $this->cmpstr( '.php', substr( $fname, -4 ), true ) ) ) {
             return true;
         } else
             return false;
     }
-    function get_real_path( $path ) {
+    function get_real_path( $path = '' ) {
         if ( function_exists( 'realpath' ) ) return realpath( $path );
         $path = str_replace( array( '/', '\\' ), DIRECTORY_SEPARATOR, $path );
         $parts = array_filter(explode( DIRECTORY_SEPARATOR, $path ), 'strlen' );
@@ -1919,7 +1940,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return string
 	 */
-    function cleanString( $b, $s ) {
+    function cleanString( $b = 0, $s = '' ) {
         
         $s = strtolower( $this->url_decoder( $s ) );
         switch ( $b ) {
@@ -1973,7 +1994,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return array
 	 */
-    function do_htaccess( $mybans, $newline, $thisdomain, $limitstart, $limitend ) {
+    function do_htaccess( $mybans = array(), $newline = '', $thisdomain = '', $limitstart = '', $limitend = '' ) {
         error_reporting( 0 );
         $final_htaccess = array();
         $mybansips = array();
@@ -2059,7 +2080,7 @@ class pareto_functions extends pareto_setup {
         }
         return $htaccess;
     }
-    function remove_empty_lines( $array ) {
+    function remove_empty_lines( $array = array() ) {
         error_reporting( 0 );
         for ( $i = 0; $i <= count( $array ); $i++ ) {
             if ( strlen( $array[ $i ] ) == 1 && strlen( $array[ ( $i - 1 ) ] ) == 1 ) {
@@ -2069,7 +2090,7 @@ class pareto_functions extends pareto_setup {
         }
         return $array;
     }
-    function add_carriage( $array ) {
+    function add_carriage( $array = array() ) {
         error_reporting( 0 );
         for ( $i = 0; $i <= count( $array ); $i++ ) {
             if ( false === strpos( $array[ $i ], "\n" ) ) {
@@ -2089,7 +2110,7 @@ class pareto_functions extends pareto_setup {
 	 * 
 	 * @return void
 	 */
-    function htaccessbanip( $banip ) {
+    function htaccessbanip( $banip = '' ) {
         # if IP is empty or too short, or .htaccess is not read/write
         $is_server = ( false !== $this->is_server( $this->get_ip( true ) ) ) ? true : false;
         if ( false !== empty( $banip ) || ( strlen( $banip ) < 7 ) || ( false === $this->htapath() ) ||
@@ -2352,7 +2373,7 @@ class pareto_functions extends pareto_setup {
             return $_get_server[ 'DOCUMENT_ROOT' ];
         } else return $get_root;
     }
-    function is_cf( $this_ip ) {
+    function is_cf( $this_ip = '' ) {
 
         $_get_server = $_SERVER;
         if ( isset( $_get_server[ 'HTTP_CF_CONNECTING_IP' ] ) ||
@@ -2396,7 +2417,7 @@ class pareto_functions extends pareto_setup {
              # Unfortunately when using ip2long
              # can result in error messages
              error_reporting( 0 );
-             ini_set( 'display_errors', 0 );     
+             @ini_set( 'display_errors', 0 );     
              
              if ( false !== $this->is_wp() ) add_filter( 'wp_fatal_error_handler_enabled', '__return_false', PHP_INT_MAX );
              if( filter_var( $this_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 ) ) {  
@@ -2428,9 +2449,9 @@ class pareto_functions extends pareto_setup {
              } else return false;
         } else return false;
     }
-    function is_qc( $this_ip ) {
+    function is_qc( $this_ip = '' ) {
             error_reporting( 0 );
-            ini_set( 'display_errors', 0 );
+            @ini_set( 'display_errors', 0 );
             # Harden IP Check against spoofing of Quick Cloud IPs
             $qc_ip_ranges = array(
                             '102.129.254.77',
@@ -2584,7 +2605,7 @@ class pareto_functions extends pareto_setup {
      * @param mixed $ip
      * @return boolean
      */
-    function check_ip( $ip, $bypass = false ) {
+    function check_ip( $ip = '', $bypass = false ) {
         if ( function_exists( 'filter_var' ) && defined( 'FILTER_VALIDATE_IP' ) && defined( 'FILTER_FLAG_IPV4' ) && defined( 'FILTER_FLAG_IPV6' ) ) {
             if ( false === ( bool ) filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4 || FILTER_FLAG_IPV6 ) ) return false;
             if ( false !== $this->is_server( $ip ) ) {
@@ -2593,7 +2614,7 @@ class pareto_functions extends pareto_setup {
             return true;
         } else return false;
     }
-    function get_url_content( $url ) {
+    function get_url_content( $url = '' ) {
         if ( false === ini_get( 'allow_url_fopen' ) ||
             !ini_get( 'allow_url_fopen' ) ||
             empty( ini_get( 'allow_url_fopen' ) ) ||
@@ -2641,7 +2662,7 @@ class pareto_functions extends pareto_setup {
         if ( empty( $this_ip ) ) $this_ip = $this->getREMOTE_ADDR();
         return $this_ip;
     }
-    function curl_get_file_contents( $url ) {
+    function curl_get_file_contents( $url = '' ) {
         $c = curl_init();
         curl_setopt( $c, CURLOPT_RETURNTRANSFER, 1 );
         curl_setopt( $c, CURLOPT_URL, $url );
@@ -2651,56 +2672,40 @@ class pareto_functions extends pareto_setup {
         if ( $contents ) return $contents;
         else return FALSE;
     }
-    function ipv6_numeric( $ip ) {
-        $binNum = '';
+    function ipv6_numeric( $ip = '' ) {
+        $bin_num = '';
         foreach ( unpack( 'C*', inet_pton( $ip ) ) as $byte ) {
-            $binNum .= str_pad( decbin( $byte ), 8, "0", STR_PAD_LEFT );
+            $bin_num .= str_pad( decbin( $byte ), 8, "0", STR_PAD_LEFT );
         }
-        return base_convert(ltrim($binNum, '0'), 2, 10);
+        return base_convert( ltrim( $bin_num, '0' ), 2, 10 );
     }
-    function ipv6_range_tester( $prefix = '' ) {
-        list( $firstaddrstr, $prefixlen ) = explode( '/', $prefix );
-        
-        $firstaddrbin = inet_pton( $firstaddrstr );
-        
-        $firstaddrhex = reset( unpack( 'H*', $firstaddrbin ) );
-        
-        $firstaddrstr = inet_ntop( $firstaddrbin );
-        
-        $flexbits = 128 - $prefixlen;
-        
-        $lastaddrhex = $firstaddrhex;
-        
-        $pos = 31;
-        while ( $flexbits > 0 ) {
-          $orig = substr( $lastaddrhex, $pos, 1 );
-        
-          $origval = hexdec( $orig );
-        
-          $newval = $origval | ( pow( 2, min( 4, $flexbits ) ) - 1 );
-        
-          $new = dechex( $newval );
-        
-          $lastaddrhex = substr_replace( $lastaddrhex, $new, $pos, 1 );
-        
-          $flexbits -= 4;
-          $pos -= 1;
+    function ipv6_range_tester( $ipv6_range = '' ) {
+        # credit to https://bit.ly/31QVrlN for this function
+        list( $first_addr_str, $prefix_len ) = explode( '/', $ipv6_range );
+        $first_addr_bin = inet_pton( $first_addr_str );
+        $first_addr_hex = reset( unpack( 'H*', $first_addr_bin ) );
+        $first_addr_str = inet_ntop( $first_addr_bin );
+        $flex_bits = 128 - $prefix_len;
+        $last_addr_hex = $first_addr_hex;
+        $x = 31;
+        while ( $flex_bits > 0 ) {
+          $orig = substr( $last_addr_hex, $x, 1 );
+          $orig_val = hexdec( $orig );
+          $new_val = $orig_val | ( pow( 2, min( 4, $flex_bits ) ) - 1 );
+          $new = dechex( $new_val );
+          $last_addr_hex = substr_replace( $last_addr_hex, $new, $x, 1 );
+          $flex_bits -= 4;
+          $x -= 1;
         }
-        
-        $lastaddrbin = pack( 'H*', $lastaddrhex );
-        
-        $lastaddrstr = inet_ntop( $lastaddrbin );
-        
+        $last_addr_bin = pack( 'H*', $last_addr_hex );
+        $last_addr_str = inet_ntop( $last_addr_bin );
         $ranger = array();
-        
-        $ranger[] = $prefix;
-        $ranger[ 'lower' ] = $firstaddrstr;
-        $ranger[ 'upper' ] = $lastaddrstr;
+        $ranger[] = $ipv6_range;
+        $ranger[ 'lower' ] = $first_addr_str;
+        $ranger[ 'upper' ] = $last_addr_str;
         return $ranger;
     }
     function ipv6_inrange( $ip = '', $range = '' ) {
-        # PHP_INT_MAX
-        # 2400:cb00::/32
         $ip = trim( $ip );
         $range = trim( $range );
         $ranger = $array = array();
@@ -2710,7 +2715,7 @@ class pareto_functions extends pareto_setup {
         $upper_dec = $this->ipv6_numeric( $ranger[ 'upper' ] );
         return ( ( $ip_dec >= $lower_dec ) && ( $ip_dec <= $upper_dec ) );
     }
-    function ipv4_inrange( $ip, $range = array() ) {
+    function ipv4_inrange( $ip = '', $range = array() ) {
         # PHP_INT_MAX
         $ip = trim( $ip );
         $range = trim( $range );
@@ -2753,6 +2758,7 @@ class pareto_functions extends pareto_setup {
      */
     function x_secure_headers() {
         $errlevel = @ini_get( 'error_reporting' );
+        @ini_set( 'display_errors', 0 );
         error_reporting( 0 );
         $header = array(
             "Strict-Transport-Security: max-age=63072000; includeSubDomains; preload",
@@ -2775,14 +2781,14 @@ class pareto_functions extends pareto_setup {
     /**
      * substri_count()
      */
-    function substri_count( $hs, $n ) {
+    function substri_count( $hs = '', $n = '' ) {
         return substr_count( strtoupper( $hs ), strtoupper( $n ) );
     }
     /**
      * decode_code()
      * @return
      */
-    function decode_code( $code, $escapeshell = false, $b64_decode = false, $filter = false ) {
+    function decode_code( $code = '', $escapeshell = false, $b64_decode = false, $filter = false ) {
         $code = ( $this->substri_count( $code, '\u00' ) > 0 ) ? str_ireplace( '\u00', '%', $code ) : $code;
         $code = ( $this->substri_count( $code, '&#x' ) > 0 && substr_count( $code, ';' ) > 0 ) ? str_replace( ';', '%', str_replace( '&#x', '%', $code ) ) : $code;
         $code = ( false !== $b64_decode ) ? base64_decode( $code ) : $code;
@@ -2797,10 +2803,10 @@ class pareto_functions extends pareto_setup {
     /**
      * url_decoder()
      */
-    function url_decoder( $var ) {
+    function url_decoder( $var = '' ) {
         return rawurldecode( urldecode( str_replace( chr( 0 ), '', $var ) ) );
     }
-    function controlchar_exists( $input ) {
+    function controlchar_exists( $input = '' ) {
         if ( substr_count( $input, chr(92) ) > 3 ) {
             $input = strtolower( $input );
             preg_match_all( "/xd(?:[0-9])|x(?:[0-9])a|xd(?:[a-f])|x(?:[0-9])f|xc(?:[0-9])|xac|x0(?:[a-f])|x(?:[a-f])f|xc(?:[0-9])|xf(?:[0-9])|xc(?:[0-9])/i", $input, $matches );
@@ -2809,7 +2815,7 @@ class pareto_functions extends pareto_setup {
         }
         return false;
     }
-    function controlchar_filter( $input ) {
+    function controlchar_filter( $input = '' ) {
         if ( ( false !== ( bool ) $this->_hard_ban_mode ) &&
              ( !empty( $input ) ) &&
              ( false !== $this->controlchar_exists( $input ) ) ) {
@@ -2817,7 +2823,7 @@ class pareto_functions extends pareto_setup {
         }
         return $input;
     }      
-    function htmlentities_decode_safe( $input ) {
+    function htmlentities_decode_safe( $input = '' ) {
         $input        = str_replace( 'script', 'sc ript', $this->url_decoder( $input ) );
         $input        = str_replace( 'prompt', 'pro mpt', $input );
         $input        = str_replace( 'onerror', 'on error', $input );        
@@ -2827,7 +2833,7 @@ class pareto_functions extends pareto_setup {
             return html_entity_decode( $input, ENT_HTML5 | ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED, 'UTF-8' ); // PHP 5.4 to 7.1
          }
     }
-    function htmlentities_safe( $input ) {
+    function htmlentities_safe( $input = '' ) {
         if ( function_exists( 'utf8_encode' ) ) {
             return htmlentities( utf8_encode( $input ), ENT_HTML5 | ENT_QUOTES | ENT_SUBSTITUTE | ENT_DISALLOWED ); // PHP 7.2
          } else {
@@ -2867,7 +2873,7 @@ class pareto_functions extends pareto_setup {
     /**
      * string_prop()
      */
-    function string_prop( $str, $len = 0 ) {
+    function string_prop( $str = '', $len = 0 ) {
         # is not an array, is a string, is of at least a specified length ( default is 0 )
         if ( false !== is_array( $str ) )
             return false;
@@ -2910,7 +2916,7 @@ class pareto_functions extends pareto_setup {
         }
     }
     function htapath() {
-        $dir_path = NULL;
+        $dir_path = '';
         if ( false !== $this->is_wp() ) {
             include_once( ABSPATH . 'wp-admin/includes/file.php' );
             $htpath = get_home_path() . '.htaccess';
@@ -2932,7 +2938,7 @@ class pareto_functions extends pareto_setup {
         $rpath_arr = explode( DIRECTORY_SEPARATOR, $this->get_dir() );
         # we don't want to test back too far.
         $x         = 0;
-        $root_path = NULL;
+        $root_path = '';
         While ( false === $this->cmpstr( get_current_user(), $rpath_arr[ count( $rpath_arr ) - 1 ], true ) ) {
             $root_path = str_replace( "//", "/", implode( DIRECTORY_SEPARATOR, $rpath_arr ) . DIRECTORY_SEPARATOR . '.htaccess' );
             $root_path = str_replace( '\\\.htaccess', '\.htaccess', $root_path );
@@ -2945,8 +2951,8 @@ class pareto_functions extends pareto_setup {
             array_pop( $rpath_arr );
             $x++;
         }
-        $dir_path = ( false !== is_null( $dir_path ) && false === $this->is_wp() ) ? $this->get_dir() . '/.htaccess' : $dir_path;
-        if ( false === is_null( $root_path ) ) {
+        $dir_path = ( false !== empty( $dir_path ) && false === $this->is_wp() ) ? $this->get_dir() . '/.htaccess' : $dir_path;
+        if ( false === empty( $root_path ) ) {
             return $root_path;
         } elseif ( false !== $this->get_file_perms( $dir_path, TRUE, TRUE ) ) {
             return $dir_path;
@@ -3136,7 +3142,7 @@ class pareto_functions extends pareto_setup {
         }
         $this->ps_icon = "data:image/png;base64,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";
     }
-    function set_timestamp( $unixtime ) {
+    function set_timestamp( $unixtime = 0 ) {
         if ( false === is_int( (int ) $unixtime ) ) return $unixtime;
         $offset = $this->_time_offset;
         return ( false !== $this->is_wp() ) ? date_i18n( 'd-m-Y', ( $this->updated( $unixtime, $offset ) ) ) . "<br>" .
