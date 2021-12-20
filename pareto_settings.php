@@ -55,7 +55,7 @@ if ( class_exists( "pareto_functions" ) ):
             if ( array_key_exists( 'safe_list', $this->options ) ) {
                 $this->_domain_list = $this->get_field_value( $this->options, 'safe_list' );
                 $this->_domain_list = preg_replace( '/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F]/', '', $this->_domain_list ); // strip out any control characters but not new lines and carriage returns
-                $this->_domain_list = preg_replace( "/[^\r\na-zA-Z0-9_\.\-]/i", '', $this->_domain_list ); // allow only alphanumeric and -_.
+                $this->_domain_list = $this->host_check( $this->_domain_list );
                 $this->options[ 'safe_list' ] = $this->_domain_list;
             }
             
@@ -330,24 +330,6 @@ if ( class_exists( "pareto_functions" ) ):
         function js_includes() {
             // Needed to allow metabox layout and close functionality.
             wp_enqueue_script( 'postbox' );
-        }
-        /*
-        Sanitize our plugin settings array as needed.
-        */
-        function sanitize_theme_options( $options ) {
-            
-            if ( is_array( $options ) ) {
-                foreach ( $options as $key => $val ) {
-                    if ( $key != 'safe_list' && false === $this->integ_prop( $val ) || $val > 1 ) {
-                        $options[ $key ] = 0;
-                    } elseif ( $this->cmpstr( $val, 'safe_list' ) ) {
-                        $options[ 'safe_list' ] = $this->cleanRequestInput( $val );
-                    } else {
-                        $options[ $key ] = ( int ) $val;
-                    }
-                }
-                return $options;
-            }
         }
  
          /*
