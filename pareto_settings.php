@@ -13,11 +13,17 @@ if ( class_exists( "pareto_functions" ) ):
                 $this->kickoff();
             } else return;
         }
+        /**
+         * @param $file = string
+         * @return string
+         **/
         function get_ver( $file ) {
             return filemtime( PARETO_DIR );
         }
         /**
          * Register style sheet.
+         * @param $hook as string
+         * @return void
          */
         function enqueue_scripts( $hook ) {
             if ( $hook != 'toplevel_page_pareto_security_settings' ) {
@@ -27,6 +33,10 @@ if ( class_exists( "pareto_functions" ) ):
             wp_enqueue_style( "{$this->prefix}_style", plugins_url( 'css/pareto_style.css', __FILE__ ), NULL, $this->get_ver( 'css/pareto_style.css' ) );
             wp_enqueue_script( "{$this->prefix}_js", plugins_url( 'js/hokioi.js', __FILE__ ), NULL, $this->get_ver( 'js/hokioi.js' ) );
         }
+        /**
+         * kickoff()
+         * @return void
+         **/
         function kickoff() {
             $this->settings_field = 'pareto_security_settings_options';
             $this->options = get_option( $this->settings_field );
@@ -35,7 +45,7 @@ if ( class_exists( "pareto_functions" ) ):
                      'advanced_mode' => 0,
                      'hard_ban_mode' => 0,
                      'email_report' => 0,
-                     'ban_mode' => 0,
+                     'ban_mode' => 0,                    
                      'admin_ip' => '',
                      'tor_block' => 0,
                      'disable_htaccess' => 0,
@@ -163,27 +173,41 @@ if ( class_exists( "pareto_functions" ) ):
                 $this->update_setting( 1, 1 );                
             }
             
-            if ( isset( $this->options[ 'server_ip' ] ) ) $this->_server_ip     = $this->get_field_value( $this->options, 'server_ip' );
+            if ( isset( $this->options[ 'server_ip' ] ) ) {
+                $this->_server_ip = $this->get_field_value( $this->options, 'server_ip' );
+            } else {
+                $this->_server_ip = $this->get_serverip();
+                $this->options[ 'server_ip' ] = $this->_server_ip;
+            }
 
             if ( false !== $this->is_wp( false, true, false ) ) { // if is an admin
                 $this->update_logfile( $this->logs ); // set $this->logs
-                $this->update_admin_ip( $this->get_ip() ); // Prevents the banning of admin IP addresses
+                $this->update_admin_ip( $this->get_ip(), $this->options ); // Prevents the banning of admin IP addresses
                 $this->_admin_ip = $this->get_ip();
             } else $this->options[ 'admin_ip' ] = '';
         }
+        /**
+         * @param $option = integer, $setting = string
+         * @return void
+         **/
         function update_setting( $option = 0, $setting = "" ) {
             update_option( $this->settings_field, array( // set defaults
                  'advanced_mode' => ( $option == 1 ) ? $setting : $this->_adv_mode,               // 1
                  'hard_ban_mode' => ( $option == 2 ) ? $setting : $this->_ban_mode,               // 2
                  'email_report' => ( $option == 3 ) ? $setting : $this->_email_report,            // 3
                  'ban_mode' => ( $option == 4 ) ? $setting : $this->_ban_mode,                    // 4
-                 'admin_ip' => ( $option == 5 ) ? $setting : $this->_admin_ip,                    // 5
-                 'tor_block' => ( $option == 6 ) ? $setting : $this->_tor_block,                  // 6
-                 'disable_htaccess' => ( $option == 7 ) ? $setting : $this->_disable_htaccess,    // 7
-                 'silent_mode' => ( $option == 8 ) ? $setting : $this->_silent_mode               // 8
+                 'safe_list' => ( $option == 5 ) ? $setting : $this->options[ 'safe_list' ],      // 5
+                 'admin_ip' => ( $option == 5 ) ? $setting : $this->_admin_ip,                    // 6
+                 'tor_block' => ( $option == 6 ) ? $setting : $this->_tor_block,                  // 7
+                 'disable_htaccess' => ( $option == 7 ) ? $setting : $this->_disable_htaccess,    // 8
+                 'silent_mode' => ( $option == 8 ) ? $setting : $this->_silent_mode               // 9
             ) );
             $this->options = get_option( $this->settings_field );
         }
+        /**
+         * 
+         * @return void
+         **/
         function define_plugin_settings() {
             $basename = plugin_basename( __FILE__ );
             $prefix = is_network_admin() ? 'network_admin_' : '';
@@ -191,6 +215,10 @@ if ( class_exists( "pareto_functions" ) ):
             add_action( 'admin_menu', array( $this, 'add_to_admin_menu' ) );
             $this->options[ 'admin_ip' ] = $this->get_ip();
         }
+        /**
+         * @param $links = $array, $file = string
+         * @return array
+         **/
         function add_plugin_action_links( $links, $file ) {
             if ( strstr( $file, 'pareto-security/pareto_security.php' ) ) {
                 $settings[ 'settings' ] = '<a href="'. esc_url( admin_url( "options-general.php?page=" . $this->_textdomain ) ) . '">Settings</a>';
@@ -198,6 +226,9 @@ if ( class_exists( "pareto_functions" ) ):
             }
             return $links;
         }
+        /**
+         * @return void
+         **/
         function add_to_admin_menu(){
         
           $page_title = 'Pareto Security';
@@ -216,6 +247,9 @@ if ( class_exists( "pareto_functions" ) ):
                          $icon_url, 
                          $position );
         }
+        /**
+         * @return void
+         **/
         function log_pop( $ulid ) {
             $get_logs = $this->logs;
             foreach ( $ulid as $ukey => $hash ) {
@@ -238,7 +272,10 @@ if ( class_exists( "pareto_functions" ) ):
             }
             $this->logs = $final_logfile;
             update_option( PARETO_LOG_LIST, $final_logfile );
-        } 
+        }
+        /**
+         * @return integer
+         **/
         function count_banned_ips() {
             if ( false === $this->htapath() ) return 0;
             if ( file_exists( $this->htapath() ) ) {
@@ -249,7 +286,13 @@ if ( class_exists( "pareto_functions" ) ):
             $mybans_denyfrom = $this->find_in_array( "deny from ", $mybans );
             return count( $mybans_denyfrom );         
         }
-        function find_in_array( $string, $array = array(), $makebool = false ) {       
+        /**
+         * @param   $string = string,
+         *          $array = array,
+         *          $makebool = boolean
+         * @return void
+         **/
+        function find_in_array( $string = '', $array = array(), $makebool = false ) {       
             foreach ( $array as $key => $value ) {
                 unset ( $array[ $key ] );
                 if ( false === strpos( $value, $string . 'all' ) && false !== strpos( $value, $string ) ) {
@@ -259,7 +302,10 @@ if ( class_exists( "pareto_functions" ) ):
             if ( false !== $makebool ) return !empty( $array ); // return Boolean
             if ( false === $makebool ) return $array; // return instances of string
         }
-        
+        /**
+         * @param   $logfile = array
+         * @return void
+         **/
         function update_logfile( $logfile = array() ) {
             $tmp_logfile = array();
             if ( empty( $this->logs ) ) {
@@ -281,17 +327,27 @@ if ( class_exists( "pareto_functions" ) ):
             }
             return;
         }
+        /**
+         * @param   $val = integer
+         * @return bool True on success or false on failure.
+         **/
         function check_settings( $val ) {
             if ( !isset( $this->options[ $val ] ) || $this->options[ $val ] > 1 || $this->options[ $val ] < 0 ) {
                 return false;
             } else
                 return true;
         }
+        /**
+         * @return void
+         **/
         function admin_init() {
             register_setting( $this->settings_field, $this->settings_field );
             register_setting( PARETO_LOG_LIST, PARETO_LOG_LIST );
             add_option( $this->settings_field, pareto_settings::$default_settings );
         }
+        /**
+         * @return void
+         **/
         function admin_menu() {
             if ( !current_user_can( 'update_plugins' ) )
                 return;
@@ -311,6 +367,9 @@ if ( class_exists( "pareto_functions" ) ):
                 'admin_head' 
             ) );
         }
+        /**
+         * @return void
+         **/
         function admin_head() {
 ?>
        <style>
@@ -327,25 +386,40 @@ if ( class_exists( "pareto_functions" ) ):
         </style>
 <?php
         }
+        /**
+         * @return void
+         **/
         function js_includes() {
             // Needed to allow metabox layout and close functionality.
             wp_enqueue_script( 'postbox' );
         }
  
-         /*
-        Settings access functions.
-        
-        */
-        protected function get_field_name( $name ) {
+        /**
+         * @param $name = string
+         * @return string
+         **/
+        protected function get_field_name( $name = '' ) {
             return sprintf( '%s[%s]', $this->settings_field, $name );
         }
-        protected function get_field_id( $id ) {
+        /**
+         * @param $id = string
+         * @return string
+         **/
+        protected function get_field_id( $id = '' ) {
             return sprintf( '%s[%s]', $this->settings_field, $id );
         }
-        protected function get_field_value( $option, $key ) {
+        /**
+         * @param $option = array, $key = integer
+         * @return string
+         **/
+        protected function get_field_value( $option = array(), $key = '' ) {
             return $option[ $key ];
         }
-        function cleanRequestInput( $input ) {
+        /**
+         * @param $input = string
+         * @return string
+         **/
+        function cleanRequestInput( $input = '' ) {
             if ( function_exists( 'filter_var' ) && defined( 'FILTER_SANITIZE_STRING' ) ) {
                 if ( false !== ( bool ) filter_var( $input, FILTER_SANITIZE_STRING ) ) {
                     return $input;
@@ -353,10 +427,9 @@ if ( class_exists( "pareto_functions" ) ):
                     return false;
             }
         }
-        /*
-        Render settings page.
-        
-        */
+        /**
+         * @return void
+         **/
         function render() {
             global $wp_meta_boxes;
             $title = esc_html( 'Pareto Security Dashboard', $this->_textdomain ); ?>
@@ -396,6 +469,9 @@ if ( class_exists( "pareto_functions" ) ):
         </script>
 <?php
         }
+        /**
+         * @return void
+         **/
         function metaboxes() {
             add_meta_box( 'pareto-security-settings-version', esc_html( 'Information', $this->_textdomain ), array(
                  $this,
@@ -431,7 +507,9 @@ if ( class_exists( "pareto_functions" ) ):
                 ), $this->pagehook, 'main' );
             }
         }
-        
+        /**
+         * @return void
+         **/
         function safelist_box() {
             if ( false === $this->_adv_mode ) return;
             $is_https  = ( ( array_key_exists( 'HTTPS', $_SERVER ) && $this->cmpstr( "on", @$_SERVER[ "HTTPS" ] ) ) ||
@@ -452,7 +530,11 @@ if ( class_exists( "pareto_functions" ) ):
                    </ol></td>
                 </tr>
             </table>
-<?php } function save_settings() { ?>
+<?php }
+        /**
+         * @return void
+         **/
+        function save_settings() { ?>
            <table style="text-align: left;">
                 <tr>
                     <td><input type="submit" class="button button-primary" name="save_options" value="<?php esc_attr_e( 'Save Options', $this->_textdomain ); ?>" /></td>
@@ -460,6 +542,9 @@ if ( class_exists( "pareto_functions" ) ):
             </table>
 <?php
         }
+        /**
+         * @return void
+         **/
         function info_box() {
 ?>
            <table style="text-align: left;">
@@ -476,7 +561,9 @@ if ( class_exists( "pareto_functions" ) ):
             </table>
 <?php
         }
-        
+        /**
+         * @return void
+         **/
         function donations_box() {
 ?>      <p>This plugin will always be completely free. If you feel it is beneficial to your website you can help in its upkeep by making a micro-donation below<br />
         <ul>
@@ -487,6 +574,9 @@ if ( class_exists( "pareto_functions" ) ):
         <p><strong>Go to</strong> <a title="Other ways to support the development and maintenance of this plugin" href="https://hokioisecurity.com/donations/" target="_blank">https://hokioisecurity.com/donations/</a> to see more ways to support</p>
 <?php
         }
+        /**
+         * @return void
+         **/
         function condition_box() {
 ?>
 <div class="divTopTable">
@@ -614,6 +704,9 @@ if ( class_exists( "pareto_functions" ) ):
 <input type="checkbox" name="<?php echo $this->get_field_name( 'email_report' ); ?>" id="<?php echo $this->get_field_id( 'email_report' ); ?>" value="<?php echo ( false !== ( bool ) $this->_silent_mode ) ? 0 : 1; ?>" <?php if ( false !== ( bool ) $this->_silent_mode ) echo "disabled"; ?> <?php if ( ( isset( $this->options[ 'email_report' ] ) && false !== ( bool ) $this->options[ 'email_report' ] ) ) { ?>checked<?php } ?> /><span class="checkmark"></span></label>
 <?php
         }
+        /**
+         * @return void
+         **/
         function notes_box() {
             $mode     = esc_html( 'Standard', $this->_textdomain );
             #$mode     = ( false === ( bool ) $this->_adv_mode ) ? esc_html( 'Standard', $this->_textdomain ): esc_html( $mode, $this->_textdomain );
@@ -648,13 +741,19 @@ if ( class_exists( "pareto_functions" ) ):
         <li><?php if ( defined( 'DISALLOW_FILE_EDIT' ) && DISALLOW_FILE_EDIT !== false ) { echo _e( '+ DISALLOW_FILE_EDIT is set to true, preventing writing to .htaccess', $this->_textdomain ); ?>
         <?php }
         } ?>
-        <li><?php echo ( ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( '+ ', $this->_textdomain ) : _e( '- ', $this->_textdomain ) ) . _e( 'Your server is running PHP version ' . substr( phpversion(), 0, 3 ), $this->_textdomain ); ?>
-        <?php echo ( version_compare( phpversion(), '7.0', '>=' ) ) ? _e( ' &#x2713&#x2713&#x2713; ', $this->_textdomain ) : _e( ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 7.0', $this->_textdomain ); ?></li>
+        <li><?php echo ( ( version_compare( phpversion(), '7.4', '>=' ) ) ? _e( '+ ', $this->_textdomain ) : _e( '- ', $this->_textdomain ) ) . _e( 'Your server is running PHP version ' . substr( phpversion(), 0, 3 ), $this->_textdomain ); ?>
+        <?php echo ( version_compare( phpversion(), '7.4', '>=' ) ) ? _e( ' &#x2713&#x2713&#x2713; ', $this->_textdomain ) : _e( ' <b>WARNING:</b> This version is insecure. Contact your webhost to upgrade to at least PHP 7.4', $this->_textdomain ); ?></li>
         <li>+ Admin IP Address: <i><?php echo $this->_admin_ip; ?></i></li>
+        <?php if ( false !== $this->is_cf( $this->_admin_ip ) || false !== $this->is_cf( $this->_server_ip ) ) { ?><li>+ CloudFlare Detected: It is recommended that you disable ip banning below.</li><?php } ?>
+        <?php if ( false !== $this->is_qc( $this->_admin_ip ) || false !== $this->is_qc( $this->_server_ip ) ) { ?><li>+ Quic Cloud Detected: It is recommended that you disable ip banning below</li><?php } ?>
         <li><?php echo _e( '+ <a title="Smoke tests are performed shortly after Pareto Security is updated. If the smoke test site returns an error, please check again in a few days." target="_blank" href="https://plugintests.com/plugins/wporg/pareto-security/' . self::PARETO_VERSION . '">Click here</a> to view a smoke test was performed on Pareto Security version ' . self::PARETO_VERSION, $this->_textdomain ); ?></li>
     </ul>
 
-       <?php }
+       <?php
+       }
+       /**
+         * @return void
+         **/
        function logfile_box() {
              if ( false !== ( bool ) $this->_silent_mode ) return;
        ?>
@@ -683,6 +782,7 @@ if ( class_exists( "pareto_functions" ) ):
             if ( isset( $mylogs[ $i ] ) ) {
                 $row_colour = ''; // = ( $i % 2 == 0 ) ? "#F3F3F3" : "#FFFFFF";
                 $req_var    = explode( " ", $mylogs[ $i ] );
+
                 if ( $this->cmpstr( strtolower( $req_var[ 1 ] ), "low" ) ) {
                     $text_color = "#517ecf";
                 } elseif ( $this->cmpstr( $req_var[ 1 ], "Medium" ) ) {
@@ -694,8 +794,9 @@ if ( class_exists( "pareto_functions" ) ):
                     $text_color = "#c72b2c";
                 $mylogs_fin[ $i ] = $mylogs[ $i ];
                 $ip_addr = ( false !== $this->check_ip( $req_var[ 2 ], true ) ) ? $req_var[ 2 ] : '';
+
                 if ( false === $this->is_server( $req_var[ 2 ] ) ) {
-                    $ip_addr = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ], true ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a><a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
+                    $ip_addr = ( false !== ( bool ) $this->check_ip( $req_var[ 2 ], true ) ) ? ' <a target="_blank" href="https://mxtoolbox.com/SuperTool.aspx?action=blacklist%3a' . $req_var[ 2 ] . '&run=networktools">[Blacklist]</a> <a target="_blank" href="https://www.whois.com/whois/' . $req_var[ 2 ] . '">' . $req_var[ 2 ] . '</a>' : 'Invalid IP';
                 }
                 if ( $this->cmpstr( $req_var[ 1 ], "Safe" ) ) {
                     $req_var[ 0 ] = str_replace( '%20', ' ', $req_var[ 0 ] );
@@ -740,6 +841,9 @@ if ( class_exists( "pareto_functions" ) ):
         </table>
 <?php
         }
+        /**
+         * @return void
+         **/
         function do_settings_box() {
             if ( ( false !== ( bool ) defined( 'WP_ADMIN' ) && false !== WP_ADMIN ) && ( false !== ( bool ) is_admin() ) ) {
                 do_settings_sections( $this->_textdomain );
