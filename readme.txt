@@ -1,11 +1,11 @@
 === Pareto Security ===
 Contributors: @te_taipo
 Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
-Donate link: https://hokioisecurity.com/donations/
+Contact link: https://taipo.github.io/contact/
 Requires at least: 5.2.0
-Tested up to: 5.8.1
+Tested up to: 6.2.0
 Requires PHP: 5.6.0
-Stable tag: 3.0.2.2
+Stable tag: 3.2.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -72,7 +72,7 @@ The Pareto Security developers understand how PHP - the coding language in which
 
 = What checks does the Pareto Security Scanner perform? =
 
-* Scans all input requests (GET, POST, REQUEST, COOKIES) for malicious intent. If an input validation application  does this well, there is no need to then scan files in your website file repository - They should never be there in the first place!
+* Scans all input requests (GET, POST, REQUEST, COOKIES, SERVER) for malicious intent. If an input validation application  does this well, there is no need to then scan files in your website file repository - They should never be there in the first place!
 
 = What security monitoring features does Pareto Security include? =
 
@@ -92,14 +92,6 @@ Pareto Security provides true entry-point security for your WordPress website. P
 * Real-time blocking of attackers and repeat attackers.
 * Prevents vulnerability scanners from scanning your wordpress website
 
-= What differentiates Pareto Security from other WordPress Security plugins? =
-
-* Pareto Security provides real security minus the scare-ware techniques used by other plugins
-* Pareto Security picks up security where Wordpress developers draw their line
-* Pareto Security prevents attackers making changes to website code by securing all inputs from the start.
-* Using the principle of \"Artificial Ignorance\" with blacklists rather than relying solely on arbitrary blacklists, Pareto Security method ignores requests it knows aren\'t interesting and processes the remaining requests that must then be of interest.
-* Pareto Security fully supports WordPress Multi-Site 
-
 = How can I contribute to the cause =
 
 Donations via:
@@ -113,28 +105,43 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 3.0.3
-* Further work on Cloudflare detection including testing of ipv6 ranges
-* Prevent wp_fatal_error_handler reporting when doing Tor exit node Lookups
-* Further turning of the log4shell filter
-* Further preparation for PHP 8
-* Improve host name detection
-* Will now accept cyrillic domain names
+= 3.2.5
+* Shifted Arbitrary File Upload prevention for non-logged in users to Hard Ban Mode
 
-== 3.0.2 ==
-* Added log4shell filter class to every input rather than just the user-agent
-* Updated filtering to better identify the signature of the log4shell attack
+= 3.2.4
+* Further work on filtering htaccess files
+* Lower the error log reports when PHP is being run by command line
+* Minimum PHP version now 7.4
 
-== 3.0.1 ==
-* Bugfix in log4j filter
-* Preparing Pareto Security for PHP 8
-* Bugfix for Cloudflare detection
+= 3.2.3
+* Further work on HTTP Headers shield
+* Fixed issue in ip hashing which will cause error notices on first install or update of PS
 
-== 3.0.0 ==
-* Fix issue in setting when htaccess is not present
-* Fixed coding in Spider Shield
-* Added extra filtering to detect obfuscated versions of LogJam CVE-2021-44228
+= 3.2.2
+* Bugfix to new header shield
 
-== 2.9.9
-* Improve IP Address Filtering
-* Added filter to detect and block attempts to exploit CVE-2021-44228
+= 3.2.1
+* Added hetrixtools to trusted user-agents
+* Further filtering to protect against arbitrary file uploads
+* New HTTP Headers shield added
+
+= 3.2.0
+* Fix Injection code to fix notice warnings
+* Update to cloud ip ranges
+* Improve the htaccess cleanup function
+
+= 3.1.9
+* Bugfix: Undefined variable bug _silent_mode un-initialised when Pareto Security is called from a non-Wordpress website.
+
+= 3.1.8
+* Test Pareto Security against Wordpress 6.0
+* Bugfix in the check_ip() function causing maximum execution timeouts
+
+= 3.1.7
+* Bugfix for updating of the admin ip function, and further compatibility with PHP 8.0
+
+= 3.1.6
+* Bugfix for safe domain list
+
+= 3.1.5
+* Added in additional safe spiders
