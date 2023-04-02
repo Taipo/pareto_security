@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: https://hokioisecurity.com/?p=17
 Description: Core Security - Protection from a range of attacks against Content Management Systems (CMS)
 Author: Te_Taipo
-Version: 3.0.2.2
+Version: 3.2.5
 Requirements: Requires at least PHP version 5.2.0
 Author URI: https://hokioisecurity.com
 Donations via: https://hokioisecurity.com/donations/
@@ -30,9 +30,11 @@ See: See http://www.gnu.org/licenses/gpl-3.0.txt
 if ( defined( 'WP_PLUGIN_DIR' ) && false !== function_exists( 'is_admin' ) ) {
     add_action( 'plugins_loaded','pareto_security_init' );
 } else pareto_security_init();
-
-function pareto_security_init() {
-    require_once( 'pareto_functions.php' );
+/**
+ * @return void
+ **/
+function pareto_security_init() {    
+    require_once( dirname(__FILE__) . DIRECTORY_SEPARATOR . "pareto_functions.php" );
     $ParetoSecurity = new pareto_functions();
     
     if ( false !== $ParetoSecurity->is_wp() ) {
@@ -44,7 +46,7 @@ function pareto_security_init() {
              $ParetoSecurity,
             '_deactivate' 
         ) );
-        require_once( 'pareto_settings.php' );
+        require_once( dirname(__FILE__) . DIRECTORY_SEPARATOR . "pareto_settings.php" );
         $ParetoSecurity = new pareto_settings();
         $ParetoSecurity->_time_offset = ( int ) get_option( 'gmt_offset' );
     }
@@ -64,4 +66,5 @@ function pareto_security_init() {
     $ParetoSecurity->_HTTPHOST_SHIELD();
     $ParetoSecurity->_COOKIE_SHIELD();
     $ParetoSecurity->_SPIDER_SHIELD();
+    $ParetoSecurity->_HTTP_HEADER_SHIELD();
 }
