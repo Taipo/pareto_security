@@ -33,6 +33,7 @@ if ( class_exists( "pareto_functions" ) ):
             wp_enqueue_style( "{$this->prefix}_style", plugins_url( 'css/pareto_style.css', __FILE__ ), NULL, $this->get_ver( 'css/pareto_style.css' ) );
             wp_enqueue_script( "{$this->prefix}_js", plugins_url( 'js/hokioi.js', __FILE__ ), NULL, $this->get_ver( 'js/hokioi.js' ) );
         }
+	    
         /**
          * kickoff()
          * @return void
