@@ -5,7 +5,7 @@ Contact link: https://taipo.github.io/contact/
 Requires at least: 5.2.0
 Tested up to: 6.2.0
 Requires PHP: 5.6.0
-Stable tag: 3.2.5
+Stable tag: 3.2.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -105,6 +105,9 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
+= 3.2.6
+* Fixed bug in Tor Detection
+
 = 3.2.5
 * Shifted Arbitrary File Upload prevention for non-logged in users to Hard Ban Mode
 
@@ -112,36 +115,3 @@ Other contacts: https://taipo.github.io/contact/
 * Further work on filtering htaccess files
 * Lower the error log reports when PHP is being run by command line
 * Minimum PHP version now 7.4
-
-= 3.2.3
-* Further work on HTTP Headers shield
-* Fixed issue in ip hashing which will cause error notices on first install or update of PS
-
-= 3.2.2
-* Bugfix to new header shield
-
-= 3.2.1
-* Added hetrixtools to trusted user-agents
-* Further filtering to protect against arbitrary file uploads
-* New HTTP Headers shield added
-
-= 3.2.0
-* Fix Injection code to fix notice warnings
-* Update to cloud ip ranges
-* Improve the htaccess cleanup function
-
-= 3.1.9
-* Bugfix: Undefined variable bug _silent_mode un-initialised when Pareto Security is called from a non-Wordpress website.
-
-= 3.1.8
-* Test Pareto Security against Wordpress 6.0
-* Bugfix in the check_ip() function causing maximum execution timeouts
-
-= 3.1.7
-* Bugfix for updating of the admin ip function, and further compatibility with PHP 8.0
-
-= 3.1.6
-* Bugfix for safe domain list
-
-= 3.1.5
-* Added in additional safe spiders
