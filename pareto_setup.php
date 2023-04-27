@@ -1,6 +1,6 @@
 <?php
 class pareto_setup {
-    const   PARETO_VERSION = '3.2.5';
+    const   PARETO_VERSION = '3.2.6';
     const   CF_URL_IPV4 = 'https://www.cloudflare.com/ips-v4';
     const   CF_URL_IPV6 = 'https://www.cloudflare.com/ips-v6';
     const   QC_URL = 'https://www.quic.cloud/ips';
