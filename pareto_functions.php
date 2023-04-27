@@ -181,7 +181,7 @@ class pareto_functions extends pareto_setup {
         }
         
         if ( false !== ( bool ) $this->_tor_block && false !== $this->is_tor() ) {
-            $req = "Attempted attack via the Tor Network :: " . $req;
+            $req = "Attempted access via the Tor Network :: " . $req;
         }                
         if ( false !== $is_wp ) {
             # checks if visitor is a registered user, author, editor or admin
@@ -1757,7 +1757,7 @@ class pareto_functions extends pareto_setup {
                  false !== $this->is_admin_ip() ) {      // If this is an admin IP address
                  return;
             }
-            $req = $this->getREQUEST_URI();            
+            $req = $this->getREQUEST_URI();
             $this_filename = $this->get_filename();
 
             # run a series of tests to determine restricted site functions
@@ -3318,15 +3318,18 @@ class pareto_functions extends pareto_setup {
      * @return bool True on success or false on failure.
      */
     public function is_wp( $isinadmin = false, $isadmin = false, $is_authorised = false, $is_subscriber = false ) {
+        $output = false;
         # simple test for the existance of WP
         if ( defined( 'WP_PLUGIN_DIR' ) && false !== function_exists( 'is_admin' ) ) {
             # a simple request to detect WP ( is_wp() )
             if ( false === $isinadmin && false === $isadmin && false === $is_authorised && false === $is_subscriber ) {
-                return true;
-            }
+                $output = true;
+            } else $output = false;
             # is the user in the admin section. This triggers whether the user is logged in or not, for example ../wp-admin/admin.ajax.php
             if ( false !== $isinadmin ) {
-                if ( ( false !== ( bool ) defined( 'WP_ADMIN' ) && false !== WP_ADMIN ) && function_exists( 'is_admin' ) && false !== is_admin() ) return true;
+                if ( ( false !== ( bool ) defined( 'WP_ADMIN' ) && false !== WP_ADMIN ) && function_exists( 'is_admin' ) && false !== is_admin() ) {
+                    $output = true;
+                } else $output = false;
             }
             # is this a request from a logged in user, author, editor or administrator
             if ( false !== $is_subscriber ) {
@@ -3334,30 +3337,32 @@ class pareto_functions extends pareto_setup {
                     $is_authorised = true; // we do not want to return false if they have admin privileges
                     $current_user = $this->get_wp_current_user(); // get the current user
                     if ( function_exists( 'user_can' ) && false !== user_can( $current_user, 'subscriber' ) ) { // if this returns false, then the test continues below
-                        return true;
-                    }
+                        $output = true;
+                    } else $output = false;
             }
             # is this a request from an editor or an author
             if ( false !== $is_authorised ) {
                     $current_user = $this->get_wp_current_user();
                     if ( function_exists( 'user_can' ) && false !== user_can( $current_user, 'editor' ) || false !== user_can( $current_user, 'author' ) ) {
-                        return true;
-                    }
+                        $output = true;
+                    } else $output = false;
             }
             # test if user is an administrator or super administrator
             if ( false !== $isadmin ) { // current user has administrators rights
                 $current_user = $this->get_wp_current_user();
                 if ( false !== is_object( $current_user ) || !empty( $current_user) ) {
                     $is_superadmin = ( false !== function_exists( 'is_super_admin' ) ) ? true : false;
-                    if ( function_exists( 'user_can' ) && false !== ( bool ) user_can( $current_user, 'administrator' ) || false !== $is_superadmin ) return true;
+                    if ( function_exists( 'user_can' ) && false !== ( bool ) user_can( $current_user, 'administrator' ) || false !== $is_superadmin ) {
+                        $output = true;
+                    } else $output = false;
                 } elseif ( false !== is_admin() && $current_user == 0 ) {
                        if ( current_user_can( 'editor' ) || current_user_can( 'administrator' ) || current_user_can( 'setup_network' ) ) {
-                            return true;
-                       }
+                            $output = true;
+                       } else $output = false;
                 }
             }
         }
-        return false;
+        return $output;
     }
     /**
      * do_security_settings
