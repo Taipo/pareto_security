@@ -4,7 +4,7 @@ Plugin Name: Pareto Security
 Plugin URI: https://hokioisecurity.com/?p=17
 Description: Core Security - Protection from a range of attacks against Content Management Systems (CMS)
 Author: Te_Taipo
-Version: 3.2.6
+Version: 3.3.2
 Requirements: Requires at least PHP version 5.2.0
 Author URI: https://hokioisecurity.com
 Donations via: https://hokioisecurity.com/donations/
@@ -27,35 +27,37 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 See: See http://www.gnu.org/licenses/gpl-3.0.txt
 */
 
-if ( defined( 'WP_PLUGIN_DIR' ) && false !== function_exists( 'is_admin' ) ) {
-    add_action( 'plugins_loaded','pareto_security_init' );
-} else pareto_security_init();
+if (defined('WP_PLUGIN_DIR') && false !== function_exists('is_admin')) {
+    add_action('plugins_loaded', 'pareto_security_init');
+}
+else pareto_security_init();
 /**
  * @return void
- **/
-function pareto_security_init() {    
-    require_once( dirname(__FILE__) . DIRECTORY_SEPARATOR . "pareto_functions.php" );
+ *
+ */
+function pareto_security_init() {
+    require_once (dirname(__FILE__) . DIRECTORY_SEPARATOR . "pareto_functions.php");
     $ParetoSecurity = new pareto_functions();
-    
-    if ( false !== $ParetoSecurity->is_wp() ) {
-        register_activation_hook( __FILE__, array(
-             $ParetoSecurity,
-            '_activate' 
-        ) );
-        register_deactivation_hook( __FILE__, array(
-             $ParetoSecurity,
-            '_deactivate' 
-        ) );
-        require_once( dirname(__FILE__) . DIRECTORY_SEPARATOR . "pareto_settings.php" );
-        $ParetoSecurity = new pareto_settings();
-        $ParetoSecurity->_time_offset = ( int ) get_option( 'gmt_offset' );
+
+    if (false !== $ParetoSecurity->is_wp()) {
+        register_activation_hook(__FILE__, array(
+            $ParetoSecurity,
+            '_activate'
+        ));
+        register_deactivation_hook(__FILE__, array(
+            $ParetoSecurity,
+            '_deactivate'
+        ));
+        require_once (dirname(__FILE__) . DIRECTORY_SEPARATOR . "pareto_settings.php");
+        $ParetoSecurity               = new pareto_settings();
+        $ParetoSecurity->_time_offset = ( int )get_option('gmt_offset');
     }
     # set ip address
-    $ParetoSecurity->_client_ip = $ParetoSecurity->get_ip();
+    $ParetoSecurity->_client_ip   = $ParetoSecurity->get_ip();
     # set mode
-    $ParetoSecurity->advanced_mode( $ParetoSecurity->_adv_mode );
+    $ParetoSecurity->advanced_mode($ParetoSecurity->_adv_mode);
     # load data from XML
-    $ParetoSecurity->load_lists( true, true );
+    $ParetoSecurity->load_lists(true, true);
 
     # Shields Up
     $ParetoSecurity->_TOR_SHIELD();
