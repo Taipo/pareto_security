@@ -8,12 +8,12 @@ To install in Wordpress just go to the plugin section and search for Pareto Secu
 
 === Pareto Security ===
 Contributors: @te_taipo
-Tags: wordpress security, hack, database security, xss, WAF, CRLF, CSRF, command injection, cross-site scripting, exploit, firewall security, hack, hacked, hacker, injection, authentication bypass, local file inclusion, malware, phishing, rfi, remote file inclusion, scrapers, secure, secure login, security, SQL Injection, vulnerability, WAF, website security, wordpress, security
+Tags: security, hack, WAF, firewall, vulnerability
 Contact link: https://taipo.github.io/contact/
 Requires at least: 5.2.0
-Tested up to: 6.2.0
+Tested up to: 6.6.2
 Requires PHP: 5.6.0
-Stable tag: 3.2.6
+Stable tag: 3.3.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -113,13 +113,5 @@ Other contacts: https://taipo.github.io/contact/
 
 == Changelog ==
 
-= 3.2.6
-* Fixed bug in Tor Detection
-
-= 3.2.5
-* Shifted Arbitrary File Upload prevention for non-logged in users to Hard Ban Mode
-
-= 3.2.4
-* Further work on filtering htaccess files
-* Lower the error log reports when PHP is being run by command line
-* Minimum PHP version now 7.4
+= 3.3.2
+* Code cleanup
