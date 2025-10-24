@@ -33,7 +33,6 @@ if ( class_exists( "pareto_functions" ) ):
             wp_enqueue_style( "{$this->prefix}_style", plugins_url( 'css/pareto_style.css', __FILE__ ), NULL, $this->get_ver( 'css/pareto_style.css' ) );
             wp_enqueue_script( "{$this->prefix}_js", plugins_url( 'js/hokioi.js', __FILE__ ), NULL, $this->get_ver( 'js/hokioi.js' ) );
         }
-	    
         /**
          * kickoff()
          * @return void
@@ -77,7 +76,7 @@ if ( class_exists( "pareto_functions" ) ):
                 $this->page_id        = $this->_textdomain;
                 $this->lockdown_status = $this->lockdown_mode( $this->logs ); //( bool ) $this->get_field_value( $this->lockdown, 'lockdown_mode' );
                 
-                if ( $this->cmpstr( $_SERVER[ 'REQUEST_METHOD' ], 'POST' ) ) {
+                if ( isset( $_SERVER[ 'REQUEST_METHOD' ] ) && !empty( $_SERVER['REQUEST_METHOD'] ) && $this->cmpstr( $_SERVER[ 'REQUEST_METHOD' ], 'POST' ) ) {
                     # localise POST
                     $this_post = $_POST;
                     if ( isset( $this_post[ 'save_options' ] ) && $this->cmpstr( strtolower( $this_post[ 'save_options' ] ), 'save options' ) ) {
@@ -417,18 +416,6 @@ if ( class_exists( "pareto_functions" ) ):
             return $option[ $key ];
         }
         /**
-         * @param $input = string
-         * @return string
-         **/
-        function cleanRequestInput( $input = '' ) {
-            if ( function_exists( 'filter_var' ) && defined( 'FILTER_SANITIZE_STRING' ) ) {
-                if ( false !== ( bool ) filter_var( $input, FILTER_SANITIZE_STRING ) ) {
-                    return $input;
-                } else
-                    return false;
-            }
-        }
-        /**
          * @return void
          **/
         function render() {
@@ -446,6 +433,7 @@ if ( class_exists( "pareto_functions" ) ):
                 <div class="metabox-holder">
                     <div class="postbox-container" style="width: 99%;">
  <?php
+             $nonce = wp_create_nonce( 'edit-log-file_'.$post->ID );
             // Render metaboxes
             settings_fields( $this->settings_field );
             do_meta_boxes( $this->pagehook, 'main', null );
